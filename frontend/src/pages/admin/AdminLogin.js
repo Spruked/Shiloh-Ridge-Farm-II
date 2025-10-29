@@ -41,7 +41,7 @@ const AdminLogin = ({ onLogin }) => {
       <div className="bg-white rounded-2xl shadow-2xl p-8 md:p-12 w-full max-w-md">
         <div className="text-center mb-8">
           <img 
-            src="http://localhost:8000/images/ShilohRidgeFarmicon256.png" 
+            src="/ShilohRidgeFarmicon256.png" 
             alt="Shiloh Ridge Farm Icon"
             className="w-24 h-24 mx-auto mb-4"
             data-testid="admin-login-logo"

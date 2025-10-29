@@ -34,10 +34,10 @@ const KatahdinPage = () => {
 
       <section className="py-20 px-6 max-w-6xl mx-auto">
         <h1 className="text-4xl sm:text-5xl font-bold text-center mb-4 text-[#3d5a3d]">
-          Katahdin Sheep – Heritage, Culture, Performance & the Future of the Flock
+          Katahdins
         </h1>
         <p className="text-center text-gray-600 mb-12 text-lg max-w-4xl mx-auto">
-          A comprehensive guide to Katahdin hair sheep at Shiloh Ridge Farm
+          Premium Katahdin sheep at Shiloh Ridge Farm
         </p>
 
         {/* Table of Contents */}
