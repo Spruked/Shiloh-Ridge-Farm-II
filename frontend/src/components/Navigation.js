@@ -16,7 +16,7 @@ const Navigation = () => {
         <div className="flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3">
             <img 
-              src="http://localhost:8000/images/ShilohRidgeFarmicon256.png" 
+              src="/ShilohRidgeFarmicon256.png" 
               alt="Shiloh Ridge Farm" 
               className="w-16 h-16"
               data-testid="nav-logo"

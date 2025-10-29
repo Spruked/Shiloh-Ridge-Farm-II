@@ -41,7 +41,7 @@ const AboutPage = () => {
           <>
             <div className="text-center mb-16">
               <img 
-                src="http://localhost:8000/images/ShilohRidgeFarmicon256.png" 
+                src="/ShilohRidgeFarmicon256.png" 
                 alt="Shiloh Ridge Farm"
                 className="w-40 h-40 mx-auto mb-8"
                 data-testid="about-logo"

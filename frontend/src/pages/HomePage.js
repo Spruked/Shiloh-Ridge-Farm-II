@@ -43,7 +43,7 @@ const HomePage = () => {
         
         <div className="relative z-10 text-center text-white px-6 max-w-5xl fade-in-up">
           <img 
-            src="http://localhost:8000/images/ShilohRidgeFarmicon256.png" 
+            src="/ShilohRidgeFarmicon256.png" 
             alt="Shiloh Ridge Farm"
             className="w-56 h-56 mx-auto mb-8 drop-shadow-2xl"
             data-testid="farm-logo"

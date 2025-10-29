@@ -131,7 +131,7 @@ const NFTManagement = () => {
         <body>
           <div class="certificate">
             <div class="header">
-              <img src="http://localhost:8000/images/ShilohRidgeFarmicon256.png" alt="Shiloh Ridge Farm" class="logo">
+              <img src="/ShilohRidgeFarmicon256.png" alt="Shiloh Ridge Farm" class="logo">
               <h1 class="title">NFT Certificate of Ownership</h1>
               <p class="subtitle">Digital Livestock Registration</p>
             </div>

@@ -18,7 +18,7 @@ const AdminDashboard = ({ onLogout }) => {
         <div className="px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img 
-              src="http://localhost:8000/images/ShilohRidgeFarmicon256.png" 
+              src="/ShilohRidgeFarmicon256.png" 
               alt="Shiloh Ridge Farm"
               className="w-14 h-14"
               data-testid="admin-header-logo"

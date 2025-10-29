@@ -48,7 +48,7 @@ const BlogPage = () => {
         {/* Hero Image */}
         <div className="mb-12 text-center">
           <img 
-            src="http://localhost:8000/images/Sheep+Grazing+Sunset.webp" 
+            src="/Sheep+Grazing+Sunset.webp" 
             alt="Sheep grazing at sunset on Shiloh Ridge Farm" 
             className="rounded-2xl shadow-lg max-w-full h-auto mx-auto"
             style={{ maxHeight: '400px', objectFit: 'cover' }}

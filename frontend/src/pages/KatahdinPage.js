@@ -78,7 +78,7 @@ const KatahdinPage = () => {
               </div>
               <div className="text-center">
                 <img 
-                  src="http://localhost:8000/images/katahdin-sheep-grazing_orig.jpg" 
+                  src="/katahdin-sheep-grazing_orig.jpg" 
                   alt="Katahdin sheep grazing in pasture" 
                   className="rounded-lg shadow-lg max-w-full h-auto"
                 />
@@ -118,7 +118,7 @@ const KatahdinPage = () => {
               </div>
               <div className="text-center">
                 <img 
-                  src="http://localhost:8000/images/flockofdominicskatahdins.jpeg" 
+                  src="/flockofdominicskatahdins.jpeg" 
                   alt="Flock of Katahdin sheep" 
                   className="rounded-lg shadow-lg max-w-full h-auto"
                 />

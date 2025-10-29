@@ -298,7 +298,7 @@ const AuctionsPage = () => {
             </div>
             <div className="text-center">
               <img 
-                src="http://localhost:8000/images/pens-with-goats-hogs-and-sheep.webp" 
+                src="/pens-with-goats-hogs-and-sheep.webp" 
                 alt="Livestock at auction pens" 
                 className="rounded-lg shadow-lg max-w-full h-auto"
               />
