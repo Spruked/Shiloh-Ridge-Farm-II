@@ -88,7 +88,9 @@ The application includes robust offline functionality:
 
 ## 🚀 Deployment
 
-### Production Docker Deployment
+For comprehensive VPS deployment instructions, see [DEPLOY.md](DEPLOY.md).
+
+### Quick Docker Deployment
 
 ```bash
 # Build and deploy
