@@ -163,7 +163,7 @@ const HomePage = () => {
       )}
 
       {/* CTA Section */}
-      <section className="py-20 px-6 bg-linear-to-br from-[#3d5a3d] to-[#2d4a2d] text-white" data-testid="cta-section">
+      <section className="py-20 px-6 bg-gradient-to-br from-[#3d5a3d] to-[#2d4a2d] text-white" data-testid="cta-section">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-4xl sm:text-5xl font-bold mb-6" data-testid="cta-title">
             Ready to Expand Your Herd?

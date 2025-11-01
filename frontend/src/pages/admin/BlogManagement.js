@@ -25,6 +25,44 @@ const BlogManagement = () => {
   const fetchBlogData = async () => {
     try {
       const token = localStorage.getItem("admin_token");
+
+      // Skip API call in demo mode
+      if (token === "demo-token-2025") {
+        const savedBlogData = localStorage.getItem('admin_blog_data');
+        if (savedBlogData) {
+          const parsedBlogData = JSON.parse(savedBlogData);
+          setBlogData(parsedBlogData);
+          setFormData({
+            title: parsedBlogData.title || "Farm Blog",
+            posts: parsedBlogData.posts || []
+          });
+        } else {
+          // Demo data
+          const demoBlogData = {
+            title: "Farm Blog",
+            posts: [
+              {
+                id: 'demo-post-1',
+                title: 'Welcome to Shiloh Ridge Farm',
+                content: 'We are excited to share our journey and knowledge about Katahdin sheep farming. Our blog will feature updates on our livestock, farming tips, and insights into sustainable agriculture.',
+                author: 'Shiloh Ridge Farm',
+                published_date: new Date().toISOString().split('T')[0],
+                tags: ['welcome', 'introduction'],
+                featured: true
+              }
+            ]
+          };
+          setBlogData(demoBlogData);
+          setFormData({
+            title: demoBlogData.title,
+            posts: demoBlogData.posts
+          });
+          localStorage.setItem('admin_blog_data', JSON.stringify(demoBlogData));
+        }
+        setLoading(false);
+        return;
+      }
+
       const response = await axios.get(`${API}/blog`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -33,8 +71,24 @@ const BlogManagement = () => {
         title: response.data.title || "Farm Blog",
         posts: response.data.posts || []
       });
+      // Save to localStorage for persistence
+      localStorage.setItem('admin_blog_data', JSON.stringify(response.data));
     } catch (error) {
       console.error("Error fetching blog data:", error);
+      // Try to load from localStorage as fallback
+      const savedBlogData = localStorage.getItem('admin_blog_data');
+      if (savedBlogData) {
+        try {
+          const parsedBlogData = JSON.parse(savedBlogData);
+          setBlogData(parsedBlogData);
+          setFormData({
+            title: parsedBlogData.title || "Farm Blog",
+            posts: parsedBlogData.posts || []
+          });
+        } catch (parseError) {
+          console.error("Error parsing saved blog data:", parseError);
+        }
+      }
       toast.error("Failed to load blog data");
     } finally {
       setLoading(false);
@@ -45,6 +99,16 @@ const BlogManagement = () => {
     setSaving(true);
     try {
       const token = localStorage.getItem("admin_token");
+
+      // Demo mode handling
+      if (token === "demo-token-2025") {
+        localStorage.setItem('admin_blog_data', JSON.stringify(formData));
+        setBlogData(formData);
+        toast.success("Blog updated successfully! (Demo mode)");
+        setSaving(false);
+        return;
+      }
+
       await axios.put(`${API}/blog`, formData, {
         headers: { Authorization: `Bearer ${token}` }
       });

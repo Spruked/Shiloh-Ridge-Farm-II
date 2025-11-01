@@ -31,41 +31,45 @@ const ProductPage = () => {
       id: '1',
       name: 'Premium Katahdin Lamb',
       description: 'Whole or half lamb cuts from our premium Katahdin sheep. Grass-fed and pasture-raised.',
-      price: 8.50,
-      unit: 'per lb',
-      category: 'meat',
-      availability: 'Pre-order only',
-      min_order: 20
+      price_per_unit: 8.50,
+      unit: 'lb',
+      minimum_order: 20,
+      lead_time_days: 14,
+      inventory_count: 0,
+      is_available: true
     },
     {
       id: '2',
       name: 'Fresh Lamb Chops',
       description: 'Tender rib and loin chops from our Katahdin lambs. Perfect for grilling.',
-      price: 12.00,
-      unit: 'per lb',
-      category: 'meat',
-      availability: 'Pre-order only',
-      min_order: 2
+      price_per_unit: 12.00,
+      unit: 'lb',
+      minimum_order: 2,
+      lead_time_days: 7,
+      inventory_count: 0,
+      is_available: true
     },
     {
       id: '3',
       name: 'Ground Lamb',
       description: 'Fresh ground lamb from our pasture-raised Katahdin sheep. Great for burgers and meatballs.',
-      price: 9.00,
-      unit: 'per lb',
-      category: 'meat',
-      availability: 'Pre-order only',
-      min_order: 1
+      price_per_unit: 9.00,
+      unit: 'lb',
+      minimum_order: 1,
+      lead_time_days: 7,
+      inventory_count: 0,
+      is_available: true
     },
     {
       id: '4',
       name: 'Lamb Stew Meat',
       description: 'Tender stew meat cut from our premium Katahdin lambs.',
-      price: 8.00,
-      unit: 'per lb',
-      category: 'meat',
-      availability: 'Pre-order only',
-      min_order: 2
+      price_per_unit: 8.00,
+      unit: 'lb',
+      minimum_order: 2,
+      lead_time_days: 10,
+      inventory_count: 0,
+      is_available: true
     }
   ];
 
@@ -100,7 +104,8 @@ const ProductPage = () => {
   const getCartTotal = () => {
     return products.reduce((total, product) => {
       const quantity = cart[product.id] || 0;
-      return total + (quantity * product.price_per_unit);
+      const price = product.price_per_unit || product.price || 0;
+      return total + (quantity * price);
     }, 0);
   };
 
@@ -108,7 +113,7 @@ const ProductPage = () => {
     return products.filter(product => cart[product.id] > 0).map(product => ({
       product_id: product.id,
       quantity: cart[product.id],
-      price_per_unit: product.price_per_unit
+      price_per_unit: product.price_per_unit || product.price || 0
     }));
   };
 
@@ -240,7 +245,7 @@ const ProductPage = () => {
                   <CardDescription>{product.description}</CardDescription>
                 </div>
                 <Badge variant="secondary" className="ml-2">
-                  ${product.price_per_unit.toFixed(2)}/{product.unit}
+                  ${(product.price_per_unit || product.price || 0).toFixed(2)}/{product.unit || 'unit'}
                 </Badge>
               </div>
             </CardHeader>
@@ -248,17 +253,17 @@ const ProductPage = () => {
               <div className="space-y-4">
                 <div className="flex items-center text-sm text-gray-600">
                   <Package className="h-4 w-4 mr-2" />
-                  <span>Min Order: {product.minimum_order} {product.unit}</span>
+                  <span>Min Order: {product.minimum_order || product.min_order || 1} {product.unit || 'unit'}</span>
                 </div>
 
                 <div className="flex items-center text-sm text-gray-600">
                   <Clock className="h-4 w-4 mr-2" />
-                  <span>Lead Time: {product.lead_time_days} days</span>
+                  <span>Lead Time: {product.lead_time_days || 7} days</span>
                 </div>
 
                 {product.inventory_count > 0 && (
                   <div className="text-sm text-green-600">
-                    {product.inventory_count} {product.unit} available
+                    {product.inventory_count} {product.unit || 'unit'} available
                   </div>
                 )}
 
@@ -288,7 +293,7 @@ const ProductPage = () => {
 
                 {cart[product.id] > 0 && (
                   <div className="text-sm font-medium">
-                    Subtotal: ${(cart[product.id] * product.price_per_unit).toFixed(2)}
+                    Subtotal: ${((cart[product.id] || 0) * (product.price_per_unit || product.price || 0)).toFixed(2)}
                   </div>
                 )}
               </div>

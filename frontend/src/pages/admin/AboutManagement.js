@@ -24,11 +24,46 @@ const AboutManagement = () => {
 
   const fetchAboutContent = async () => {
     try {
+      const token = localStorage.getItem("admin_token");
+
+      // Skip API call in demo mode
+      if (token === "demo-token-2025") {
+        const savedContent = localStorage.getItem('admin_about_content');
+        if (savedContent) {
+          const parsedContent = JSON.parse(savedContent);
+          setFormData(parsedContent);
+        } else {
+          // Demo data
+          const demoContent = {
+            title: "About Shiloh Ridge Farm",
+            content: "Welcome to Shiloh Ridge Farm, a family-owned and operated livestock farm specializing in premium Katahdin sheep. We are committed to raising healthy, high-quality animals using sustainable farming practices.",
+            mission: "Our mission is to provide the highest quality Katahdin sheep while maintaining the health and welfare of our animals and preserving the natural beauty of our land.",
+            history: "Founded in 2020, Shiloh Ridge Farm has grown from a small family operation to a respected breeder of Katahdin sheep in the region."
+          };
+          setFormData(demoContent);
+          localStorage.setItem('admin_about_content', JSON.stringify(demoContent));
+        }
+        setLoading(false);
+        return;
+      }
+
       const response = await axios.get(`${API}/about`);
       setFormData(response.data);
+      // Save to localStorage for persistence
+      localStorage.setItem('admin_about_content', JSON.stringify(response.data));
       setLoading(false);
     } catch (error) {
       console.error("Error fetching about content:", error);
+      // Try to load from localStorage as fallback
+      const savedContent = localStorage.getItem('admin_about_content');
+      if (savedContent) {
+        try {
+          const parsedContent = JSON.parse(savedContent);
+          setFormData(parsedContent);
+        } catch (parseError) {
+          console.error("Error parsing saved about content:", parseError);
+        }
+      }
       setLoading(false);
     }
   };
@@ -41,6 +76,14 @@ const AboutManagement = () => {
     e.preventDefault();
     try {
       const token = localStorage.getItem("admin_token");
+
+      // Demo mode handling
+      if (token === "demo-token-2025") {
+        localStorage.setItem('admin_about_content', JSON.stringify(formData));
+        toast.success("About page updated successfully! (Demo mode)");
+        return;
+      }
+
       await axios.put(`${API}/about`, formData, {
         headers: { Authorization: `Bearer ${token}` }
       });

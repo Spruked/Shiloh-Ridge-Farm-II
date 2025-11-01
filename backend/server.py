@@ -8,6 +8,7 @@ import logging
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict, EmailStr
 from typing import List, Optional, Dict, Any
+import requests
 import uuid
 from datetime import datetime, timezone, timedelta
 import jwt
@@ -17,6 +18,11 @@ from fastapi.responses import FileResponse
 import tempfile
 from fpdf import FPDF
 
+# Import new routers
+from inventory import router as inventory_router, set_inventory_db
+from sales import router as sales_router, set_sales_db
+from accounting import router as accounting_router, set_accounting_db
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
@@ -24,6 +30,11 @@ load_dotenv(ROOT_DIR / '.env')
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
+
+# Initialize database connections for routers
+set_inventory_db(db)
+set_sales_db(db)
+set_accounting_db(db)
 
 # Create the main app
 app = FastAPI()
@@ -101,15 +112,19 @@ class Livestock(BaseModel):
 class LivestockCreate(BaseModel):
     animal_type: str  # sheep, hog, cattle, chicken, dog
     tag_number: str
+    name: Optional[str] = None  # Frontend sends this
     birth_type: Optional[str] = None  # Sg, Tw, Tr, Nat
     breeding_type: Optional[str] = None  # Nat, AI, ET
     genotype: Optional[str] = None  # RR, QR, QQ, N/A
     date_of_birth: Optional[str] = None
-    sex: Optional[str] = None  # R, E, M, F
+    sex: Optional[str] = None  # R, E, M, F - backend standard
+    gender: Optional[str] = None  # Frontend sends this, map to sex
     sire_name: Optional[str] = None
     sire_tag: Optional[str] = None
+    sire: Optional[str] = None  # Frontend sends this, map to sire_name
     dam_name: Optional[str] = None
     dam_tag: Optional[str] = None
+    dam: Optional[str] = None  # Frontend sends this, map to dam_name
     registration_number: Optional[str] = None
     flock_id: Optional[str] = None
     coat_type: Optional[str] = None  # A, B, C, N/A
@@ -124,6 +139,63 @@ class LivestockCreate(BaseModel):
     photos: List[str] = []
     description: Optional[str] = None
     health_records: Optional[str] = None
+
+class LivestockSale(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    livestock_id: str
+    animal_type: str
+    tag_number: str
+    buyer_name: str
+    buyer_address: str
+    buyer_phone: Optional[str] = None
+    buyer_email: Optional[str] = None
+    sale_price: float
+    sale_date: str
+    payment_method: str = "cash"  # cash, check, wire, card
+    payment_status: str = "completed"  # pending, completed, failed
+    bill_of_sale_generated: bool = False
+    notes: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class LivestockSaleCreate(BaseModel):
+    livestock_id: str
+    buyer_name: str
+    buyer_address: str
+    buyer_phone: Optional[str] = None
+    buyer_email: Optional[str] = None
+    sale_price: float
+    sale_date: str
+    payment_method: str = "cash"
+    payment_status: str = "completed"
+    notes: Optional[str] = None
+
+class AccountingRecord(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    type: str  # income, expense, asset, liability, equity
+    category: str  # livestock_sales, feed, veterinary, equipment, etc.
+    description: str
+    amount: float
+    date: str
+    reference_id: Optional[str] = None  # livestock_id, invoice_id, etc.
+    payment_method: Optional[str] = None
+    vendor_customer: Optional[str] = None
+    notes: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class AccountingRecordCreate(BaseModel):
+    type: str
+    category: str
+    description: str
+    amount: float
+    date: str
+    reference_id: Optional[str] = None
+    payment_method: Optional[str] = None
+    vendor_customer: Optional[str] = None
+    notes: Optional[str] = None
 
 class ContactForm(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -827,7 +899,20 @@ async def verify(username: str = Depends(verify_token)):
 # Livestock routes
 @api_router.post("/livestock", response_model=Livestock)
 async def create_livestock(livestock: LivestockCreate, username: str = Depends(verify_token)):
-    livestock_obj = Livestock(**livestock.model_dump())
+    data = livestock.model_dump()
+
+    # Map frontend fields to backend fields
+    if 'gender' in data and data['gender']:
+        data['sex'] = data['gender']
+        del data['gender']
+    if 'sire' in data and data['sire']:
+        data['sire_name'] = data['sire']
+        del data['sire']
+    if 'dam' in data and data['dam']:
+        data['dam_name'] = data['dam']
+        del data['dam']
+
+    livestock_obj = Livestock(**data)
     doc = livestock_obj.model_dump()
     doc['created_at'] = doc['created_at'].isoformat()
     doc['updated_at'] = doc['updated_at'].isoformat()
@@ -861,6 +946,21 @@ async def update_livestock(livestock_id: str, livestock: LivestockCreate, userna
     if not existing:
         raise HTTPException(status_code=404, detail="Livestock not found")
     update_data = livestock.model_dump()
+
+    # Map frontend fields to backend fields
+    if 'gender' in update_data and update_data['gender']:
+        update_data['sex'] = update_data['gender']
+        del update_data['gender']
+    if 'sire' in update_data and update_data['sire']:
+        update_data['sire_name'] = update_data['sire']
+        del update_data['sire']
+    if 'dam' in update_data and update_data['dam']:
+        update_data['dam_name'] = update_data['dam']
+        del update_data['dam']
+
+    # Remove None values to avoid overwriting existing data with None
+    update_data = {k: v for k, v in update_data.items() if v is not None}
+
     update_data['updated_at'] = datetime.now(timezone.utc).isoformat()
     await db.livestock.update_one({"id": livestock_id}, {"$set": update_data})
     updated = await db.livestock.find_one({"id": livestock_id}, {"_id": 0})
@@ -879,6 +979,113 @@ async def delete_livestock(livestock_id: str, username: str = Depends(verify_tok
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Livestock not found")
     return {"message": "Livestock deleted successfully"}
+
+# Sales and Accounting routes
+@api_router.post("/sales", response_model=LivestockSale)
+async def create_sale(sale: LivestockSaleCreate, username: str = Depends(verify_token)):
+    # Get livestock details for the sale record
+    livestock = await db.livestock.find_one({"id": sale.livestock_id}, {"_id": 0})
+    if not livestock:
+        raise HTTPException(status_code=404, detail="Livestock not found")
+
+    sale_obj = LivestockSale(
+        livestock_id=sale.livestock_id,
+        animal_type=livestock.get('animal_type', ''),
+        tag_number=livestock.get('tag_number', ''),
+        buyer_name=sale.buyer_name,
+        buyer_address=sale.buyer_address,
+        buyer_phone=sale.buyer_phone,
+        buyer_email=sale.buyer_email,
+        sale_price=sale.sale_price,
+        sale_date=sale.sale_date,
+        payment_method=sale.payment_method,
+        payment_status=sale.payment_status,
+        notes=sale.notes
+    )
+
+    doc = sale_obj.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    doc['updated_at'] = doc['updated_at'].isoformat()
+    await db.sales.insert_one(doc)
+
+    # Update livestock status to sold
+    await db.livestock.update_one(
+        {"id": sale.livestock_id},
+        {"$set": {"status": "sold", "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+
+    # Create accounting record for the sale
+    accounting_record = AccountingRecord(
+        type="income",
+        category="livestock_sales",
+        description=f"Sale of {livestock.get('animal_type', 'animal')} - Tag: {livestock.get('tag_number', '')}",
+        amount=sale.sale_price,
+        date=sale.sale_date,
+        reference_id=sale_obj.id,
+        payment_method=sale.payment_method,
+        vendor_customer=sale.buyer_name,
+        notes=f"Sale transaction - {sale.notes}" if sale.notes else "Sale transaction"
+    )
+    accounting_doc = accounting_record.model_dump()
+    accounting_doc['created_at'] = accounting_doc['created_at'].isoformat()
+    accounting_doc['updated_at'] = accounting_doc['updated_at'].isoformat()
+    await db.accounting.insert_one(accounting_doc)
+
+    return sale_obj
+
+@api_router.get("/sales", response_model=List[LivestockSale])
+async def get_all_sales(username: str = Depends(verify_token)):
+    sales = await db.sales.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    for sale in sales:
+        if isinstance(sale.get('created_at'), str):
+            sale['created_at'] = datetime.fromisoformat(sale['created_at'])
+        if isinstance(sale.get('updated_at'), str):
+            sale['updated_at'] = datetime.fromisoformat(sale['updated_at'])
+    return sales
+
+@api_router.get("/sales/{sale_id}", response_model=LivestockSale)
+async def get_sale(sale_id: str, username: str = Depends(verify_token)):
+    sale = await db.sales.find_one({"id": sale_id}, {"_id": 0})
+    if not sale:
+        raise HTTPException(status_code=404, detail="Sale record not found")
+    if isinstance(sale.get('created_at'), str):
+        sale['created_at'] = datetime.fromisoformat(sale['created_at'])
+    if isinstance(sale.get('updated_at'), str):
+        sale['updated_at'] = datetime.fromisoformat(sale['updated_at'])
+    return sale
+
+@api_router.post("/accounting", response_model=AccountingRecord)
+async def create_accounting_record(record: AccountingRecordCreate, username: str = Depends(verify_token)):
+    accounting_obj = AccountingRecord(**record.model_dump())
+    doc = accounting_obj.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    doc['updated_at'] = doc['updated_at'].isoformat()
+    await db.accounting.insert_one(doc)
+    return accounting_obj
+
+@api_router.get("/accounting", response_model=List[AccountingRecord])
+async def get_all_accounting_records(username: str = Depends(verify_token)):
+    records = await db.accounting.find({}, {"_id": 0}).sort("date", -1).to_list(1000)
+    for record in records:
+        if isinstance(record.get('created_at'), str):
+            record['created_at'] = datetime.fromisoformat(record['created_at'])
+        if isinstance(record.get('updated_at'), str):
+            record['updated_at'] = datetime.fromisoformat(record['updated_at'])
+    return records
+
+@api_router.get("/accounting/summary")
+async def get_accounting_summary(username: str = Depends(verify_token)):
+    pipeline = [
+        {
+            "$group": {
+                "_id": "$type",
+                "total": {"$sum": "$amount"},
+                "count": {"$sum": 1}
+            }
+        }
+    ]
+    summary = await db.accounting.aggregate(pipeline).to_list(100)
+    return {"summary": summary}
 
 # Contact routes
 # Dedicated transfer contact form endpoint
@@ -1312,13 +1519,42 @@ async def download_document(document_id: str):
         media_type=document['mime_type']
     )
 
-# Mock ticker data
+# Ticker data from USDA API
 @api_router.get("/ticker")
 async def get_ticker_data():
+    api_key = "oNddPB1myQQsx2uxEjvwsitbu5hzeIN7SHk22EhC"
+    base_url = "https://quickstats.nass.usda.gov/api/api_GET/"
+    
+    def fetch_price(commodity, unit):
+        params = {
+            "key": api_key,
+            "commodity_desc": commodity,
+            "statisticcat_desc": "PRICE RECEIVED",
+            "unit_desc": unit,
+            "year": "2024",  # or current year
+            "freq_desc": "ANNUAL"
+        }
+        try:
+            response = requests.get(base_url, params=params, timeout=10)
+            data = response.json()
+            if data and 'data' in data and data['data']:
+                # Get the latest value
+                latest = max(data['data'], key=lambda x: x.get('year', 0))
+                price = float(latest.get('Value', 0))
+                return price
+        except:
+            pass
+        return None
+    
+    sheep_price = fetch_price("SHEEP", "$ / LB") or 2.85
+    hog_price = fetch_price("HOGS", "$ / CWT") or 95.50
+    cattle_price = fetch_price("CATTLE", "$ / CWT") or 185.75
+    
+    # For change, mock for now
     return {
-        "sheep": {"price": 2.85, "change": 0.05, "updated": datetime.now(timezone.utc).isoformat()},
-        "hog": {"price": 95.50, "change": -1.25, "updated": datetime.now(timezone.utc).isoformat()},
-        "cattle": {"price": 185.75, "change": 2.30, "updated": datetime.now(timezone.utc).isoformat()}
+        "sheep": {"price": sheep_price, "change": 0.05, "updated": datetime.now(timezone.utc).isoformat()},
+        "hog": {"price": hog_price, "change": -1.25, "updated": datetime.now(timezone.utc).isoformat()},
+        "cattle": {"price": cattle_price, "change": 2.30, "updated": datetime.now(timezone.utc).isoformat()}
     }
 
 # Image upload
@@ -1331,8 +1567,11 @@ async def upload_image(file: UploadFile = File(...), username: str = Depends(ver
     # Return data URL
     return {"url": f"data:{file.content_type};base64,{base64_image}"}
 
-# Include router
+# Include routers
 app.include_router(api_router)
+app.include_router(inventory_router)
+app.include_router(sales_router)
+app.include_router(accounting_router)
 
 # Mount static files
 from fastapi.staticfiles import StaticFiles
@@ -1355,3 +1594,7 @@ logger = logging.getLogger(__name__)
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

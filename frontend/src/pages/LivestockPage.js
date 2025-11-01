@@ -30,10 +30,23 @@ const LivestockPage = () => {
   const fetchLivestock = async () => {
     try {
       const response = await axios.get(`${API}/livestock`);
-      setLivestock(response.data.filter(l => l.status === "available"));
+      const availableLivestock = response.data.filter(l => l.status === "available");
+      setLivestock(availableLivestock);
+      // Save to localStorage for persistence
+      localStorage.setItem('livestock_data', JSON.stringify(availableLivestock));
       setLoading(false);
     } catch (error) {
       console.error("Error fetching livestock:", error);
+      // Try to load from localStorage as fallback
+      const savedLivestock = localStorage.getItem('livestock_data');
+      if (savedLivestock) {
+        try {
+          const parsedLivestock = JSON.parse(savedLivestock);
+          setLivestock(parsedLivestock);
+        } catch (parseError) {
+          console.error("Error parsing saved livestock data:", parseError);
+        }
+      }
       setLoading(false);
     }
   };

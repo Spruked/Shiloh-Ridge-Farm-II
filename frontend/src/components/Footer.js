@@ -49,7 +49,7 @@ const Footer = () => {
         
         <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
           <p data-testid="footer-copyright">© {new Date().getFullYear()} Shiloh Ridge Farm. All rights reserved.</p>
-          <p className="text-xs mt-2">&copy; {new Date().getFullYear()} Shiloh Ridge Farm. All rights reserved.</p>
+          <p className="text-xs mt-2">Website by <a href="https://spruked.com" target="_blank" rel="noopener noreferrer" className="text-blue-300 hover:text-blue-200">Spruked.com</a> - Websites and web applications you can count on! Featuring AI and NFT integration.</p>
         </div>
       </div>
     </footer>

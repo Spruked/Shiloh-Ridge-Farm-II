@@ -59,7 +59,7 @@ const Navigation = () => {
               className={`font-medium transition-colors ${isActive('/katahdin') ? 'text-[#3d5a3d]' : 'text-gray-700 hover:text-[#3d5a3d]'}`}
               data-testid="nav-katahdin"
             >
-              Katahdin Info
+              Katahdin
             </Link>
             <Link 
               to="/blog" 
@@ -132,7 +132,7 @@ const Navigation = () => {
               About
             </Link>
             <Link to="/katahdin" className="block font-medium text-gray-700 hover:text-[#3d5a3d]" data-testid="mobile-nav-katahdin">
-              Katahdin Info
+              Katahdin
             </Link>
             <Link to="/blog" className="block font-medium text-gray-700 hover:text-[#3d5a3d]" data-testid="mobile-nav-blog">
               Blog

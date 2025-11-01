@@ -9,6 +9,9 @@ import NFTManagement from "./NFTManagement";
 import ProductManagement from "./ProductManagement";
 import OrderManagement from "./OrderManagement";
 import BlogManagement from "./BlogManagement";
+import InventoryPage from "./InventoryPage";
+import SalesPage from "./SalesPage";
+import AccountingPage from "./AccountingPage";
 
 const AdminDashboard = ({ onLogout }) => {
   return (
@@ -58,8 +61,11 @@ const AdminDashboard = ({ onLogout }) => {
           </button>
         </div>
         <Tabs defaultValue="livestock" className="w-full" data-testid="admin-tabs">
-          <TabsList className="grid w-full grid-cols-8 mb-8 bg-white rounded-lg p-1" data-testid="admin-tabs-list">
+          <TabsList className="flex flex-wrap h-auto bg-white rounded-lg p-1" data-testid="admin-tabs-list">
             <TabsTrigger value="livestock" className="rounded-md" data-testid="admin-tab-livestock">Livestock</TabsTrigger>
+            <TabsTrigger value="inventory" className="rounded-md" data-testid="admin-tab-inventory">Inventory</TabsTrigger>
+            <TabsTrigger value="sales" className="rounded-md" data-testid="admin-tab-sales">Sales</TabsTrigger>
+            <TabsTrigger value="accounting" className="rounded-md" data-testid="admin-tab-accounting">Accounting</TabsTrigger>
             <TabsTrigger value="products" className="rounded-md" data-testid="admin-tab-products">Products</TabsTrigger>
             <TabsTrigger value="orders" className="rounded-md" data-testid="admin-tab-orders">Orders</TabsTrigger>
             <TabsTrigger value="contact" className="rounded-md" data-testid="admin-tab-contact">Contact</TabsTrigger>
@@ -71,6 +77,18 @@ const AdminDashboard = ({ onLogout }) => {
 
           <TabsContent value="livestock">
             <LivestockManagement />
+          </TabsContent>
+
+          <TabsContent value="inventory">
+            <InventoryPage />
+          </TabsContent>
+
+          <TabsContent value="sales">
+            <SalesPage />
+          </TabsContent>
+
+          <TabsContent value="accounting">
+            <AccountingPage />
           </TabsContent>
 
           <TabsContent value="products">

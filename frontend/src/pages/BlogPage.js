@@ -20,9 +20,21 @@ const BlogPage = () => {
     try {
       const response = await axios.get(`${API}/blog`);
       setBlogData(response.data);
+      // Save to localStorage for persistence
+      localStorage.setItem('blog_data', JSON.stringify(response.data));
       setLoading(false);
     } catch (error) {
       console.error("Error fetching blog data:", error);
+      // Try to load from localStorage as fallback
+      const savedBlogData = localStorage.getItem('blog_data');
+      if (savedBlogData) {
+        try {
+          const parsedBlogData = JSON.parse(savedBlogData);
+          setBlogData(parsedBlogData);
+        } catch (parseError) {
+          console.error("Error parsing saved blog data:", parseError);
+        }
+      }
       setLoading(false);
     }
   };

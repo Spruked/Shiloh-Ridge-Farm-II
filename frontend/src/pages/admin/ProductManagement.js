@@ -34,6 +34,46 @@ const ProductManagement = () => {
   const fetchProducts = async () => {
     try {
       const token = localStorage.getItem('admin_token');
+
+      // Skip API call in demo mode
+      if (token === "demo-token-2025") {
+        const savedProducts = localStorage.getItem('admin_products_data');
+        if (savedProducts) {
+          const parsedProducts = JSON.parse(savedProducts);
+          setProducts(parsedProducts);
+        } else {
+          // Demo data
+          const demoProducts = [
+            {
+              id: 'demo-product-1',
+              name: 'Premium Katahdin Lamb',
+              description: 'Whole or half lamb cuts from our premium Katahdin sheep.',
+              price_per_unit: 8.50,
+              unit: 'lb',
+              minimum_order: 20,
+              lead_time_days: 14,
+              inventory_count: 0,
+              is_available: true
+            },
+            {
+              id: 'demo-product-2',
+              name: 'Fresh Lamb Chops',
+              description: 'Tender rib and loin chops from our Katahdin lambs.',
+              price_per_unit: 12.00,
+              unit: 'lb',
+              minimum_order: 2,
+              lead_time_days: 7,
+              inventory_count: 0,
+              is_available: true
+            }
+          ];
+          setProducts(demoProducts);
+          localStorage.setItem('admin_products_data', JSON.stringify(demoProducts));
+        }
+        setLoading(false);
+        return;
+      }
+
       const response = await fetch('http://localhost:8000/api/products', {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -46,8 +86,20 @@ const ProductManagement = () => {
 
       const data = await response.json();
       setProducts(data);
+      // Save to localStorage for persistence
+      localStorage.setItem('admin_products_data', JSON.stringify(data));
     } catch (err) {
       setError(err.message);
+      // Try to load from localStorage as fallback
+      const savedProducts = localStorage.getItem('admin_products_data');
+      if (savedProducts) {
+        try {
+          const parsedProducts = JSON.parse(savedProducts);
+          setProducts(parsedProducts);
+        } catch (parseError) {
+          console.error("Error parsing saved products data:", parseError);
+        }
+      }
     } finally {
       setLoading(false);
     }
@@ -58,6 +110,49 @@ const ProductManagement = () => {
 
     try {
       const token = localStorage.getItem('admin_token');
+
+      // Demo mode handling
+      if (token === "demo-token-2025") {
+        const currentProducts = JSON.parse(localStorage.getItem('admin_products_data') || '[]');
+
+        if (editingProduct) {
+          // Update existing product
+          const updatedProducts = currentProducts.map(product =>
+            product.id === editingProduct.id
+              ? {
+                  ...product,
+                  ...formData,
+                  price_per_unit: parseFloat(formData.price_per_unit),
+                  minimum_order: parseInt(formData.minimum_order),
+                  lead_time_days: parseInt(formData.lead_time_days),
+                  inventory_count: parseInt(formData.inventory_count)
+                }
+              : product
+          );
+          localStorage.setItem('admin_products_data', JSON.stringify(updatedProducts));
+          setProducts(updatedProducts);
+        } else {
+          // Add new product
+          const newProduct = {
+            id: `demo-product-${Date.now()}`,
+            ...formData,
+            price_per_unit: parseFloat(formData.price_per_unit),
+            minimum_order: parseInt(formData.minimum_order),
+            lead_time_days: parseInt(formData.lead_time_days),
+            inventory_count: parseInt(formData.inventory_count)
+          };
+          const updatedProducts = [...currentProducts, newProduct];
+          localStorage.setItem('admin_products_data', JSON.stringify(updatedProducts));
+          setProducts(updatedProducts);
+        }
+
+        alert('Product saved successfully! (Demo mode)');
+        setShowForm(false);
+        setEditingProduct(null);
+        resetForm();
+        return;
+      }
+
       const url = editingProduct
         ? `http://localhost:8000/api/products/${editingProduct.id}`
         : 'http://localhost:8000/api/products';
@@ -114,6 +209,17 @@ const ProductManagement = () => {
 
     try {
       const token = localStorage.getItem('admin_token');
+
+      // Demo mode handling
+      if (token === "demo-token-2025") {
+        const currentProducts = JSON.parse(localStorage.getItem('admin_products_data') || '[]');
+        const updatedProducts = currentProducts.filter(product => product.id !== productId);
+        localStorage.setItem('admin_products_data', JSON.stringify(updatedProducts));
+        setProducts(updatedProducts);
+        alert('Product deleted successfully! (Demo mode)');
+        return;
+      }
+
       const response = await fetch(`http://localhost:8000/api/products/${productId}`, {
         method: 'DELETE',
         headers: {

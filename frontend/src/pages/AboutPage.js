@@ -19,9 +19,21 @@ const AboutPage = () => {
     try {
       const response = await axios.get(`${API}/about`);
       setContent(response.data);
+      // Save to localStorage for persistence
+      localStorage.setItem('about_content', JSON.stringify(response.data));
       setLoading(false);
     } catch (error) {
       console.error("Error fetching about content:", error);
+      // Try to load from localStorage as fallback
+      const savedContent = localStorage.getItem('about_content');
+      if (savedContent) {
+        try {
+          const parsedContent = JSON.parse(savedContent);
+          setContent(parsedContent);
+        } catch (parseError) {
+          console.error("Error parsing saved about content:", parseError);
+        }
+      }
       setLoading(false);
     }
   };

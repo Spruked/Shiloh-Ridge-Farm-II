@@ -1,23 +1,159 @@
+# Shiloh Ridge Farm - Complete Farm Management System
 
-# Shiloh Ridge Farm - Livestock Management Website
+A full-stack web application for Shiloh Ridge Farm, featuring livestock management, product sales, blog content, and comprehensive admin dashboard.
 
-![MIT License](https://img.shields.io/badge/license-MIT-green)
+## 🚀 Quick Start
 
+### Option 1: Docker (Recommended - Most Reliable)
 
-A comprehensive full-stack web application for managing and showcasing Katahdin sheep, live hogs, and select cattle with complete registration and bloodline documentation.
+```bash
+# Make sure Docker is running, then:
+docker-compose up --build -d
 
-## Licensing
+# Wait for services to be healthy (about 2-3 minutes)
+# Then open: http://localhost:3000
+```
 
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+### Option 2: Local Development
 
+```bash
+# Backend (requires MongoDB running locally)
+cd backend
+pip install -r requirements.txt
+python -m uvicorn server:app --host 0.0.0.0 --port 8000 --reload
 
-## Features
+# Frontend (in another terminal)
+cd frontend
+npm install
+npm start
+```
 
-### Public-Facing Website
+## 🔐 Admin Access
 
-- **Home Page**: Beautiful hero section with farm branding and featured livestock
-- **Livestock Inventory**: Browse available animals with search and filter capabilities
-- **Detailed Animal Profiles**: Complete information including registration, bloodline, health records, pricing
+- **URL:** http://localhost:3000/admin
+- **Username:** admin
+- **Password:** admin123
+- **Features:** Full CRUD operations for livestock, products, blog, and about content
+
+## ✨ Features
+
+### 🏠 Public Features
+- **Home Page:** Welcome and farm overview
+- **Livestock:** Browse available Katahdin sheep
+- **Products:** Farm products and ordering system
+- **Blog:** Farm news and educational content
+- **About:** Farm history and mission
+- **Auctions:** Regional livestock auction information
+
+### 🔧 Admin Features
+- **Dashboard:** Complete management interface
+- **Livestock Management:** Add/edit/delete sheep inventory
+- **Product Management:** Manage farm products and pricing
+- **Blog Management:** Create and edit blog posts
+- **About Management:** Update farm information
+- **Data Persistence:** All changes saved locally when backend unavailable
+
+## 🛠️ Tech Stack
+
+- **Frontend:** React 19, Tailwind CSS, Shadcn/UI
+- **Backend:** FastAPI, MongoDB, JWT Authentication
+- **Deployment:** Docker, Docker Compose
+- **Offline Support:** localStorage fallback for all data
+
+## 📁 Project Structure
+
+```
+├── backend/          # FastAPI server
+│   ├── server.py     # Main API server
+│   ├── requirements.txt
+│   └── documents/    # File storage
+├── frontend/         # React application
+│   ├── src/
+│   │   ├── pages/    # Route components
+│   │   ├── components/ # Reusable UI components
+│   │   └── App.js    # Main app component
+│   └── package.json
+├── docker-compose.yml # Docker orchestration
+└── README.md
+```
+
+## 🔄 Data Persistence
+
+The application includes robust offline functionality:
+
+- **localStorage Fallback:** When backend is unavailable, all data is stored locally
+- **Demo Mode:** Full admin functionality works without backend
+- **Data Synchronization:** Changes persist across browser sessions
+- **Graceful Degradation:** Site remains fully functional offline
+
+## 🚀 Deployment
+
+### Production Docker Deployment
+
+```bash
+# Build and deploy
+docker-compose up --build -d
+
+# Check service health
+docker-compose ps
+
+# View logs
+docker-compose logs -f [service-name]
+```
+
+### Environment Variables
+
+Create `.env` file in project root:
+
+```env
+# MongoDB
+MONGO_URL=mongodb://admin:password123@mongodb:27017/shilohridgefarm?authSource=admin
+DB_NAME=shilohridgefarm
+
+# JWT
+JWT_SECRET=your-secret-key-here
+
+# CORS
+CORS_ORIGINS=http://localhost:3000,http://frontend:3000
+```
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+1. **"Failed to fetch" errors:**
+   - Backend not running → Use demo mode (admin/admin123)
+   - Check Docker services: `docker-compose ps`
+
+2. **MongoDB connection issues:**
+   - Ensure MongoDB container is healthy
+   - Check connection string in `.env`
+
+3. **Port conflicts:**
+   - Frontend: http://localhost:3000
+   - Backend: http://localhost:8000
+   - MongoDB: localhost:27017
+
+### Reset Everything
+
+```bash
+# Stop and remove all containers
+docker-compose down -v
+
+# Clean rebuild
+docker-compose up --build --force-recreate
+```
+
+## 📞 Support
+
+For technical support or questions:
+- Check the admin demo mode for full functionality testing
+- All data persists locally when backend is unavailable
+- Docker setup provides the most reliable deployment
+
+---
+
+**© 2025 Shiloh Ridge Farm - Professional Farm Management System**
 - **About Page**: Farm history, mission, and values
 - **Blog**: Educational content and farm updates with admin editing capabilities
 - **Katahdin Information Page**: Comprehensive breed guide with structured content and navigation

@@ -49,12 +49,80 @@ const LivestockManagement = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem("admin_token");
+
+      // Skip API call in demo mode
+      if (token === "demo-token-2025") {
+        const savedLivestock = localStorage.getItem('admin_livestock_data');
+        if (savedLivestock) {
+          const parsedLivestock = JSON.parse(savedLivestock);
+          setLivestock(parsedLivestock);
+        } else {
+          // Demo data
+          setLivestock([
+            {
+              id: 'demo-1',
+              animal_type: 'sheep',
+              tag_number: 'DEMO001',
+              name: 'Demo Sheep',
+              date_of_birth: '2023-01-01',
+              weight: 150,
+              color: 'White',
+              registration_number: 'DEMO123',
+              bloodline: 'Demo Line',
+              sire: 'Demo Sire',
+              dam: 'Demo Dam',
+              gender: 'female',
+              price: 250,
+              status: 'available',
+              description: 'Demo sheep for testing',
+              health_records: 'Healthy',
+              photos: []
+            }
+          ]);
+          localStorage.setItem('admin_livestock_data', JSON.stringify([
+            {
+              id: 'demo-1',
+              animal_type: 'sheep',
+              tag_number: 'DEMO001',
+              name: 'Demo Sheep',
+              date_of_birth: '2023-01-01',
+              weight: 150,
+              color: 'White',
+              registration_number: 'DEMO123',
+              bloodline: 'Demo Line',
+              sire: 'Demo Sire',
+              dam: 'Demo Dam',
+              gender: 'female',
+              price: 250,
+              status: 'available',
+              description: 'Demo sheep for testing',
+              health_records: 'Healthy',
+              photos: []
+            }
+          ]));
+        }
+        setLoading(false);
+        return;
+      }
+
       const response = await axios.get(`${API}/livestock`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setLivestock(response.data);
+      // Save to localStorage for persistence
+      localStorage.setItem('admin_livestock_data', JSON.stringify(response.data));
     } catch (error) {
       console.error("Error fetching livestock:", error);
+      // Try to load from localStorage as fallback
+      const savedLivestock = localStorage.getItem('admin_livestock_data');
+      if (savedLivestock) {
+        try {
+          const parsedLivestock = JSON.parse(savedLivestock);
+          setLivestock(parsedLivestock);
+        } catch (parseError) {
+          console.error("Error parsing saved livestock data:", parseError);
+        }
+      }
     }
     setLoading(false);
   };
@@ -117,6 +185,38 @@ const LivestockManagement = () => {
         price: formData.price ? parseFloat(formData.price) : null
       };
 
+      // Demo mode handling
+      if (token === "demo-token-2025") {
+        const currentLivestock = JSON.parse(localStorage.getItem('admin_livestock_data') || '[]');
+
+        if (editingAnimal) {
+          // Update existing animal
+          const updatedLivestock = currentLivestock.map(animal =>
+            animal.id === editingAnimal.id
+              ? { ...animal, ...submitData, id: editingAnimal.id }
+              : animal
+          );
+          localStorage.setItem('admin_livestock_data', JSON.stringify(updatedLivestock));
+          setLivestock(updatedLivestock);
+          toast.success("Livestock updated successfully! (Demo mode)");
+        } else {
+          // Add new animal
+          const newAnimal = {
+            ...submitData,
+            id: `demo-animal-${Date.now()}`,
+            photos: []
+          };
+          const updatedLivestock = [...currentLivestock, newAnimal];
+          localStorage.setItem('admin_livestock_data', JSON.stringify(updatedLivestock));
+          setLivestock(updatedLivestock);
+          toast.success("Livestock added successfully! (Demo mode)");
+        }
+
+        setIsDialogOpen(false);
+        resetForm();
+        return;
+      }
+
       if (editingAnimal) {
         await axios.put(`${API}/livestock/${editingAnimal.id}`, submitData, {
           headers: { Authorization: `Bearer ${token}` }
@@ -166,6 +266,17 @@ const LivestockManagement = () => {
 
     try {
       const token = localStorage.getItem("admin_token");
+
+      // Demo mode handling
+      if (token === "demo-token-2025") {
+        const currentLivestock = JSON.parse(localStorage.getItem('admin_livestock_data') || '[]');
+        const updatedLivestock = currentLivestock.filter(animal => animal.id !== id);
+        localStorage.setItem('admin_livestock_data', JSON.stringify(updatedLivestock));
+        setLivestock(updatedLivestock);
+        toast.success("Livestock deleted successfully! (Demo mode)");
+        return;
+      }
+
       await axios.delete(`${API}/livestock/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });

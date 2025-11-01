@@ -24,6 +24,13 @@ function App() {
     const validateToken = async () => {
       const token = localStorage.getItem("admin_token");
       if (token) {
+        // Handle demo token
+        if (token === "demo-token-2025") {
+          setIsAuthenticated(true);
+          setAuthLoading(false);
+          return;
+        }
+
         try {
           // Validate token with backend
           const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/auth/verify`, {
