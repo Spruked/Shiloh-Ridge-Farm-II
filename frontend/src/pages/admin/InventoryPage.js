@@ -21,8 +21,8 @@ const InventoryPage = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterType, setFilterType] = useState("");
-  const [filterStatus, setFilterStatus] = useState("");
+  const [filterType, setFilterType] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
   const [healthDialog, setHealthDialog] = useState(false);
   const [selectedAnimal, setSelectedAnimal] = useState(null);
 
@@ -312,8 +312,8 @@ const InventoryPage = () => {
     const matchesSearch = item.animal_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          item.breed.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          item.bloodline.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = !filterType || item.animal_type === filterType;
-    const matchesStatus = !filterStatus || item.status === filterStatus;
+    const matchesType = filterType === "all" || item.animal_type === filterType;
+    const matchesStatus = filterStatus === "all" || item.status === filterStatus;
     return matchesSearch && matchesType && matchesStatus;
   });
 
@@ -333,8 +333,8 @@ const InventoryPage = () => {
     try {
       const token = localStorage.getItem("admin_token");
       const params = new URLSearchParams();
-      if (filterType) params.append('animal_type', filterType);
-      if (filterStatus) params.append('status', filterStatus);
+      if (filterType && filterType !== "all") params.append('animal_type', filterType);
+      if (filterStatus && filterStatus !== "all") params.append('status', filterStatus);
 
       const response = await axios.get(`${API}/inventory/export/csv?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -359,8 +359,8 @@ const InventoryPage = () => {
     try {
       const token = localStorage.getItem("admin_token");
       const params = new URLSearchParams();
-      if (filterType) params.append('animal_type', filterType);
-      if (filterStatus) params.append('status', filterStatus);
+      if (filterType && filterType !== "all") params.append('animal_type', filterType);
+      if (filterStatus && filterStatus !== "all") params.append('status', filterStatus);
 
       const response = await axios.get(`${API}/inventory/export/pdf?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -633,7 +633,7 @@ const InventoryPage = () => {
                 <SelectValue placeholder="All Types" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Types</SelectItem>
+                <SelectItem value="all">All Types</SelectItem>
                 <SelectItem value="sheep">Sheep</SelectItem>
                 <SelectItem value="hog">Hog</SelectItem>
                 <SelectItem value="cattle">Cattle</SelectItem>
@@ -646,7 +646,7 @@ const InventoryPage = () => {
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Statuses</SelectItem>
+                <SelectItem value="all">All Statuses</SelectItem>
                 <SelectItem value="available">Available</SelectItem>
                 <SelectItem value="weaned">Weaned</SelectItem>
                 <SelectItem value="breeding">Breeding</SelectItem>

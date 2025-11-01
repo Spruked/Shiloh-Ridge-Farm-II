@@ -24,7 +24,7 @@ const SalesPage = () => {
   const [isCustomerDialogOpen, setIsCustomerDialogOpen] = useState(false);
   const [editingSale, setEditingSale] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
 
   const [customerForm, setCustomerForm] = useState({
     name: "",
@@ -294,7 +294,7 @@ const SalesPage = () => {
   const filteredSales = sales.filter(sale => {
     const matchesSearch = sale.invoice_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          sale.customer_info?.name?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = !filterStatus || sale.payment_status === filterStatus;
+    const matchesStatus = filterStatus === "all" || sale.payment_status === filterStatus;
     return matchesSearch && matchesStatus;
   });
 
@@ -303,7 +303,7 @@ const SalesPage = () => {
       const token = localStorage.getItem("admin_token");
       const params = new URLSearchParams();
       if (searchTerm) params.append('search', searchTerm);
-      if (filterStatus) params.append('status', filterStatus);
+      if (filterStatus && filterStatus !== "all") params.append('status', filterStatus);
 
       const response = await axios.get(`${API}/sales/export/csv?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -329,7 +329,7 @@ const SalesPage = () => {
       const token = localStorage.getItem("admin_token");
       const params = new URLSearchParams();
       if (searchTerm) params.append('search', searchTerm);
-      if (filterStatus) params.append('status', filterStatus);
+      if (filterStatus && filterStatus !== "all") params.append('status', filterStatus);
 
       const response = await axios.get(`${API}/sales/export/pdf?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -689,7 +689,7 @@ const SalesPage = () => {
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Statuses</SelectItem>
+                <SelectItem value="all">All Statuses</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
                 <SelectItem value="paid">Paid</SelectItem>
                 <SelectItem value="overdue">Overdue</SelectItem>

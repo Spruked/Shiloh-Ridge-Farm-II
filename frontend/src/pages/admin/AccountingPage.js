@@ -25,7 +25,7 @@ const AccountingPage = () => {
   const [editingExpense, setEditingExpense] = useState(null);
   const [editingRevenue, setEditingRevenue] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterCategory, setFilterCategory] = useState("");
+  const [filterCategory, setFilterCategory] = useState("all");
   const [financialSummary, setFinancialSummary] = useState(null);
 
   const [expenseForm, setExpenseForm] = useState({
@@ -284,14 +284,14 @@ const AccountingPage = () => {
   const filteredExpenses = expenses.filter(expense => {
     const matchesSearch = expense.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          expense.vendor_supplier.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = !filterCategory || expense.category === filterCategory;
+    const matchesCategory = filterCategory === "all" || expense.category === filterCategory;
     return matchesSearch && matchesCategory;
   });
 
   const filteredRevenue = revenue.filter(rev => {
     const matchesSearch = rev.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          rev.source.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = !filterCategory || rev.type === filterCategory;
+    const matchesCategory = filterCategory === "all" || rev.type === filterCategory;
     return matchesSearch && matchesCategory;
   });
 
@@ -706,7 +706,7 @@ const AccountingPage = () => {
                     <SelectValue placeholder="All Categories" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Categories</SelectItem>
+                    <SelectItem value="all">All Categories</SelectItem>
                     <SelectItem value="feed_supplements">Feed & Supplements</SelectItem>
                     <SelectItem value="veterinary_health">Veterinary & Health</SelectItem>
                     <SelectItem value="equipment_supplies">Equipment & Supplies</SelectItem>
@@ -794,7 +794,7 @@ const AccountingPage = () => {
                     <SelectValue placeholder="All Types" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Types</SelectItem>
+                    <SelectItem value="all">All Types</SelectItem>
                     <SelectItem value="livestock_sales">Livestock Sales</SelectItem>
                     <SelectItem value="wool_fiber">Wool & Fiber</SelectItem>
                     <SelectItem value="milk_products">Milk Products</SelectItem>
