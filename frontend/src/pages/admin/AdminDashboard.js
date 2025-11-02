@@ -12,6 +12,7 @@ import BlogManagement from "./BlogManagement";
 import InventoryPage from "./InventoryPage";
 import SalesPage from "./SalesPage";
 import AccountingPage from "./AccountingPage";
+import logo from "../../../public/ShilohRidgeFarmicon256.png";
 
 const AdminDashboard = ({ onLogout }) => {
   return (
@@ -21,9 +22,9 @@ const AdminDashboard = ({ onLogout }) => {
         <div className="px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img 
-              src="/ShilohRidgeFarmicon256.png" 
+              src={logo} 
               alt="Shiloh Ridge Farm"
-              className="w-14 h-14"
+              className="w-16 h-16"
               data-testid="admin-header-logo"
             />
             <h1 className="text-2xl font-bold text-[#3d5a3d]" data-testid="admin-header-title">Admin Dashboard</h1>

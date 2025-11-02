@@ -5,6 +5,7 @@ import { Button } from "../../components/ui/buttons";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { toast } from "sonner";
+import logo from "../../../public/ShilohRidgeFarmicon256.png";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -59,9 +60,9 @@ const AdminLogin = ({ onLogin }) => {
       <div className="bg-white rounded-2xl shadow-2xl p-8 md:p-12 w-full max-w-md">
         <div className="text-center mb-8">
           <img 
-            src="/ShilohRidgeFarmicon256.png" 
+            src={logo} 
             alt="Shiloh Ridge Farm Icon"
-            className="w-24 h-24 mx-auto mb-4"
+            className="w-28 h-28 mx-auto mb-4"
             data-testid="admin-login-logo"
           />
           <h1 className="text-3xl font-bold text-[#3d5a3d]" data-testid="admin-login-title">Admin Login</h1>
