@@ -298,6 +298,16 @@ const SalesPage = () => {
     return matchesSearch && matchesStatus;
   });
 
+  const getStatusBadge = (status) => {
+    const variants = {
+      pending: "outline",
+      paid: "default",
+      overdue: "destructive",
+      cancelled: "secondary"
+    };
+    return <Badge variant={variants[status] || "default"}>{status}</Badge>;
+  };
+
   const handleExportCSV = async () => {
     try {
       const token = localStorage.getItem("admin_token");
