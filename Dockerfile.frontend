@@ -22,6 +22,7 @@ FROM node:20.13.1-bookworm-slim AS runtime
 
 WORKDIR /app
 
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 RUN npm install -g serve
 
 COPY --from=build /app/build ./build

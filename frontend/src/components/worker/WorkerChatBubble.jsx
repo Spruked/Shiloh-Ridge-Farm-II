@@ -12,9 +12,10 @@ import {
   ThumbsUp,
   X
 } from 'lucide-react';
+import { getApiBaseUrl } from '../../lib/backend';
 
 const WorkerChatBubble = ({ pageContext = 'general', userType = 'visitor' }) => {
-  const apiBaseUrl = `${process.env.REACT_APP_BACKEND_URL}/api`;
+  const apiBaseUrl = getApiBaseUrl();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');

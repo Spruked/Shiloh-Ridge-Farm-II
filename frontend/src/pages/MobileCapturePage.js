@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Camera, Check, Mic, RefreshCw, Upload, WifiOff } from "lucide-react";
+import { getBackendBaseUrl } from "../lib/backend";
 
 const CAPTURE_DB_NAME = "shiloh-mobile-capture";
 const CAPTURE_DB_VERSION = 1;
@@ -248,7 +249,7 @@ export default function MobileCapturePage() {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const recognitionRef = useRef(null);
-  const backendUrl = process.env.REACT_APP_BACKEND_URL || window.location.origin;
+  const backendUrl = getBackendBaseUrl();
 
   useEffect(() => {
     const updateQueueStats = async () => {

@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { getApiBaseUrl } from "../lib/backend";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const API = getApiBaseUrl();
 
 const PriceTicker = () => {
   const [tickerData, setTickerData] = useState({ sheep: {}, hog: {}, cattle: {} });

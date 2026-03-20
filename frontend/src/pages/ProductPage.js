@@ -10,6 +10,7 @@ import Footer from '../components/Footer';
 import ButcherCutCalculator from '../components/butcher/ButcherCutCalculator';
 import OrderParserChat from '../components/butcher/OrderParserChat';
 import ButchAssistant from '../components/butcher/ButchAssistant';
+import { getApiBaseUrl, getBackendBaseUrl } from '../lib/backend';
 
 const BUTCH_PROFILE_KEY = 'shiloh_butch_profile';
 
@@ -28,8 +29,8 @@ const ProductPage = () => {
     notes: ''
   });
 
-  const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-  const API = `${BACKEND_URL}/api`;
+  const BACKEND_URL = getBackendBaseUrl();
+  const API = getApiBaseUrl();
 
   // Sample products for when backend is unavailable
   const sampleProducts = [

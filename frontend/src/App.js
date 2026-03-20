@@ -28,6 +28,7 @@ import LivestockDetail from "./pages/LivestockDetail";
 import { Toaster } from "./components/ui/sonner";
 import WorkerChatBubble from "./components/worker/WorkerChatBubble";
 import { ThemeProvider } from "./ThemeContext";
+import { getApiBaseUrl } from "./lib/backend";
 import "./App.css";
 
 function ChatAssistantManager() {
@@ -50,6 +51,7 @@ function ChatAssistantManager() {
 }
 
 function App() {
+  const apiBaseUrl = getApiBaseUrl();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
 
@@ -59,7 +61,7 @@ function App() {
       if (token) {
         try {
           // Validate token with backend
-          await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/auth/verify`, {
+          await axios.get(`${apiBaseUrl}/auth/verify`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           setIsAuthenticated(true);

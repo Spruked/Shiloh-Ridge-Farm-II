@@ -8,6 +8,7 @@ import {
   Send,
   UserRound
 } from 'lucide-react';
+import { getApiBaseUrl } from '../../lib/backend';
 
 const SESSION_KEY = 'shiloh_butch_session_id';
 const PROFILE_KEY = 'shiloh_butch_profile';
@@ -37,7 +38,7 @@ const saveProfile = (profile) => {
 };
 
 const OrderParserChat = ({ onOrderParsed }) => {
-  const apiBaseUrl = `${process.env.REACT_APP_BACKEND_URL}/api`;
+  const apiBaseUrl = getApiBaseUrl();
   const storedProfile = useMemo(() => getStoredProfile(), []);
   const [sessionId, setSessionId] = useState('');
   const [input, setInput] = useState('');

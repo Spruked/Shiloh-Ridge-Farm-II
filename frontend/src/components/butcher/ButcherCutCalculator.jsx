@@ -11,6 +11,7 @@ import {
   ChefHat,
   ArrowRight
 } from 'lucide-react';
+import { getApiBaseUrl } from '../../lib/backend';
 
 const weightPresets = {
   hog: { whole: [250, 275, 300], half: [125, 140, 150] },
@@ -165,7 +166,7 @@ const CutGuide = ({ meatType, apiBaseUrl }) => {
 };
 
 const ButcherCutCalculator = ({ onContactOrder }) => {
-  const apiBaseUrl = `${process.env.REACT_APP_BACKEND_URL}/api`;
+  const apiBaseUrl = getApiBaseUrl();
   const [meatType, setMeatType] = useState('hog');
   const [orderType, setOrderType] = useState('whole');
   const [liveWeight, setLiveWeight] = useState('');

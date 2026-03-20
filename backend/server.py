@@ -1726,13 +1726,13 @@ async def upload_image(file: UploadFile = File(...), username: str = Depends(ver
     return {"url": f"data:{file.content_type};base64,{base64_image}"}
 
 # Include routers
-app.include_router(api_router)
 api_router.include_router(inventory_router)
 api_router.include_router(sales_router)
 api_router.include_router(accounting_router)
 api_router.include_router(product_assistant_router)
 api_router.include_router(butch_router)
 api_router.include_router(mobile_capture_router)
+app.include_router(api_router)
 
 # Mount static files
 from fastapi.staticfiles import StaticFiles

@@ -4,6 +4,7 @@ import { History, MessageCircle, Send, Tag, User, Volume2, X } from 'lucide-reac
 import { Button } from '../ui/buttons';
 import { Badge } from '../ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { getApiBaseUrl, getBackendBaseUrl } from '../../lib/backend';
 
 
 const BUTCH_CUSTOMER_KEY = 'butch_customer_id';
@@ -32,7 +33,8 @@ const ButchAssistant = ({ onProfileUpdate }) => {
   const [voiceMode, setVoiceMode] = useState('browser');
   const messagesEndRef = useRef(null);
 
-  const apiBaseUrl = `${process.env.REACT_APP_BACKEND_URL}/api`;
+  const apiBaseUrl = getApiBaseUrl();
+  const backendBaseUrl = getBackendBaseUrl();
 
   const persistContext = (nextContext) => {
     const mergedProfile = {
@@ -97,7 +99,7 @@ const ButchAssistant = ({ onProfileUpdate }) => {
     }
 
     if (message.audioUrl) {
-        const audio = new Audio(`${process.env.REACT_APP_BACKEND_URL}${message.audioUrl}`);
+        const audio = new Audio(`${backendBaseUrl}${message.audioUrl}`);
         setCurrentAudio(audio);
         audio.play().catch((error) => {
           console.error('Audio playback failed:', error);

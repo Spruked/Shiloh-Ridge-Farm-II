@@ -3,9 +3,9 @@ import axios from "axios";
 import Navigation from "../components/Navigation";
 import PriceTicker from "../components/PriceTicker";
 import Footer from "../components/Footer";
+import { getApiBaseUrl } from "../lib/backend";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const API = getApiBaseUrl();
 
 const AboutPage = () => {
   const [content, setContent] = useState(null);

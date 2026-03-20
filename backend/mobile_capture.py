@@ -308,6 +308,16 @@ def save_to_storage(file_bytes: bytes, folder: str, filename: str) -> str:
     return f"documents/{folder}/{filename}"
 
 
+@router.get("/capture/health")
+async def capture_health():
+    return {
+        "status": "healthy",
+        "database_configured": db is not None,
+        "opencv_available": cv2 is not None,
+        "ocr_available": pytesseract is not None,
+    }
+
+
 @router.post("/capture/process")
 async def process_capture(
     image: UploadFile = File(...),
