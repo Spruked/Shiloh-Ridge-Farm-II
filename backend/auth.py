@@ -4,7 +4,7 @@ import jwt
 import os
 
 security = HTTPBearer()
-SECRET_KEY = os.environ.get('JWT_SECRET', 'shiloh-ridge-farm-secret-key-2025')
+SECRET_KEY = os.environ['JWT_SECRET']
 ALGORITHM = "HS256"
 
 def verify_token(credentials = Depends(security)):

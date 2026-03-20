@@ -6,6 +6,9 @@ import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { ShoppingCart, Clock, CheckCircle, XCircle, Truck, Package, AlertTriangle } from 'lucide-react';
 
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const API = `${BACKEND_URL}/api`;
+
 const OrderManagement = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -27,7 +30,7 @@ const OrderManagement = () => {
   const fetchOrders = async () => {
     try {
       const token = localStorage.getItem('admin_token');
-      const response = await fetch('http://localhost:8000/api/orders', {
+      const response = await fetch(`${API}/orders`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -49,13 +52,11 @@ const OrderManagement = () => {
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
       const token = localStorage.getItem('admin_token');
-      const response = await fetch(`http://localhost:8000/api/orders/${orderId}/status`, {
+      const response = await fetch(`${API}/orders/${orderId}/status?status=${encodeURIComponent(newStatus)}`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(newStatus),
+        }
       });
 
       if (!response.ok) {

@@ -21,19 +21,29 @@
    cd Shiloh-Ridge-Farm-II
    ```
 
-3. **Start the application:**
+3. **Create the deployment environment file:**
+   ```bash
+   cp .env.example .env
+   ```
+   Update `.env` with your real Mongo credentials, a long random `JWT_SECRET`, your public backend URL, and the allowed browser origins.
+
+4. **Bootstrap the first admin account:**
+   - Set `INITIAL_ADMIN_USERNAME` and `INITIAL_ADMIN_PASSWORD` in `.env` before the first startup.
+   - After the admin user is created, remove those two values from `.env` so they are not reused.
+
+5. **Start the application:**
    ```bash
    docker compose up --build -d
    ```
 
-4. **(Optional) Set up Nginx or Caddy reverse proxy for domain access:**
+6. **(Optional) Set up Nginx or Caddy reverse proxy for domain access:**
    - Configure reverse proxy to forward requests to the appropriate containers
    - Set up SSL certificates for HTTPS
 
 ## 🧪 Testing
 
-**Backend API:** http://shilohridgekatahdins.com:8000/docs
-**Frontend:** http://shilohridgekatahdins.com:3000
+**Backend API:** `https://your-api-domain.example/docs`
+**Frontend:** `https://your-site-domain.example`
 
 ## 📋 Application Features
 

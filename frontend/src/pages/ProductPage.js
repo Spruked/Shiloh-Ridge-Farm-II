@@ -7,6 +7,11 @@ import { ShoppingCart, Clock, Package, AlertTriangle } from 'lucide-react';
 import Navigation from '../components/Navigation';
 import PriceTicker from '../components/PriceTicker';
 import Footer from '../components/Footer';
+import ButcherCutCalculator from '../components/butcher/ButcherCutCalculator';
+import OrderParserChat from '../components/butcher/OrderParserChat';
+import ButchAssistant from '../components/butcher/ButchAssistant';
+
+const BUTCH_PROFILE_KEY = 'shiloh_butch_profile';
 
 const ProductPage = () => {
   const [products, setProducts] = useState([]);
@@ -14,6 +19,7 @@ const ProductPage = () => {
   const [error, setError] = useState(null);
   const [cart, setCart] = useState({});
   const [showOrderForm, setShowOrderForm] = useState(false);
+  const [orderError, setOrderError] = useState(null);
   const [orderForm, setOrderForm] = useState({
     customer_name: '',
     customer_email: '',
@@ -30,52 +36,98 @@ const ProductPage = () => {
     {
       id: '1',
       name: 'Premium Katahdin Lamb',
+      category: 'sheep',
+      type: 'lamb_meat',
       description: 'Whole or half lamb cuts from our premium Katahdin sheep. Grass-fed and pasture-raised.',
       price_per_unit: 8.50,
       unit: 'lb',
-      minimum_order: 20,
-      lead_time_days: 14,
-      inventory_count: 0,
+      min_order_quantity: 20,
+      estimated_lead_time: '2 weeks',
+      available_quantity: 0,
       is_available: true
     },
     {
       id: '2',
       name: 'Fresh Lamb Chops',
+      category: 'sheep',
+      type: 'lamb_chops',
       description: 'Tender rib and loin chops from our Katahdin lambs. Perfect for grilling.',
       price_per_unit: 12.00,
       unit: 'lb',
-      minimum_order: 2,
-      lead_time_days: 7,
-      inventory_count: 0,
+      min_order_quantity: 2,
+      estimated_lead_time: '1 week',
+      available_quantity: 0,
       is_available: true
     },
     {
       id: '3',
       name: 'Ground Lamb',
+      category: 'sheep',
+      type: 'ground_lamb',
       description: 'Fresh ground lamb from our pasture-raised Katahdin sheep. Great for burgers and meatballs.',
       price_per_unit: 9.00,
       unit: 'lb',
-      minimum_order: 1,
-      lead_time_days: 7,
-      inventory_count: 0,
+      min_order_quantity: 1,
+      estimated_lead_time: '1 week',
+      available_quantity: 0,
       is_available: true
     },
     {
       id: '4',
       name: 'Lamb Stew Meat',
+      category: 'sheep',
+      type: 'stew_meat',
       description: 'Tender stew meat cut from our premium Katahdin lambs.',
       price_per_unit: 8.00,
       unit: 'lb',
-      minimum_order: 2,
-      lead_time_days: 10,
-      inventory_count: 0,
+      min_order_quantity: 2,
+      estimated_lead_time: '10 days',
+      available_quantity: 0,
       is_available: true
     }
   ];
 
   useEffect(() => {
     fetchProducts();
+    hydrateOrderFormFromButchProfile();
   }, []);
+
+  const hydrateOrderFormFromButchProfile = () => {
+    try {
+      const storedProfile = JSON.parse(localStorage.getItem(BUTCH_PROFILE_KEY) || '{}');
+      if (!storedProfile) {
+        return;
+      }
+
+      setOrderForm((current) => ({
+        ...current,
+        customer_name: storedProfile.name || current.customer_name,
+        customer_email: storedProfile.email || current.customer_email,
+        customer_phone: storedProfile.phone || current.customer_phone
+      }));
+    } catch (storageError) {
+      console.error('Failed to restore Butch profile for order form:', storageError);
+    }
+  };
+
+  const persistVisitorProfile = (profile) => {
+    try {
+      const current = JSON.parse(localStorage.getItem(BUTCH_PROFILE_KEY) || '{}');
+      const merged = {
+        ...current,
+        ...profile
+      };
+      localStorage.setItem(BUTCH_PROFILE_KEY, JSON.stringify(merged));
+      setOrderForm((existing) => ({
+        ...existing,
+        customer_name: merged.name || existing.customer_name,
+        customer_email: merged.email || existing.customer_email,
+        customer_phone: merged.phone || existing.customer_phone,
+      }));
+    } catch (storageError) {
+      console.error('Failed to persist visitor profile:', storageError);
+    }
+  };
 
   const fetchProducts = async () => {
     try {
@@ -119,6 +171,7 @@ const ProductPage = () => {
 
   const handleOrderSubmit = async (e) => {
     e.preventDefault();
+    setOrderError(null);
 
     const orderItems = getCartItems();
     if (orderItems.length === 0) {
@@ -139,9 +192,21 @@ const ProductPage = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to place order');
+        let message = 'Failed to place order';
+        try {
+          const data = await response.json();
+          message = data.detail || data.message || message;
+        } catch (parseError) {
+          console.error('Failed to parse order error payload:', parseError);
+        }
+        throw new Error(message);
       }
 
+      persistVisitorProfile({
+        name: orderForm.customer_name,
+        email: orderForm.customer_email,
+        phone: orderForm.customer_phone
+      });
       alert('Order placed successfully! We will contact you soon.');
       setCart({});
       setShowOrderForm(false);
@@ -153,19 +218,32 @@ const ProductPage = () => {
         notes: ''
       });
     } catch (err) {
-      console.warn('Backend unavailable, simulating successful order:', err.message);
-      // Simulate successful order when backend is unavailable
-      alert('Order placed successfully! (Demo mode - backend unavailable)\n\nWe will contact you at ' + orderForm.customer_email + ' soon.');
-      setCart({});
-      setShowOrderForm(false);
-      setOrderForm({
-        customer_name: '',
-        customer_email: '',
-        customer_phone: '',
-        customer_address: '',
-        notes: ''
+      console.error('Order submission failed:', err.message);
+      setOrderError(err.message || 'Failed to place order');
+    }
+  };
+
+  const handleButchParsed = (parsed) => {
+    if (parsed?.visitor_profile?.name || parsed?.visitor_profile?.email) {
+      persistVisitorProfile({
+        name: parsed.visitor_profile?.name || orderForm.customer_name,
+        email: parsed.visitor_profile?.email || orderForm.customer_email,
+        phone: orderForm.customer_phone
       });
     }
+
+    if (parsed?.parsed_successfully && parsed?.meat_type && parsed?.order_type) {
+      setOrderForm((current) => ({
+        ...current,
+        notes: current.notes
+          ? current.notes
+          : `Butch recommendation: ${parsed.order_type} ${parsed.meat_type}.`
+      }));
+    }
+  };
+
+  const handleButchProfileUpdate = (profile) => {
+    persistVisitorProfile(profile || {});
   };
 
   if (loading) {
@@ -235,6 +313,17 @@ const ProductPage = () => {
           </AlertDescription>
         </Alert>
 
+      <div className="max-w-6xl mx-auto mb-10">
+        <div className="grid lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <ButcherCutCalculator onContactOrder={() => setShowOrderForm(true)} />
+          </div>
+          <div className="lg:col-span-1">
+            <OrderParserChat onOrderParsed={handleButchParsed} />
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         {products.map((product) => (
           <Card key={product.id} className="h-full">
@@ -253,17 +342,17 @@ const ProductPage = () => {
               <div className="space-y-4">
                 <div className="flex items-center text-sm text-gray-600">
                   <Package className="h-4 w-4 mr-2" />
-                  <span>Min Order: {product.minimum_order || product.min_order || 1} {product.unit || 'unit'}</span>
+                  <span>Min Order: {product.min_order_quantity || product.minimum_order || product.min_order || 1} {product.unit || 'unit'}</span>
                 </div>
 
                 <div className="flex items-center text-sm text-gray-600">
                   <Clock className="h-4 w-4 mr-2" />
-                  <span>Lead Time: {product.lead_time_days || 7} days</span>
+                  <span>Lead Time: {product.estimated_lead_time || (product.lead_time_days ? `${product.lead_time_days} days` : '1-2 weeks')}</span>
                 </div>
 
-                {product.inventory_count > 0 && (
+                {(product.available_quantity ?? product.inventory_count) > 0 && (
                   <div className="text-sm text-green-600">
-                    {product.inventory_count} {product.unit || 'unit'} available
+                    {(product.available_quantity ?? product.inventory_count)} {product.unit || 'unit'} available
                   </div>
                 )}
 
@@ -352,6 +441,13 @@ const ProductPage = () => {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleOrderSubmit} className="space-y-4">
+                {orderError && (
+                  <Alert>
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>{orderError}</AlertDescription>
+                  </Alert>
+                )}
+
                 <div>
                   <label className="block text-sm font-medium mb-1">Full Name</label>
                   <input
@@ -427,6 +523,7 @@ const ProductPage = () => {
         </div>
       )}
       </div>
+      <ButchAssistant onProfileUpdate={handleButchProfileUpdate} />
       <Footer />
     </div>
   );

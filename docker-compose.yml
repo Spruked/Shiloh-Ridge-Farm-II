@@ -7,10 +7,12 @@ services:
     restart: unless-stopped
     ports:
       - "27017:27017"
+    env_file:
+      - .env
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=admin
-      - MONGO_INITDB_ROOT_PASSWORD=password123
-      - MONGO_INITDB_DATABASE=shilohridgefarm
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
+      - MONGO_INITDB_DATABASE=${DB_NAME}
     volumes:
       - mongodb_data:/data/db
       - ./docker/mongo-init:/docker-entrypoint-initdb.d
@@ -31,13 +33,24 @@ services:
     restart: unless-stopped
     ports:
       - "8000:8000"
+    env_file:
+      - .env
     environment:
-      - MONGO_URL=mongodb://admin:password123@mongodb:27017/shilohridgefarm?authSource=admin
-      - DB_NAME=shilohridgefarm
-      - JWT_SECRET=shiloh-ridge-farm-secret-key-2025
-      - CORS_ORIGINS=http://localhost:3000,http://frontend:3000,http://localhost:3001
+      - MONGO_URL=mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/${DB_NAME}?authSource=admin
+      - DB_NAME=${DB_NAME}
+      - JWT_SECRET=${JWT_SECRET}
+      - CORS_ORIGINS=${CORS_ORIGINS}
+      - INITIAL_ADMIN_USERNAME=${INITIAL_ADMIN_USERNAME:-}
+      - INITIAL_ADMIN_PASSWORD=${INITIAL_ADMIN_PASSWORD:-}
+      - USDA_API_KEY=${USDA_API_KEY:-}
+      - KOKORO_TTS_BIN=${KOKORO_TTS_BIN:-}
+      - KOKORO_WSL_BIN=${KOKORO_WSL_BIN:-}
+      - KOKORO_MODEL_PATH=${KOKORO_MODEL_PATH:-}
+      - KOKORO_VOICES_PATH=${KOKORO_VOICES_PATH:-}
     volumes:
       - ./backend/documents:/app/documents
+      - ./backend/butch_audio_cache:/app/butch_audio_cache
+      - ./backend/butch_vault:/app/butch_vault
     depends_on:
       mongodb:
         condition: service_healthy
@@ -54,13 +67,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.frontend
+      args:
+        REACT_APP_BACKEND_URL: ${REACT_APP_BACKEND_URL}
     container_name: shilohridgefarm-frontend
     restart: unless-stopped
     ports:
-      - "3000:3000"
-    environment:
-      - REACT_APP_BACKEND_URL=http://backend:8000
-      - REACT_APP_API_URL=http://backend:8000/api
+      - "3100:3000"
+    env_file:
+      - .env
     depends_on:
       backend:
         condition: service_healthy

@@ -5,10 +5,10 @@ import { Button } from "../../components/ui/buttons";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { toast } from "sonner";
-import logo from "../../../public/ShilohRidgeFarmicon256.png";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
+const LOGO_URL = "/ShilohRidgeFarmicon256.png";
 
 /**
  * Copyright (c) {new Date().getFullYear()} Shiloh Ridge Farm
@@ -23,16 +23,6 @@ const AdminLogin = ({ onLogin }) => {
     e.preventDefault();
     setLoading(true);
 
-    // Demo mode credentials
-    if (credentials.username === "admin" && credentials.password === "admin123") {
-      localStorage.setItem("admin_token", "demo-token-2025");
-      toast.success("Login successful! (Demo mode)");
-      onLogin();
-      navigate("/admin/dashboard");
-      setLoading(false);
-      return;
-    }
-
     try {
       const response = await axios.post(`${API}/auth/login`, credentials);
       localStorage.setItem("admin_token", response.data.access_token);
@@ -41,15 +31,7 @@ const AdminLogin = ({ onLogin }) => {
       navigate("/admin/dashboard");
     } catch (error) {
       console.error("Login error:", error);
-      // Fallback to demo mode if backend is unavailable
-      if (credentials.username === "admin" && credentials.password === "admin123") {
-        localStorage.setItem("admin_token", "demo-token-2025");
-        toast.success("Login successful! (Demo mode - backend unavailable)");
-        onLogin();
-        navigate("/admin/dashboard");
-      } else {
-        toast.error("Invalid credentials");
-      }
+      toast.error("Invalid credentials or admin service unavailable");
     } finally {
       setLoading(false);
     }
@@ -60,7 +42,7 @@ const AdminLogin = ({ onLogin }) => {
       <div className="bg-white rounded-2xl shadow-2xl p-8 md:p-12 w-full max-w-md">
         <div className="text-center mb-8">
           <img 
-            src={logo} 
+            src={LOGO_URL} 
             alt="Shiloh Ridge Farm Icon"
             className="w-28 h-28 mx-auto mb-4"
             data-testid="admin-login-logo"
@@ -104,10 +86,6 @@ const AdminLogin = ({ onLogin }) => {
             {loading ? "Logging in..." : "Login"}
           </Button>
         </form>
-
-        <p className="text-center text-sm text-gray-500 mt-6">
-          Default: admin / admin123
-        </p>
       </div>
     </div>
   );

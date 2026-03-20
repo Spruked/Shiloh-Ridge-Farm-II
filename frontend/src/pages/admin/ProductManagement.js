@@ -10,6 +10,22 @@ import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Plus, Edit, Trash2, Package, AlertTriangle } from 'lucide-react';
 
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const API = `${BACKEND_URL}/api`;
+
+const normalizeProductForUi = (product) => ({
+  ...product,
+  category: product.category || 'sheep',
+  type: product.type || 'lamb_meat',
+  unit: product.unit || 'lb',
+  price_per_unit: Number(product.price_per_unit ?? product.price ?? 0),
+  min_order_quantity: product.min_order_quantity ?? product.minimum_order ?? 1,
+  available_quantity: product.available_quantity ?? product.inventory_count ?? 0,
+  estimated_lead_time: product.estimated_lead_time || (product.lead_time_days ? `${product.lead_time_days} days` : '1-2 weeks'),
+  is_available: product.is_available ?? true,
+  photos: Array.isArray(product.photos) ? product.photos : []
+});
+
 const ProductManagement = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -18,12 +34,14 @@ const ProductManagement = () => {
   const [editingProduct, setEditingProduct] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
+    category: 'sheep',
+    type: 'lamb_meat',
     description: '',
     price_per_unit: '',
-    unit: 'dozen',
-    minimum_order: 1,
-    lead_time_days: 7,
-    inventory_count: 0,
+    unit: 'lb',
+    min_order_quantity: '1',
+    estimated_lead_time: '1-2 weeks',
+    available_quantity: '',
     is_available: true
   });
 
@@ -39,7 +57,7 @@ const ProductManagement = () => {
       if (token === "demo-token-2025") {
         const savedProducts = localStorage.getItem('admin_products_data');
         if (savedProducts) {
-          const parsedProducts = JSON.parse(savedProducts);
+          const parsedProducts = JSON.parse(savedProducts).map(normalizeProductForUi);
           setProducts(parsedProducts);
         } else {
           // Demo data
@@ -47,26 +65,30 @@ const ProductManagement = () => {
             {
               id: 'demo-product-1',
               name: 'Premium Katahdin Lamb',
+              category: 'sheep',
+              type: 'lamb_meat',
               description: 'Whole or half lamb cuts from our premium Katahdin sheep.',
               price_per_unit: 8.50,
               unit: 'lb',
-              minimum_order: 20,
-              lead_time_days: 14,
-              inventory_count: 0,
+              min_order_quantity: 20,
+              estimated_lead_time: '2 weeks',
+              available_quantity: 0,
               is_available: true
             },
             {
               id: 'demo-product-2',
               name: 'Fresh Lamb Chops',
+              category: 'sheep',
+              type: 'lamb_chops',
               description: 'Tender rib and loin chops from our Katahdin lambs.',
               price_per_unit: 12.00,
               unit: 'lb',
-              minimum_order: 2,
-              lead_time_days: 7,
-              inventory_count: 0,
+              min_order_quantity: 2,
+              estimated_lead_time: '1 week',
+              available_quantity: 0,
               is_available: true
             }
-          ];
+          ].map(normalizeProductForUi);
           setProducts(demoProducts);
           localStorage.setItem('admin_products_data', JSON.stringify(demoProducts));
         }
@@ -74,7 +96,7 @@ const ProductManagement = () => {
         return;
       }
 
-      const response = await fetch('http://localhost:8000/api/products', {
+      const response = await fetch(`${API}/products`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -85,16 +107,17 @@ const ProductManagement = () => {
       }
 
       const data = await response.json();
-      setProducts(data);
+      const normalizedProducts = data.map(normalizeProductForUi);
+      setProducts(normalizedProducts);
       // Save to localStorage for persistence
-      localStorage.setItem('admin_products_data', JSON.stringify(data));
+      localStorage.setItem('admin_products_data', JSON.stringify(normalizedProducts));
     } catch (err) {
       setError(err.message);
       // Try to load from localStorage as fallback
       const savedProducts = localStorage.getItem('admin_products_data');
       if (savedProducts) {
         try {
-          const parsedProducts = JSON.parse(savedProducts);
+          const parsedProducts = JSON.parse(savedProducts).map(normalizeProductForUi);
           setProducts(parsedProducts);
         } catch (parseError) {
           console.error("Error parsing saved products data:", parseError);
@@ -110,10 +133,27 @@ const ProductManagement = () => {
 
     try {
       const token = localStorage.getItem('admin_token');
+      const payload = {
+        name: formData.name,
+        category: formData.category,
+        type: formData.type,
+        description: formData.description,
+        price_per_unit: parseFloat(formData.price_per_unit),
+        unit: formData.unit,
+        min_order_quantity: parseInt(formData.min_order_quantity, 10) || 1,
+        available_quantity: formData.available_quantity === '' ? null : parseInt(formData.available_quantity, 10),
+        is_available: formData.is_available,
+        estimated_lead_time: formData.estimated_lead_time,
+        photos: editingProduct?.photos || []
+      };
 
       // Demo mode handling
+      if (!token) {
+        throw new Error('Please log in as an admin first');
+      }
+
       if (token === "demo-token-2025") {
-        const currentProducts = JSON.parse(localStorage.getItem('admin_products_data') || '[]');
+        const currentProducts = JSON.parse(localStorage.getItem('admin_products_data') || '[]').map(normalizeProductForUi);
 
         if (editingProduct) {
           // Update existing product
@@ -121,11 +161,7 @@ const ProductManagement = () => {
             product.id === editingProduct.id
               ? {
                   ...product,
-                  ...formData,
-                  price_per_unit: parseFloat(formData.price_per_unit),
-                  minimum_order: parseInt(formData.minimum_order),
-                  lead_time_days: parseInt(formData.lead_time_days),
-                  inventory_count: parseInt(formData.inventory_count)
+                  ...payload
                 }
               : product
           );
@@ -135,11 +171,7 @@ const ProductManagement = () => {
           // Add new product
           const newProduct = {
             id: `demo-product-${Date.now()}`,
-            ...formData,
-            price_per_unit: parseFloat(formData.price_per_unit),
-            minimum_order: parseInt(formData.minimum_order),
-            lead_time_days: parseInt(formData.lead_time_days),
-            inventory_count: parseInt(formData.inventory_count)
+            ...payload
           };
           const updatedProducts = [...currentProducts, newProduct];
           localStorage.setItem('admin_products_data', JSON.stringify(updatedProducts));
@@ -154,8 +186,8 @@ const ProductManagement = () => {
       }
 
       const url = editingProduct
-        ? `http://localhost:8000/api/products/${editingProduct.id}`
-        : 'http://localhost:8000/api/products';
+        ? `${API}/products/${editingProduct.id}`
+        : `${API}/products`;
 
       const method = editingProduct ? 'PUT' : 'POST';
 
@@ -165,13 +197,7 @@ const ProductManagement = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          ...formData,
-          price_per_unit: parseFloat(formData.price_per_unit),
-          minimum_order: parseInt(formData.minimum_order),
-          lead_time_days: parseInt(formData.lead_time_days),
-          inventory_count: parseInt(formData.inventory_count)
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -188,16 +214,19 @@ const ProductManagement = () => {
   };
 
   const handleEdit = (product) => {
+    const normalizedProduct = normalizeProductForUi(product);
     setEditingProduct(product);
     setFormData({
-      name: product.name,
-      description: product.description,
-      price_per_unit: product.price_per_unit.toString(),
-      unit: product.unit,
-      minimum_order: product.minimum_order.toString(),
-      lead_time_days: product.lead_time_days.toString(),
-      inventory_count: product.inventory_count.toString(),
-      is_available: product.is_available
+      name: normalizedProduct.name,
+      category: normalizedProduct.category,
+      type: normalizedProduct.type,
+      description: normalizedProduct.description,
+      price_per_unit: normalizedProduct.price_per_unit.toString(),
+      unit: normalizedProduct.unit,
+      min_order_quantity: normalizedProduct.min_order_quantity.toString(),
+      estimated_lead_time: normalizedProduct.estimated_lead_time,
+      available_quantity: normalizedProduct.available_quantity?.toString() ?? '',
+      is_available: normalizedProduct.is_available
     });
     setShowForm(true);
   };
@@ -220,7 +249,7 @@ const ProductManagement = () => {
         return;
       }
 
-      const response = await fetch(`http://localhost:8000/api/products/${productId}`, {
+      const response = await fetch(`${API}/products/${productId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -240,12 +269,14 @@ const ProductManagement = () => {
   const resetForm = () => {
     setFormData({
       name: '',
+      category: 'sheep',
+      type: 'lamb_meat',
       description: '',
       price_per_unit: '',
-      unit: 'dozen',
-      minimum_order: 1,
-      lead_time_days: 7,
-      inventory_count: 0,
+      unit: 'lb',
+      min_order_quantity: '1',
+      estimated_lead_time: '1-2 weeks',
+      available_quantity: '',
       is_available: true
     });
   };
@@ -328,6 +359,36 @@ const ProductManagement = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
+                  <Label htmlFor="category">Category</Label>
+                  <Select
+                    value={formData.category}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sheep">Sheep</SelectItem>
+                      <SelectItem value="hog">Hog</SelectItem>
+                      <SelectItem value="eggs">Eggs</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="type">Product Type</Label>
+                  <Input
+                    id="type"
+                    required
+                    value={formData.type}
+                    onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value }))}
+                    placeholder="e.g., lamb_meat"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
                   <Label htmlFor="price">Price per Unit</Label>
                   <Input
                     id="price"
@@ -350,9 +411,9 @@ const ProductManagement = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="dozen">Dozen</SelectItem>
                       <SelectItem value="lb">Pound</SelectItem>
                       <SelectItem value="each">Each</SelectItem>
+                      <SelectItem value="dozen">Dozen</SelectItem>
                       <SelectItem value="pack">Pack</SelectItem>
                     </SelectContent>
                   </Select>
@@ -366,33 +427,32 @@ const ProductManagement = () => {
                     id="minOrder"
                     type="number"
                     required
-                    value={formData.minimum_order}
-                    onChange={(e) => setFormData(prev => ({ ...prev, minimum_order: e.target.value }))}
+                    value={formData.min_order_quantity}
+                    onChange={(e) => setFormData(prev => ({ ...prev, min_order_quantity: e.target.value }))}
                     placeholder="1"
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="leadTime">Lead Time (Days)</Label>
+                  <Label htmlFor="leadTime">Estimated Lead Time</Label>
                   <Input
                     id="leadTime"
-                    type="number"
                     required
-                    value={formData.lead_time_days}
-                    onChange={(e) => setFormData(prev => ({ ...prev, lead_time_days: e.target.value }))}
-                    placeholder="7"
+                    value={formData.estimated_lead_time}
+                    onChange={(e) => setFormData(prev => ({ ...prev, estimated_lead_time: e.target.value }))}
+                    placeholder="e.g., 1-2 weeks"
                   />
                 </div>
               </div>
 
               <div>
-                <Label htmlFor="inventory">Current Inventory</Label>
+                <Label htmlFor="inventory">Available Quantity</Label>
                 <Input
                   id="inventory"
                   type="number"
-                  value={formData.inventory_count}
-                  onChange={(e) => setFormData(prev => ({ ...prev, inventory_count: e.target.value }))}
-                  placeholder="0"
+                  value={formData.available_quantity}
+                  onChange={(e) => setFormData(prev => ({ ...prev, available_quantity: e.target.value }))}
+                  placeholder="Leave blank for pre-order only"
                 />
               </div>
 
@@ -442,17 +502,17 @@ const ProductManagement = () => {
 
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Min Order:</span>
-                  <span>{product.minimum_order} {product.unit}</span>
+                  <span>{product.min_order_quantity} {product.unit}</span>
                 </div>
 
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Lead Time:</span>
-                  <span>{product.lead_time_days} days</span>
+                  <span>{product.estimated_lead_time}</span>
                 </div>
 
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Inventory:</span>
-                  <span>{product.inventory_count} {product.unit}</span>
+                  <span>{product.available_quantity ?? 'Pre-order'} {product.available_quantity != null ? product.unit : ''}</span>
                 </div>
 
                 <div className="flex space-x-2 mt-4">

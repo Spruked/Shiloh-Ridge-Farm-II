@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, UploadFile, File
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, status, UploadFile, File, Form
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -22,6 +22,17 @@ from fpdf import FPDF
 from inventory import router as inventory_router, set_inventory_db
 from sales import router as sales_router, set_sales_db
 from accounting import router as accounting_router, set_accounting_db
+from product_assistant import (
+    router as product_assistant_router,
+    set_product_assistant_db,
+    ensure_assistant_seed_data,
+    prune_assistant_memory,
+    sync_visitor_profile_from_order,
+)
+from butch_core import butch_skg
+from butch_routes import router as butch_router
+from butch_voice import butch_voice
+from mobile_capture import router as mobile_capture_router, set_mobile_capture_db
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -35,6 +46,8 @@ db = client[os.environ['DB_NAME']]
 set_inventory_db(db)
 set_sales_db(db)
 set_accounting_db(db)
+set_product_assistant_db(db)
+set_mobile_capture_db(db)
 
 # Create the main app
 app = FastAPI()
@@ -43,8 +56,18 @@ api_router = APIRouter(prefix="/api")
 # Security
 security = HTTPBearer()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-SECRET_KEY = os.environ.get('JWT_SECRET', 'shiloh-ridge-farm-secret-key-2025')
+SECRET_KEY = os.environ['JWT_SECRET']
 ALGORITHM = "HS256"
+USDA_API_KEY = os.environ.get("USDA_API_KEY")
+CORS_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get("CORS_ORIGINS", "http://localhost:3000,http://localhost:3001").split(",")
+    if origin.strip()
+]
+LOGIN_RATE_LIMIT_WINDOW = timedelta(minutes=15)
+LOGIN_LOCKOUT_DURATION = timedelta(minutes=15)
+MAX_FAILED_LOGIN_ATTEMPTS = 5
+login_attempt_tracker: Dict[str, Dict[str, Any]] = {}
 
 # Models
 class AdminUser(BaseModel):
@@ -102,6 +125,21 @@ class Livestock(BaseModel):
     price: Optional[float] = None
     status: str = "available"  # available, sold, breeding_stock, not_for_sale
     photos: List[str] = []
+    capture_photo_url: Optional[str] = None
+    capture_document_url: Optional[str] = None
+    capture_gps: Optional[str] = None
+    capture_timestamp: Optional[str] = None
+    capture_device: Optional[str] = None
+    ai_confidence: Optional[float] = None
+    capture_confidence: Optional[float] = None
+    body_condition_score: Optional[float] = None
+    estimated_weight_kg: Optional[float] = None
+    tag_confidence: Optional[float] = None
+    tag_color: Optional[str] = None
+    requires_review: bool = False
+    review_reasons: List[str] = []
+    review_flags: List[str] = []
+    uploaded_by: Optional[str] = None
     description: Optional[str] = None
     health_records: Optional[str] = None
     nft_minted: bool = False
@@ -137,6 +175,21 @@ class LivestockCreate(BaseModel):
     price: Optional[float] = None
     status: str = "available"
     photos: List[str] = []
+    capture_photo_url: Optional[str] = None
+    capture_document_url: Optional[str] = None
+    capture_gps: Optional[str] = None
+    capture_timestamp: Optional[str] = None
+    capture_device: Optional[str] = None
+    ai_confidence: Optional[float] = None
+    capture_confidence: Optional[float] = None
+    body_condition_score: Optional[float] = None
+    estimated_weight_kg: Optional[float] = None
+    tag_confidence: Optional[float] = None
+    tag_color: Optional[str] = None
+    requires_review: bool = False
+    review_reasons: List[str] = []
+    review_flags: List[str] = []
+    uploaded_by: Optional[str] = None
     description: Optional[str] = None
     health_records: Optional[str] = None
 
@@ -387,6 +440,58 @@ def create_access_token(data: dict):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
+
+def _login_attempt_key(username: str, client_host: Optional[str]) -> str:
+    return f"{username.strip().lower()}|{client_host or 'unknown'}"
+
+
+def _prune_login_attempts(now: datetime) -> None:
+    expired_keys = []
+    for key, state in login_attempt_tracker.items():
+        last_failed_at = state.get("last_failed_at")
+        blocked_until = state.get("blocked_until")
+        if blocked_until and blocked_until > now:
+            continue
+        if last_failed_at and now - last_failed_at <= LOGIN_RATE_LIMIT_WINDOW:
+            continue
+        expired_keys.append(key)
+
+    for key in expired_keys:
+        login_attempt_tracker.pop(key, None)
+
+
+def _ensure_login_allowed(key: str, now: datetime) -> None:
+    state = login_attempt_tracker.get(key)
+    if not state:
+        return
+
+    blocked_until = state.get("blocked_until")
+    if blocked_until and blocked_until > now:
+        remaining_minutes = max(1, int((blocked_until - now).total_seconds() // 60))
+        raise HTTPException(
+            status_code=429,
+            detail=f"Too many login attempts. Please wait about {remaining_minutes} minute(s) and try again.",
+        )
+
+
+def _record_failed_login(key: str, now: datetime) -> None:
+    state = login_attempt_tracker.get(key, {"count": 0, "last_failed_at": now, "blocked_until": None})
+    if state.get("last_failed_at") and now - state["last_failed_at"] > LOGIN_RATE_LIMIT_WINDOW:
+        state["count"] = 0
+        state["blocked_until"] = None
+
+    state["count"] += 1
+    state["last_failed_at"] = now
+
+    if state["count"] >= MAX_FAILED_LOGIN_ATTEMPTS:
+        state["blocked_until"] = now + LOGIN_LOCKOUT_DURATION
+
+    login_attempt_tracker[key] = state
+
+
+def _clear_failed_login(key: str) -> None:
+    login_attempt_tracker.pop(key, None)
+
 def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     try:
         payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
@@ -447,18 +552,28 @@ async def get_registry_compliance(livestock_id: str, username: str = Depends(ver
 # Initialize admin user and default data
 @app.on_event("startup")
 async def startup_event():
-    # Create default admin user if not exists
-    admin = await db.admin_users.find_one({"username": "admin"})
+    # Create the first admin only when explicit bootstrap credentials are provided.
+    admin = await db.admin_users.find_one({}, {"_id": 0})
     if not admin:
-        hashed_password = pwd_context.hash("admin123")
-        admin_user = AdminUser(
-            username="admin",
-            password_hash=hashed_password
-        )
-        doc = admin_user.model_dump()
-        doc['created_at'] = doc['created_at'].isoformat()
-        await db.admin_users.insert_one(doc)
-        logger.info("Default admin user created: admin/admin123")
+        initial_admin_username = os.environ.get("INITIAL_ADMIN_USERNAME")
+        initial_admin_password = os.environ.get("INITIAL_ADMIN_PASSWORD")
+
+        if initial_admin_username and initial_admin_password:
+            admin_user = AdminUser(
+                username=initial_admin_username,
+                password_hash=pwd_context.hash(initial_admin_password)
+            )
+            doc = admin_user.model_dump()
+            doc['created_at'] = doc['created_at'].isoformat()
+            await db.admin_users.insert_one(doc)
+            logger.info("Initial admin user created from environment bootstrap credentials")
+        else:
+            logger.warning(
+                "No admin users found. Set INITIAL_ADMIN_USERNAME and INITIAL_ADMIN_PASSWORD once to bootstrap access."
+            )
+
+    await ensure_assistant_seed_data()
+    await prune_assistant_memory()
     
     # Create default about page if not exists
     about = await db.about_content.find_one({"id": "about_page"})
@@ -884,11 +999,19 @@ If you've been thinking about raising hair sheep, or want to shift your flock to
 
 # Auth routes
 @api_router.post("/auth/login", response_model=Token)
-async def login(credentials: AdminLogin):
+async def login(credentials: AdminLogin, request: Request):
+    now = datetime.now(timezone.utc)
+    _prune_login_attempts(now)
+    client_host = request.client.host if request.client else None
+    attempt_key = _login_attempt_key(credentials.username, client_host)
+    _ensure_login_allowed(attempt_key, now)
+
     admin = await db.admin_users.find_one({"username": credentials.username})
     if not admin or not pwd_context.verify(credentials.password, admin["password_hash"]):
+        _record_failed_login(attempt_key, now)
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    
+
+    _clear_failed_login(attempt_key)
     access_token = create_access_token(data={"sub": credentials.username})
     return {"access_token": access_token, "token_type": "bearer"}
 
@@ -1304,6 +1427,24 @@ async def create_order(order: OrderCreate):
             raise HTTPException(status_code=404, detail=f"Product {item.product_id} not found")
         if not product.get("is_available", True):
             raise HTTPException(status_code=400, detail=f"Product {product.get('name')} is not available")
+        min_order_quantity = product.get("min_order_quantity") or 1
+        if item.quantity < min_order_quantity:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Product {product.get('name')} requires a minimum order of {min_order_quantity}",
+            )
+        max_order_quantity = product.get("max_order_quantity")
+        if max_order_quantity is not None and item.quantity > max_order_quantity:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Product {product.get('name')} allows a maximum order of {max_order_quantity}",
+            )
+        available_quantity = product.get("available_quantity")
+        if available_quantity is not None and item.quantity > available_quantity:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Only {available_quantity} units are currently available for {product.get('name')}",
+            )
 
         price_per_unit: Optional[float] = None
 
@@ -1341,6 +1482,22 @@ async def create_order(order: OrderCreate):
     doc['created_at'] = doc['created_at'].isoformat()
     doc['updated_at'] = doc['updated_at'].isoformat()
     await db.orders.insert_one(doc)
+    await sync_visitor_profile_from_order(db, doc)
+    butch_skg.record_order(
+        customer_id=f"email:{order.customer_email.strip().lower()}",
+        order_details={
+            "customer_name": order.customer_name,
+            "customer_email": order.customer_email,
+            "customer_phone": order.customer_phone,
+            "customer_address": order.customer_address,
+            "items": stored_items,
+            "total": total_amount,
+            "status": "pending",
+            "pickup_date": order.preferred_pickup_date,
+            "notes": order.notes,
+            "date": datetime.now(timezone.utc).isoformat(),
+        },
+    )
     return order_obj
 
 @api_router.get("/orders", response_model=List[Order])
@@ -1522,12 +1679,13 @@ async def download_document(document_id: str):
 # Ticker data from USDA API
 @api_router.get("/ticker")
 async def get_ticker_data():
-    api_key = "oNddPB1myQQsx2uxEjvwsitbu5hzeIN7SHk22EhC"
     base_url = "https://quickstats.nass.usda.gov/api/api_GET/"
     
     def fetch_price(commodity, unit):
+        if not USDA_API_KEY:
+            return None
         params = {
-            "key": api_key,
+            "key": USDA_API_KEY,
             "commodity_desc": commodity,
             "statisticcat_desc": "PRICE RECEIVED",
             "unit_desc": unit,
@@ -1572,15 +1730,19 @@ app.include_router(api_router)
 api_router.include_router(inventory_router)
 api_router.include_router(sales_router)
 api_router.include_router(accounting_router)
+api_router.include_router(product_assistant_router)
+api_router.include_router(butch_router)
+api_router.include_router(mobile_capture_router)
 
 # Mount static files
 from fastapi.staticfiles import StaticFiles
 app.mount("/images", StaticFiles(directory=ROOT_DIR.parent / "assets" / "images"), name="images")
+app.mount("/butch_audio", StaticFiles(directory=butch_voice.audio_cache), name="butch_audio")
 
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
+    allow_origins=CORS_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )

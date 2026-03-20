@@ -29,6 +29,8 @@ downloads/
 eggs/
 .eggs/
 lib/
+!frontend/src/lib/
+!frontend/src/lib/utils.js
 lib64/
 parts/
 sdist/
@@ -62,6 +64,7 @@ dist
 
 # Environment files (comprehensive coverage)
 .env*
+!.env.example
 *token.json*
 *credentials.json*
 
@@ -92,3 +95,7 @@ Thumbs.db
 
 # File tree and other generated files
 file_tree.txt
+
+# Butch runtime state
+backend/butch_audio_cache/
+backend/butch_vault/
