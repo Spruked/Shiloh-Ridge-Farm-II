@@ -5,6 +5,8 @@ from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
+import smtplib
+import ssl
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict, EmailStr
 from typing import List, Optional, Dict, Any
@@ -17,6 +19,7 @@ import base64
 from fastapi.responses import FileResponse
 import tempfile
 from fpdf import FPDF
+from email.message import EmailMessage
 
 # Import new routers
 from inventory import router as inventory_router, set_inventory_db
@@ -84,6 +87,49 @@ class AdminLogin(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+class CustomerAccount(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    email: EmailStr
+    password_hash: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class CustomerProfile(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    customer_id: str
+    email: EmailStr
+    full_name: str
+    phone: Optional[str] = None
+    address: Optional[str] = None
+    profile_image_url: Optional[str] = None
+    notes: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class CustomerRegister(BaseModel):
+    full_name: str
+    email: EmailStr
+    password: str
+    phone: Optional[str] = None
+    address: Optional[str] = None
+
+class CustomerLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+class CustomerProfileUpdate(BaseModel):
+    full_name: Optional[str] = None
+    phone: Optional[str] = None
+    address: Optional[str] = None
+    notes: Optional[str] = None
+
+class CustomerAuthResponse(BaseModel):
+    access_token: str
+    token_type: str
+    profile: CustomerProfile
 
 class Livestock(BaseModel):
     def registry_compliance(self):
@@ -272,6 +318,11 @@ class ContactFormCreate(BaseModel):
     animal_id: Optional[str] = None
     offer_amount: Optional[float] = None
 
+class ContactSubmissionResponse(BaseModel):
+    contact: ContactForm
+    notification_sent: bool
+    notification_error: Optional[str] = None
+
 class TransferContactForm(BaseModel):
     animal_id: str
     buyer_name: str
@@ -390,6 +441,7 @@ class Order(BaseModel):
     customer_email: EmailStr
     customer_phone: str
     customer_address: str
+    customer_id: Optional[str] = None
     order_items: List[Dict[str, Any]]  # stored as dicts with selected cut/pricing
     total_amount: float
     status: str = "pending"  # pending, confirmed, processing, ready, completed, cancelled
@@ -397,6 +449,11 @@ class Order(BaseModel):
     delivery_method: Optional[str] = None
     preferred_pickup_date: Optional[str] = None
     estimated_delivery: Optional[str] = None
+    payment_method: Optional[str] = "fiat"
+    payment_status: str = "pending"
+    checkout_provider: Optional[str] = "farm_preorder"
+    coupon_code: Optional[str] = None
+    source_app: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -410,6 +467,9 @@ class OrderCreate(BaseModel):
     notes: Optional[str] = None
     delivery_method: Optional[str] = None
     preferred_pickup_date: Optional[str] = None
+    payment_method: Optional[str] = "fiat"
+    coupon_code: Optional[str] = None
+    source_app: Optional[str] = None
 
 class Document(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -439,6 +499,14 @@ def create_access_token(data: dict):
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
+
+
+def create_customer_access_token(customer_id: str, email: str) -> str:
+    return create_access_token({
+        "sub": customer_id,
+        "email": email,
+        "role": "customer",
+    })
 
 
 def _login_attempt_key(username: str, client_host: Optional[str]) -> str:
@@ -492,6 +560,234 @@ def _record_failed_login(key: str, now: datetime) -> None:
 def _clear_failed_login(key: str) -> None:
     login_attempt_tracker.pop(key, None)
 
+
+def _build_contact_notification_message(contact: ContactForm) -> EmailMessage:
+    recipient = os.environ.get("CONTACT_NOTIFICATION_EMAIL", "dominichanway@gmail.com").strip() or "dominichanway@gmail.com"
+    sender = os.environ.get("SMTP_FROM_EMAIL", "").strip() or os.environ.get("SMTP_USERNAME", "").strip()
+
+    message = EmailMessage()
+    message["Subject"] = f"New Shiloh Ridge contact: {contact.inquiry_type.replace('_', ' ').title()}"
+    message["To"] = recipient
+    if sender:
+        message["From"] = sender
+    if contact.email:
+        message["Reply-To"] = str(contact.email)
+
+    lines = [
+        "A new contact form was submitted on Shiloh Ridge Farm.",
+        "",
+        f"Name: {contact.name}",
+        f"Email: {contact.email}",
+        f"Phone: {contact.phone or 'Not provided'}",
+        f"Inquiry Type: {contact.inquiry_type}",
+        f"Animal ID: {contact.animal_id or 'N/A'}",
+        f"Offer Amount: {contact.offer_amount if contact.offer_amount is not None else 'N/A'}",
+        "",
+        "Message:",
+        contact.message,
+        "",
+        f"Submitted At: {contact.created_at.isoformat()}",
+        f"Contact Record ID: {contact.id}",
+    ]
+    message.set_content("\n".join(lines))
+    return message
+
+
+def send_contact_notification(contact: ContactForm) -> tuple[bool, Optional[str]]:
+    smtp_host = os.environ.get("SMTP_HOST", "").strip()
+    smtp_username = os.environ.get("SMTP_USERNAME", "").strip()
+    smtp_password = os.environ.get("SMTP_PASSWORD", "").strip()
+    smtp_from_email = os.environ.get("SMTP_FROM_EMAIL", "").strip()
+    smtp_port = int(os.environ.get("SMTP_PORT", "587"))
+    smtp_use_ssl = os.environ.get("SMTP_USE_SSL", "").strip().lower() in {"1", "true", "yes"}
+    smtp_use_tls = os.environ.get("SMTP_USE_TLS", "true").strip().lower() not in {"0", "false", "no"}
+
+    if not smtp_host or not smtp_username or not smtp_password:
+        return False, "SMTP is not configured"
+
+    message = _build_contact_notification_message(contact)
+    if smtp_from_email:
+        message["From"] = smtp_from_email
+    elif "From" not in message:
+        message["From"] = smtp_username
+
+    try:
+        if smtp_use_ssl:
+            with smtplib.SMTP_SSL(smtp_host, smtp_port, context=ssl.create_default_context(), timeout=20) as server:
+                server.login(smtp_username, smtp_password)
+                server.send_message(message)
+        else:
+            with smtplib.SMTP(smtp_host, smtp_port, timeout=20) as server:
+                server.ehlo()
+                if smtp_use_tls:
+                    server.starttls(context=ssl.create_default_context())
+                    server.ehlo()
+                server.login(smtp_username, smtp_password)
+                server.send_message(message)
+        return True, None
+    except Exception as exc:
+        logger.exception("Failed to send contact notification email")
+        return False, str(exc)
+
+
+def _send_email_message(message: EmailMessage) -> tuple[bool, Optional[str]]:
+    smtp_host = os.environ.get("SMTP_HOST", "").strip()
+    smtp_username = os.environ.get("SMTP_USERNAME", "").strip()
+    smtp_password = os.environ.get("SMTP_PASSWORD", "").strip()
+    smtp_port = int(os.environ.get("SMTP_PORT", "587"))
+    smtp_use_ssl = os.environ.get("SMTP_USE_SSL", "").strip().lower() in {"1", "true", "yes"}
+    smtp_use_tls = os.environ.get("SMTP_USE_TLS", "true").strip().lower() not in {"0", "false", "no"}
+
+    if not smtp_host or not smtp_username or not smtp_password:
+        return False, "SMTP is not configured"
+
+    try:
+        if smtp_use_ssl:
+            with smtplib.SMTP_SSL(smtp_host, smtp_port, context=ssl.create_default_context(), timeout=20) as server:
+                server.login(smtp_username, smtp_password)
+                server.send_message(message)
+        else:
+            with smtplib.SMTP(smtp_host, smtp_port, timeout=20) as server:
+                server.ehlo()
+                if smtp_use_tls:
+                    server.starttls(context=ssl.create_default_context())
+                    server.ehlo()
+                server.login(smtp_username, smtp_password)
+                server.send_message(message)
+        return True, None
+    except Exception as exc:
+        logger.exception("Failed to send email")
+        return False, str(exc)
+
+
+def send_order_status_notification(order: Dict[str, Any]) -> tuple[bool, Optional[str]]:
+    if not order.get("customer_email"):
+        return False, "Order has no customer email"
+
+    sender = os.environ.get("SMTP_FROM_EMAIL", "").strip() or os.environ.get("SMTP_USERNAME", "").strip()
+    message = EmailMessage()
+    message["Subject"] = f"Shiloh Ridge Farm order update: {order.get('status', 'pending').title()}"
+    message["To"] = order["customer_email"]
+    if sender:
+        message["From"] = sender
+
+    customer_name = order.get("customer_name") or "Customer"
+    lines = [
+        f"Hello {customer_name},",
+        "",
+        f"Your Shiloh Ridge Farm order #{order.get('id', '')[-8:]} is now marked as {order.get('status', 'pending')}.",
+        "",
+        "Order summary:",
+    ]
+    for item in order.get("order_items", []):
+        lines.append(
+            f"- {item.get('quantity', 0)} x {item.get('product_name') or item.get('product_id')} at ${float(item.get('price_per_unit', 0) or 0):.2f}"
+        )
+    lines.extend(
+        [
+            "",
+            f"Estimated total: ${float(order.get('total_amount', 0) or 0):.2f}",
+            f"Fulfillment method: {order.get('delivery_method') or 'To be confirmed'}",
+            f"Preferred date: {order.get('preferred_pickup_date') or 'Not specified'}",
+            "",
+            "We will continue to email you as your order moves forward.",
+            "",
+            "Shiloh Ridge Farm",
+            "Dominic Hanway",
+        ]
+    )
+    message.set_content("\n".join(lines))
+    return _send_email_message(message)
+
+
+def generate_order_invoice_pdf(order: Dict[str, Any]) -> str:
+    generated_dir = ROOT_DIR / "documents" / "generated_invoices"
+    generated_dir.mkdir(parents=True, exist_ok=True)
+    invoice_path = generated_dir / f"invoice_{order['id']}.pdf"
+    logo_path = ROOT_DIR.parent / "frontend" / "public" / "ShilohRidgeFarmicon256.png"
+
+    pdf = FPDF()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.add_page()
+
+    if logo_path.exists():
+      pdf.image(str(logo_path), x=12, y=10, w=24)
+
+    pdf.set_font("Arial", "B", 18)
+    pdf.set_text_color(61, 90, 61)
+    pdf.cell(0, 12, "Shiloh Ridge Farm", ln=True, align="R")
+    pdf.set_font("Arial", "", 10)
+    pdf.set_text_color(70, 70, 70)
+    pdf.cell(0, 6, "20705 Quebec Road, Maitland, Missouri 64466", ln=True, align="R")
+    pdf.cell(0, 6, "dominichanway@gmail.com | (660) 254-6226", ln=True, align="R")
+
+    pdf.ln(8)
+    pdf.set_draw_color(61, 90, 61)
+    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+    pdf.ln(8)
+
+    pdf.set_text_color(95, 50, 22)
+    pdf.set_font("Arial", "B", 16)
+    pdf.cell(0, 10, "Customer Invoice", ln=True)
+    pdf.set_text_color(50, 50, 50)
+    pdf.set_font("Arial", "", 11)
+    pdf.cell(0, 7, f"Invoice #: {order['id'][-8:].upper()}", ln=True)
+    pdf.cell(0, 7, f"Created: {order.get('created_at', datetime.now(timezone.utc).isoformat())}", ln=True)
+    pdf.cell(0, 7, f"Order Status: {order.get('status', 'pending').title()}", ln=True)
+
+    pdf.ln(6)
+    pdf.set_font("Arial", "B", 12)
+    pdf.cell(0, 8, "Customer Information", ln=True)
+    pdf.set_font("Arial", "", 11)
+    pdf.multi_cell(
+        0,
+        6,
+        (
+            f"{order.get('customer_name', '')}\n"
+            f"{order.get('customer_email', '')}\n"
+            f"{order.get('customer_phone', '')}\n"
+            f"{order.get('customer_address', '')}"
+        ),
+    )
+
+    pdf.ln(4)
+    pdf.set_font("Arial", "B", 12)
+    pdf.cell(85, 8, "Item")
+    pdf.cell(25, 8, "Qty", align="C")
+    pdf.cell(35, 8, "Unit Price", align="R")
+    pdf.cell(35, 8, "Subtotal", ln=True, align="R")
+    pdf.set_font("Arial", "", 11)
+
+    for item in order.get("order_items", []):
+        product_name = item.get("product_name") or item.get("product_id", "")
+        quantity = int(item.get("quantity", 0) or 0)
+        price_per_unit = float(item.get("price_per_unit", 0) or 0)
+        subtotal = quantity * price_per_unit
+        pdf.cell(85, 8, str(product_name)[:38])
+        pdf.cell(25, 8, str(quantity), align="C")
+        pdf.cell(35, 8, f"${price_per_unit:.2f}", align="R")
+        pdf.cell(35, 8, f"${subtotal:.2f}", ln=True, align="R")
+
+    pdf.ln(4)
+    pdf.set_font("Arial", "B", 12)
+    pdf.cell(145, 8, "Estimated Total", align="R")
+    pdf.cell(35, 8, f"${float(order.get('total_amount', 0) or 0):.2f}", ln=True, align="R")
+
+    pdf.ln(6)
+    pdf.set_font("Arial", "", 10)
+    pdf.multi_cell(
+        0,
+        6,
+        (
+            "This invoice is part of the Shiloh Ridge Farm pre-order system. "
+            "Final availability, pickup, delivery, shipping timing, and any adjustments "
+            "will be confirmed by Dominic by email."
+        ),
+    )
+
+    pdf.output(str(invoice_path))
+    return os.path.relpath(invoice_path, ROOT_DIR).replace("\\", "/")
+
 def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     try:
         payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
@@ -499,6 +795,35 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
         if username is None:
             raise HTTPException(status_code=401, detail="Invalid token")
         return username
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+
+async def verify_customer_token(credentials: HTTPAuthorizationCredentials = Depends(security)) -> Dict[str, Any]:
+    try:
+        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        if payload.get("role") != "customer":
+            raise HTTPException(status_code=401, detail="Invalid customer token")
+
+        customer_id = payload.get("sub")
+        email = payload.get("email")
+        if not customer_id or not email:
+            raise HTTPException(status_code=401, detail="Invalid customer token")
+
+        account = await db.customer_accounts.find_one({"id": customer_id}, {"_id": 0})
+        if not account:
+            raise HTTPException(status_code=401, detail="Customer account not found")
+
+        profile = await db.customer_profiles.find_one({"customer_id": customer_id}, {"_id": 0})
+        if not profile:
+            raise HTTPException(status_code=401, detail="Customer profile not found")
+
+        return {
+            "account": account,
+            "profile": profile,
+        }
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token expired")
     except jwt.InvalidTokenError:
@@ -1019,6 +1344,135 @@ async def login(credentials: AdminLogin, request: Request):
 async def verify(username: str = Depends(verify_token)):
     return {"username": username}
 
+
+@api_router.post("/customer/auth/register", response_model=CustomerAuthResponse)
+async def customer_register(payload: CustomerRegister):
+    existing = await db.customer_accounts.find_one({"email": payload.email.lower()}, {"_id": 0})
+    if existing:
+        raise HTTPException(status_code=400, detail="A customer account with that email already exists")
+
+    customer_account = CustomerAccount(
+        email=payload.email.lower(),
+        password_hash=pwd_context.hash(payload.password),
+    )
+    customer_profile = CustomerProfile(
+        customer_id=customer_account.id,
+        email=payload.email.lower(),
+        full_name=payload.full_name,
+        phone=payload.phone,
+        address=payload.address,
+    )
+
+    account_doc = customer_account.model_dump()
+    account_doc["created_at"] = account_doc["created_at"].isoformat()
+    account_doc["updated_at"] = account_doc["updated_at"].isoformat()
+    profile_doc = customer_profile.model_dump()
+    profile_doc["created_at"] = profile_doc["created_at"].isoformat()
+    profile_doc["updated_at"] = profile_doc["updated_at"].isoformat()
+
+    await db.customer_accounts.insert_one(account_doc)
+    await db.customer_profiles.insert_one(profile_doc)
+
+    token = create_customer_access_token(customer_account.id, customer_account.email)
+    return CustomerAuthResponse(access_token=token, token_type="bearer", profile=customer_profile)
+
+
+@api_router.post("/customer/auth/login", response_model=CustomerAuthResponse)
+async def customer_login(payload: CustomerLogin):
+    account = await db.customer_accounts.find_one({"email": payload.email.lower()}, {"_id": 0})
+    if not account or not pwd_context.verify(payload.password, account["password_hash"]):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    profile = await db.customer_profiles.find_one({"customer_id": account["id"]}, {"_id": 0})
+    if not profile:
+        raise HTTPException(status_code=404, detail="Customer profile not found")
+
+    token = create_customer_access_token(account["id"], account["email"])
+    return CustomerAuthResponse(
+        access_token=token,
+        token_type="bearer",
+        profile=CustomerProfile(**profile),
+    )
+
+
+@api_router.get("/customer/profile", response_model=CustomerProfile)
+async def get_customer_profile(customer=Depends(verify_customer_token)):
+    profile = customer["profile"]
+    return CustomerProfile(**profile)
+
+
+@api_router.put("/customer/profile", response_model=CustomerProfile)
+async def update_customer_profile(payload: CustomerProfileUpdate, customer=Depends(verify_customer_token)):
+    update_data = {key: value for key, value in payload.model_dump().items() if value is not None}
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db.customer_profiles.update_one(
+        {"customer_id": customer["account"]["id"]},
+        {"$set": update_data},
+    )
+    updated = await db.customer_profiles.find_one({"customer_id": customer["account"]["id"]}, {"_id": 0})
+    return CustomerProfile(**updated)
+
+
+@api_router.post("/customer/profile/photo")
+async def upload_customer_profile_photo(file: UploadFile = File(...), customer=Depends(verify_customer_token)):
+    content = await file.read()
+    if not content:
+        raise HTTPException(status_code=400, detail="Profile image is required")
+
+    data_url = f"data:{file.content_type or 'image/jpeg'};base64,{base64.b64encode(content).decode('utf-8')}"
+    await db.customer_profiles.update_one(
+        {"customer_id": customer["account"]["id"]},
+        {
+            "$set": {
+                "profile_image_url": data_url,
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }
+        },
+    )
+    return {"profile_image_url": data_url}
+
+
+@api_router.get("/customer/orders", response_model=List[Order])
+async def get_customer_orders(customer=Depends(verify_customer_token)):
+    orders = await db.orders.find(
+        {"customer_email": customer["account"]["email"]},
+        {"_id": 0},
+    ).sort("created_at", -1).to_list(1000)
+    for order in orders:
+        if isinstance(order.get("created_at"), str):
+            order["created_at"] = datetime.fromisoformat(order["created_at"])
+        if isinstance(order.get("updated_at"), str):
+            order["updated_at"] = datetime.fromisoformat(order["updated_at"])
+    return orders
+
+
+@api_router.get("/customer/orders/{order_id}", response_model=Order)
+async def get_customer_order(order_id: str, customer=Depends(verify_customer_token)):
+    order = await db.orders.find_one(
+        {"id": order_id, "customer_email": customer["account"]["email"]},
+        {"_id": 0},
+    )
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    if isinstance(order.get("created_at"), str):
+        order["created_at"] = datetime.fromisoformat(order["created_at"])
+    if isinstance(order.get("updated_at"), str):
+        order["updated_at"] = datetime.fromisoformat(order["updated_at"])
+    return order
+
+
+@api_router.get("/customer/orders/{order_id}/invoice")
+async def get_customer_order_invoice(order_id: str, customer=Depends(verify_customer_token)):
+    order = await db.orders.find_one(
+        {"id": order_id, "customer_email": customer["account"]["email"]},
+        {"_id": 0},
+    )
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    invoice_path = generate_order_invoice_pdf(order)
+    full_path = ROOT_DIR / invoice_path
+    return FileResponse(full_path, media_type="application/pdf", filename=f"invoice_{order_id[-8:]}.pdf")
+
 # Livestock routes
 @api_router.post("/livestock", response_model=Livestock)
 async def create_livestock(livestock: LivestockCreate, username: str = Depends(verify_token)):
@@ -1220,13 +1674,18 @@ async def create_transfer_contact(form: TransferContactForm):
     doc['inquiry_type'] = "transfer"
     await db.contact_forms.insert_one(doc)
     return form
-@api_router.post("/contact", response_model=ContactForm)
+@api_router.post("/contact", response_model=ContactSubmissionResponse)
 async def create_contact(contact: ContactFormCreate):
     contact_obj = ContactForm(**contact.model_dump())
     doc = contact_obj.model_dump()
     doc['created_at'] = doc['created_at'].isoformat()
     await db.contact_forms.insert_one(doc)
-    return contact_obj
+    notification_sent, notification_error = send_contact_notification(contact_obj)
+    return ContactSubmissionResponse(
+        contact=contact_obj,
+        notification_sent=notification_sent,
+        notification_error=notification_error,
+    )
 
 @api_router.get("/contact", response_model=List[ContactForm])
 async def get_all_contacts(username: str = Depends(verify_token)):
@@ -1470,12 +1929,18 @@ async def create_order(order: OrderCreate):
         # store resolved item data
         item_dict = item.model_dump() if hasattr(item, "model_dump") else item.dict()
         item_dict["price_per_unit"] = price_per_unit
+        item_dict["product_name"] = product.get("name")
         stored_items.append(item_dict)
 
     # Build order object for storage/response
     order_data = order.model_dump()
     order_data["order_items"] = stored_items
     order_data["total_amount"] = total_amount
+    order_data["checkout_provider"] = "farm_preorder"
+
+    customer_account = await db.customer_accounts.find_one({"email": order.customer_email.strip().lower()}, {"_id": 0})
+    if customer_account:
+        order_data["customer_id"] = customer_account["id"]
 
     order_obj = Order(**order_data)
     doc = order_obj.model_dump()
@@ -1521,6 +1986,15 @@ async def get_order(order_id: str, username: str = Depends(verify_token)):
         order['updated_at'] = datetime.fromisoformat(order['updated_at'])
     return order
 
+@api_router.get("/orders/{order_id}/invoice")
+async def get_order_invoice(order_id: str, username: str = Depends(verify_token)):
+    order = await db.orders.find_one({"id": order_id}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    invoice_path = generate_order_invoice_pdf(order)
+    full_path = ROOT_DIR / invoice_path
+    return FileResponse(full_path, media_type="application/pdf", filename=f"invoice_{order_id[-8:]}.pdf")
+
 @api_router.put("/orders/{order_id}/status")
 async def update_order_status(order_id: str, status: str, username: str = Depends(verify_token)):
     valid_statuses = ["pending", "confirmed", "processing", "ready", "completed", "cancelled"]
@@ -1533,6 +2007,9 @@ async def update_order_status(order_id: str, status: str, username: str = Depend
     )
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="Order not found")
+    updated_order = await db.orders.find_one({"id": order_id}, {"_id": 0})
+    if updated_order:
+        send_order_status_notification(updated_order)
     return {"message": f"Order status updated to {status}"}
 
 # Documents endpoints

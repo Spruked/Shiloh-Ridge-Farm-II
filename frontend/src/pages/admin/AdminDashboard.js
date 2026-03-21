@@ -9,6 +9,7 @@ import {
   LogOut,
   Mail,
   Package,
+  ScanSearch,
   Settings,
   ShieldCheck,
   Sparkles,
@@ -43,6 +44,12 @@ const adminSections = [
         description: "Manage animals, registrations, and field-capture records.",
         icon: Users,
         href: "/admin/livestock",
+      },
+      {
+        title: "Review Queue",
+        description: "Check flagged mobile captures and finish the ones that need a human eye.",
+        icon: ScanSearch,
+        href: "/admin/review-queue",
       },
       {
         title: "Accounting",

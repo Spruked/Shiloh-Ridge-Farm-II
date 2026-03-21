@@ -11,9 +11,9 @@ import { Badge } from "../../components/ui/badge";
 import { toast } from "sonner";
 import { Plus, Edit, DollarSign, FileText, Search, User, Package, Download, Printer } from "lucide-react";
 import SkeletonLoader from "../../components/ui/SkeletonLoader";
+import { getApiBaseUrl } from "../../lib/backend";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const API = getApiBaseUrl();
 
 const SalesPage = () => {
   const [sales, setSales] = useState([]);

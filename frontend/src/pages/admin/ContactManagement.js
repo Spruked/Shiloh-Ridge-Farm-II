@@ -3,9 +3,9 @@ import axios from "axios";
 import { Button } from "../../components/ui/buttons";
 import { Badge } from "../../components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog";
+import { getApiBaseUrl } from "../../lib/backend";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const API = getApiBaseUrl();
 
 const ContactManagement = () => {
   const [contacts, setContacts] = useState([]);

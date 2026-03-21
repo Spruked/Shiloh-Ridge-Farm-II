@@ -9,9 +9,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { toast } from "sonner";
 import { Printer, FileText } from "lucide-react";
 import SkeletonLoader from "../../components/ui/SkeletonLoader";
+import { getApiBaseUrl } from "../../lib/backend";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const API = getApiBaseUrl();
 
 const LivestockManagement = () => {
   const [livestock, setLivestock] = useState([]);

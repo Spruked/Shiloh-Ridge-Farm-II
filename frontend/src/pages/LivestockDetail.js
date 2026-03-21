@@ -6,6 +6,7 @@ import Navigation from "../components/Navigation";
 import PriceTicker from "../components/PriceTicker";
 import Footer from "../components/Footer";
 import { getApiBaseUrl } from "../lib/backend";
+import { resolveMediaUrl } from "../lib/media";
 
 const API = getApiBaseUrl();
 
@@ -28,6 +29,8 @@ const LivestockDetail = () => {
       setLoading(false);
     }
   };
+
+  const primaryPhoto = resolveMediaUrl(animal?.photos?.[0]);
 
   if (loading) {
     return (
@@ -64,8 +67,8 @@ const LivestockDetail = () => {
           {/* Image Section */}
           <div>
             <div className="bg-[#e8f4e8] rounded-2xl overflow-hidden shadow-xl h-96 flex items-center justify-center">
-              {animal.photos && animal.photos.length > 0 ? (
-                <img src={animal.photos[0]} alt={animal.name} className="w-full h-full object-cover" data-testid="detail-photo" />
+              {primaryPhoto ? (
+                <img src={primaryPhoto} alt={animal.name} className="w-full h-full object-cover" data-testid="detail-photo" />
               ) : (
                 <span className="text-8xl">
                   {animal.animal_type === 'sheep' ? '🐑' : animal.animal_type === 'hog' ? '🐖' : '🐄'}
@@ -165,12 +168,12 @@ const LivestockDetail = () => {
             )}
 
             <div className="flex gap-4">
-              <Link to={`/contact?animal=${animal.id}`} className="flex-1">
+              <Link to={`/contact?animal=${animal.id}&type=buy`} className="flex-1">
                 <Button 
                   className="w-full btn-hover bg-[#3d5a3d] hover:bg-[#2d4a2d] text-white font-semibold py-6 rounded-full"
                   data-testid="detail-inquire-btn"
                 >
-                  Inquire About This Animal
+                  Buy Now
                 </Button>
               </Link>
               <Link to={`/contact?animal=${animal.id}&type=offer`} className="flex-1">
@@ -179,7 +182,7 @@ const LivestockDetail = () => {
                   className="w-full btn-hover border-2 border-[#3d5a3d] text-[#3d5a3d] hover:bg-[#3d5a3d] hover:text-white font-semibold py-6 rounded-full"
                   data-testid="detail-offer-btn"
                 >
-                  Make an Offer
+                  Submit Offer
                 </Button>
               </Link>
             </div>

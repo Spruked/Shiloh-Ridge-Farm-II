@@ -10,6 +10,7 @@ import Navigation from "../components/Navigation";
 import PriceTicker from "../components/PriceTicker";
 import Footer from "../components/Footer";
 import { getApiBaseUrl } from "../lib/backend";
+import { resolveMediaUrl } from "../lib/media";
 
 const API = getApiBaseUrl();
 
@@ -17,13 +18,15 @@ const ContactPage = () => {
   const [searchParams] = useSearchParams();
   const animalId = searchParams.get("animal");
   const inquiryType = searchParams.get("type") || "general";
+  const normalizedInquiryType =
+    inquiryType === "offer" ? "offer" : inquiryType === "buy" ? "buy" : animalId ? "animal_inquiry" : "general";
 
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     phone: "",
     message: "",
-    inquiry_type: inquiryType === "offer" ? "offer" : animalId ? "animal_inquiry" : "general",
+    inquiry_type: normalizedInquiryType,
     animal_id: animalId || "",
     offer_amount: ""
   });
@@ -58,14 +61,18 @@ const ContactPage = () => {
         ...formData,
         offer_amount: formData.offer_amount ? parseFloat(formData.offer_amount) : null
       };
-      await axios.post(`${API}/contact`, submitData);
-      toast.success("Message sent successfully! We'll get back to you soon.");
+      const response = await axios.post(`${API}/contact`, submitData);
+      if (response.data?.notification_sent) {
+        toast.success("Message sent successfully to Dominic. We'll get back to you soon.");
+      } else {
+        toast.success("Message was saved successfully. Email notification still needs to be configured.");
+      }
       setFormData({
         name: "",
         email: "",
         phone: "",
         message: "",
-        inquiry_type: "general",
+        inquiry_type: normalizedInquiryType,
         animal_id: "",
         offer_amount: ""
       });
@@ -84,17 +91,23 @@ const ContactPage = () => {
 
       <section className="py-20 px-6 max-w-4xl mx-auto" data-testid="contact-page">
         <h1 className="text-4xl sm:text-5xl font-bold text-center mb-4 text-[#3d5a3d]" data-testid="contact-title">
-          Contact Us
+          {normalizedInquiryType === "offer" ? "Submit An Offer" : normalizedInquiryType === "buy" ? "Buy This Animal" : "Contact Us"}
         </h1>
         <p className="text-center text-gray-600 mb-12 text-lg">
-          {animal ? `Inquire about ${animal.name || animal.tag_number}` : "Get in touch with us"}
+          {animal
+            ? normalizedInquiryType === "offer"
+              ? `Send Dominic your offer for ${animal.name || animal.tag_number}`
+              : normalizedInquiryType === "buy"
+                ? `Reserve ${animal.name || animal.tag_number} and Dominic will confirm the next steps`
+                : `Inquire about ${animal.name || animal.tag_number}`
+            : "Get in touch with us"}
         </p>
 
         {animal && (
           <div className="bg-white rounded-2xl p-6 shadow-lg mb-8 flex items-center gap-4" data-testid="contact-animal-info">
             <div className="w-20 h-20 bg-[#e8f4e8] rounded-lg flex items-center justify-center">
-              {animal.photos && animal.photos.length > 0 ? (
-                <img src={animal.photos[0]} alt={animal.name} className="w-full h-full object-cover rounded-lg" />
+              {resolveMediaUrl(animal.photos?.[0]) ? (
+                <img src={resolveMediaUrl(animal.photos?.[0])} alt={animal.name} className="w-full h-full object-cover rounded-lg" />
               ) : (
                 <span className="text-3xl">
                   {animal.animal_type === 'sheep' ? '🐑' : animal.animal_type === 'hog' ? '🐖' : '🐄'}
@@ -167,6 +180,12 @@ const ContactPage = () => {
               </div>
             )}
 
+            {formData.inquiry_type === "buy" && (
+              <div className="mb-6 rounded-xl bg-[#e8f4e8] p-4 text-sm text-[#3d5a3d]">
+                This sends Dominic a purchase request for this animal. He can confirm availability, pickup timing, and any final paperwork with you directly.
+              </div>
+            )}
+
             <div className="mb-6">
               <Label htmlFor="message" className="text-gray-700 font-medium mb-2 block">Message *</Label>
               <Textarea
@@ -187,7 +206,13 @@ const ContactPage = () => {
               className="w-full btn-hover bg-[#3d5a3d] hover:bg-[#2d4a2d] text-white font-semibold py-6 rounded-full text-lg"
               data-testid="contact-submit-btn"
             >
-              {submitting ? "Sending..." : "Send Message"}
+              {submitting
+                ? "Sending..."
+                : formData.inquiry_type === "offer"
+                  ? "Submit Offer"
+                  : formData.inquiry_type === "buy"
+                    ? "Send Purchase Request"
+                    : "Send Message"}
             </Button>
           </form>
         </div>

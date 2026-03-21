@@ -6,10 +6,15 @@ import LivestockPage from "./pages/LivestockPage";
 import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
 import ProductPage from "./pages/ProductPage";
+import CartPage from "./pages/CartPage";
+import CheckoutPage from "./pages/CheckoutPage";
 import BlogPage from "./pages/BlogPage";
 import KatahdinPage from "./pages/KatahdinPage";
 import AuctionsPage from "./pages/AuctionsPage";
 import MobileCapturePage from "./pages/MobileCapturePage";
+import CustomerLoginPage from "./pages/CustomerLoginPage";
+import CustomerRegisterPage from "./pages/CustomerRegisterPage";
+import CustomerDashboardPage from "./pages/CustomerDashboardPage";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AboutManagement from "./pages/admin/AboutManagement";
@@ -22,12 +27,16 @@ import LivestockManagement from "./pages/admin/LivestockManagement";
 import NFTManagement from "./pages/admin/NFTManagement";
 import OrderManagement from "./pages/admin/OrderManagement";
 import ProductManagement from "./pages/admin/ProductManagement";
+import ReviewQueuePage from "./pages/admin/ReviewQueuePage";
 import SalesPage from "./pages/admin/SalesPage";
 import SettingsManagement from "./pages/admin/SettingsManagement";
 import LivestockDetail from "./pages/LivestockDetail";
 import { Toaster } from "./components/ui/sonner";
 import WorkerChatBubble from "./components/worker/WorkerChatBubble";
 import { ThemeProvider } from "./ThemeContext";
+import { CartProvider } from "./CartContext";
+import { CustomerAuthProvider } from "./CustomerAuthContext";
+import { ProductDataProvider } from "./ProductDataContext";
 import { getApiBaseUrl } from "./lib/backend";
 import "./App.css";
 
@@ -103,19 +112,27 @@ function App() {
 
   return (
     <ThemeProvider>
-      <div className="App">
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/livestock" element={<LivestockPage />} />
-            <Route path="/livestock/:id" element={<LivestockDetail />} />
-            <Route path="/about" element={<AboutPage />} />
-            <Route path="/blog" element={<BlogPage />} />
+      <ProductDataProvider>
+        <CartProvider>
+          <CustomerAuthProvider>
+            <div className="App">
+              <BrowserRouter>
+                <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/livestock" element={<LivestockPage />} />
+                <Route path="/livestock/:id" element={<LivestockDetail />} />
+                <Route path="/about" element={<AboutPage />} />
+                <Route path="/blog" element={<BlogPage />} />
             <Route path="/katahdin" element={<KatahdinPage />} />
             <Route path="/auctions" element={<AuctionsPage />} />
             <Route path="/contact" element={<ContactPage />} />
-            <Route path="/products" element={<ProductPage />} />
-            <Route path="/mobile" element={<MobileCapturePage />} />
+                <Route path="/products" element={<ProductPage />} />
+                <Route path="/cart" element={<CartPage />} />
+                <Route path="/checkout" element={<CheckoutPage />} />
+                <Route path="/account/login" element={<CustomerLoginPage />} />
+                <Route path="/account/register" element={<CustomerRegisterPage />} />
+                <Route path="/account/dashboard" element={<CustomerDashboardPage />} />
+                <Route path="/mobile" element={<MobileCapturePage />} />
             <Route
               path="/admin/login"
               element={
@@ -150,13 +167,17 @@ function App() {
             <Route path="/admin/nft" element={renderProtectedAdminPage(<NFTManagement />)} />
             <Route path="/admin/orders" element={renderProtectedAdminPage(<OrderManagement />)} />
             <Route path="/admin/products" element={renderProtectedAdminPage(<ProductManagement />)} />
+            <Route path="/admin/review-queue" element={renderProtectedAdminPage(<ReviewQueuePage />)} />
             <Route path="/admin/sales" element={renderProtectedAdminPage(<SalesPage />)} />
             <Route path="/admin/settings" element={renderProtectedAdminPage(<SettingsManagement />)} />
-          </Routes>
-          <ChatAssistantManager />
-          <Toaster position="top-right" />
-        </BrowserRouter>
-      </div>
+                </Routes>
+                <ChatAssistantManager />
+                <Toaster position="top-right" />
+              </BrowserRouter>
+            </div>
+          </CustomerAuthProvider>
+        </CartProvider>
+      </ProductDataProvider>
     </ThemeProvider>
   );
 }

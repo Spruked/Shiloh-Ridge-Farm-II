@@ -1,12 +1,18 @@
 import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
+import { ShoppingCart } from "lucide-react";
 import { Button } from "./ui/buttons";
 import { useTheme } from "../ThemeContext";
+import { useCart } from "../CartContext";
+import { useCustomerAuth } from "../CustomerAuthContext";
 
 const Navigation = () => {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
+  const { cart } = useCart();
+  const { isAuthenticated } = useCustomerAuth();
+  const cartCount = Object.values(cart).reduce((sum, value) => sum + value, 0);
 
   const isActive = (path) => location.pathname === path;
 
@@ -82,6 +88,28 @@ const Navigation = () => {
             >
               Contact
             </Link>
+            <Link
+              to={isAuthenticated ? "/account/dashboard" : "/account/login"}
+              className={`font-medium transition-colors ${location.pathname.startsWith('/account') ? 'text-[#3d5a3d]' : 'text-gray-700 hover:text-[#3d5a3d]'}`}
+              data-testid="nav-account"
+            >
+              Account
+            </Link>
+            <Link
+              to="/cart"
+              className={`relative font-medium transition-colors ${isActive('/cart') ? 'text-[#3d5a3d]' : 'text-gray-700 hover:text-[#3d5a3d]'}`}
+              data-testid="nav-cart"
+            >
+              <span className="inline-flex items-center gap-2">
+                <ShoppingCart className="h-4 w-4" />
+                Cart
+              </span>
+              {cartCount > 0 && (
+                <span className="absolute -right-4 -top-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#7b4b2a] px-1 text-[10px] font-bold text-white">
+                  {cartCount}
+                </span>
+              )}
+            </Link>
             <Link to="/admin/login">
               <Button 
                 variant="outline" 
@@ -142,6 +170,12 @@ const Navigation = () => {
             </Link>
             <Link to="/contact" className="block font-medium text-gray-700 hover:text-[#3d5a3d]" data-testid="mobile-nav-contact">
               Contact
+            </Link>
+            <Link to={isAuthenticated ? "/account/dashboard" : "/account/login"} className="block font-medium text-gray-700 hover:text-[#3d5a3d]">
+              Account
+            </Link>
+            <Link to="/cart" className="block font-medium text-gray-700 hover:text-[#3d5a3d]" data-testid="mobile-nav-cart">
+              Cart {cartCount > 0 ? `(${cartCount})` : ""}
             </Link>
             <Link to="/admin/login" className="block font-medium text-gray-700 hover:text-[#3d5a3d]" data-testid="mobile-nav-admin">
               Admin Login

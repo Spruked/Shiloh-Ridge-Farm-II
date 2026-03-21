@@ -6,6 +6,7 @@ import Navigation from "../components/Navigation";
 import PriceTicker from "../components/PriceTicker";
 import Footer from "../components/Footer";
 import { getApiBaseUrl } from "../lib/backend";
+import { resolveMediaUrl } from "../lib/media";
 
 const API = getApiBaseUrl();
 
@@ -129,8 +130,8 @@ const HomePage = () => {
                 <Link to={`/livestock/${animal.id}`} key={animal.id}>
                   <div className="card-hover bg-[#faf9f6] rounded-2xl overflow-hidden shadow-lg" data-testid={`featured-animal-${animal.id}`}>
                     <div className="h-64 bg-[#e8f4e8] flex items-center justify-center">
-                      {animal.photos && animal.photos.length > 0 ? (
-                        <img src={animal.photos[0]} alt={animal.name} className="w-full h-full object-cover" />
+                      {resolveMediaUrl(animal.photos?.[0]) ? (
+                        <img src={resolveMediaUrl(animal.photos?.[0])} alt={animal.name} className="w-full h-full object-cover" />
                       ) : (
                         <span className="text-6xl">🐑</span>
                       )}

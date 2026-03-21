@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/buttons';
 import { Badge } from '../components/ui/badge';
@@ -11,14 +12,14 @@ import ButcherCutCalculator from '../components/butcher/ButcherCutCalculator';
 import OrderParserChat from '../components/butcher/OrderParserChat';
 import ButchAssistant from '../components/butcher/ButchAssistant';
 import { getApiBaseUrl, getBackendBaseUrl } from '../lib/backend';
+import { useCart } from '../CartContext';
+import { useProducts } from '../ProductDataContext';
 
 const BUTCH_PROFILE_KEY = 'shiloh_butch_profile';
 
 const ProductPage = () => {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [cart, setCart] = useState({});
+  const { products, loading, error } = useProducts();
+  const { cart, setItemQuantity } = useCart();
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [orderError, setOrderError] = useState(null);
   const [orderForm, setOrderForm] = useState({
@@ -32,64 +33,7 @@ const ProductPage = () => {
   const BACKEND_URL = getBackendBaseUrl();
   const API = getApiBaseUrl();
 
-  // Sample products for when backend is unavailable
-  const sampleProducts = [
-    {
-      id: '1',
-      name: 'Premium Katahdin Lamb',
-      category: 'sheep',
-      type: 'lamb_meat',
-      description: 'Whole or half lamb cuts from our premium Katahdin sheep. Grass-fed and pasture-raised.',
-      price_per_unit: 8.50,
-      unit: 'lb',
-      min_order_quantity: 20,
-      estimated_lead_time: '2 weeks',
-      available_quantity: 0,
-      is_available: true
-    },
-    {
-      id: '2',
-      name: 'Fresh Lamb Chops',
-      category: 'sheep',
-      type: 'lamb_chops',
-      description: 'Tender rib and loin chops from our Katahdin lambs. Perfect for grilling.',
-      price_per_unit: 12.00,
-      unit: 'lb',
-      min_order_quantity: 2,
-      estimated_lead_time: '1 week',
-      available_quantity: 0,
-      is_available: true
-    },
-    {
-      id: '3',
-      name: 'Ground Lamb',
-      category: 'sheep',
-      type: 'ground_lamb',
-      description: 'Fresh ground lamb from our pasture-raised Katahdin sheep. Great for burgers and meatballs.',
-      price_per_unit: 9.00,
-      unit: 'lb',
-      min_order_quantity: 1,
-      estimated_lead_time: '1 week',
-      available_quantity: 0,
-      is_available: true
-    },
-    {
-      id: '4',
-      name: 'Lamb Stew Meat',
-      category: 'sheep',
-      type: 'stew_meat',
-      description: 'Tender stew meat cut from our premium Katahdin lambs.',
-      price_per_unit: 8.00,
-      unit: 'lb',
-      min_order_quantity: 2,
-      estimated_lead_time: '10 days',
-      available_quantity: 0,
-      is_available: true
-    }
-  ];
-
   useEffect(() => {
-    fetchProducts();
     hydrateOrderFormFromButchProfile();
   }, []);
 
@@ -130,28 +74,8 @@ const ProductPage = () => {
     }
   };
 
-  const fetchProducts = async () => {
-    try {
-      const response = await fetch(`${API}/products`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch products');
-      }
-      const data = await response.json();
-      setProducts(data);
-    } catch (err) {
-      console.warn('Backend unavailable, using sample products:', err.message);
-      setProducts(sampleProducts);
-      setError(null); // Clear error since we're using fallback data
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const updateCart = (productId, quantity) => {
-    setCart(prev => ({
-      ...prev,
-      [productId]: Math.max(0, quantity)
-    }));
+    setItemQuantity(productId, quantity);
   };
 
   const getCartTotal = () => {
@@ -209,7 +133,7 @@ const ProductPage = () => {
         phone: orderForm.customer_phone
       });
       alert('Order placed successfully! We will contact you soon.');
-      setCart({});
+      Object.keys(cart).forEach((productId) => setItemQuantity(productId, 0));
       setShowOrderForm(false);
       setOrderForm({
         customer_name: '',
@@ -426,6 +350,11 @@ const ProductPage = () => {
               >
                 Proceed to Checkout
               </Button>
+              <Link to="/cart" className="block mt-3">
+                <Button variant="outline" className="w-full">
+                  Open Full Cart
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         </div>

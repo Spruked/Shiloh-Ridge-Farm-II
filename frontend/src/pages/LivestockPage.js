@@ -9,6 +9,7 @@ import Navigation from "../components/Navigation";
 import PriceTicker from "../components/PriceTicker";
 import Footer from "../components/Footer";
 import { getApiBaseUrl } from "../lib/backend";
+import { resolveMediaUrl } from "../lib/media";
 
 const API = getApiBaseUrl();
 
@@ -69,6 +70,9 @@ const LivestockPage = () => {
     setFilteredLivestock(filtered);
   };
 
+  const getAnimalPhotos = (animal) =>
+    (animal?.photos || []).map((photo) => resolveMediaUrl(photo)).filter(Boolean);
+
   return (
     <div className="min-h-screen bg-[#faf9f6]">
       <Navigation />
@@ -114,12 +118,12 @@ const LivestockPage = () => {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8" data-testid="livestock-grid">
             {filteredLivestock.map((animal) => (
-              <Link to={`/livestock/${animal.id}`} key={animal.id}>
-                <div className="card-hover bg-white rounded-2xl overflow-hidden shadow-lg flex flex-col">
+              <div key={animal.id} className="card-hover bg-white rounded-2xl overflow-hidden shadow-lg flex flex-col">
+                <Link to={`/livestock/${animal.id}`}>
                   <div className="h-64 bg-[#e8f4e8] flex items-center justify-center relative">
-                    {animal.photos && animal.photos.length > 0 ? (
+                    {getAnimalPhotos(animal).length > 0 ? (
                       <div className="flex gap-2 overflow-x-auto max-w-full px-2">
-                        {animal.photos.map((photo, idx) => (
+                        {getAnimalPhotos(animal).map((photo, idx) => (
                           <img key={idx} src={photo} alt={animal.name || animal.tag_number} className="w-32 h-32 object-cover rounded-lg border border-gray-200 cursor-pointer hover:scale-105 transition-transform" />
                         ))}
                       </div>
@@ -129,9 +133,12 @@ const LivestockPage = () => {
                       </span>
                     )}
                   </div>
+                </Link>
                   <div className="p-6 flex-1 flex flex-col justify-between">
                     <div className="flex justify-between items-start mb-2">
-                      <h3 className="text-2xl font-bold text-[#3d5a3d]">{animal.name || animal.tag_number}</h3>
+                      <Link to={`/livestock/${animal.id}`} className="min-w-0">
+                        <h3 className="text-2xl font-bold text-[#3d5a3d] hover:text-[#2d4a2d]">{animal.name || animal.tag_number}</h3>
+                      </Link>
                       {animal.nft_minted && (
                         <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">NFT</span>
                       )}
@@ -144,9 +151,21 @@ const LivestockPage = () => {
                     {animal.price && (
                       <p className="text-2xl font-bold text-[#3d5a3d]">${animal.price.toLocaleString()}</p>
                     )}
+
+                    <div className="mt-5 grid gap-2 sm:grid-cols-2">
+                      <Link to={`/contact?animal=${animal.id}&type=buy`}>
+                        <Button className="w-full bg-[#3d5a3d] hover:bg-[#2d4a2d]">
+                          Buy Now
+                        </Button>
+                      </Link>
+                      <Link to={`/contact?animal=${animal.id}&type=offer`}>
+                        <Button variant="outline" className="w-full border-[#3d5a3d] text-[#3d5a3d] hover:bg-[#3d5a3d] hover:text-white">
+                          Submit Offer
+                        </Button>
+                      </Link>
+                    </div>
                   </div>
-                </div>
-              </Link>
+              </div>
             ))}
           </div>
         )}

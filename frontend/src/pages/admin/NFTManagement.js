@@ -4,9 +4,9 @@ import { Button } from "../../components/ui/buttons";
 import { Badge } from "../../components/ui/badge";
 import { toast } from "sonner";
 import { AlertCircle, CheckCircle, Clock } from "lucide-react";
+import { getApiBaseUrl } from "../../lib/backend";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const API = getApiBaseUrl();
 
 const NFTManagement = () => {
   const [livestock, setLivestock] = useState([]);

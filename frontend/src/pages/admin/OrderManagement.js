@@ -4,10 +4,10 @@ import { Button } from '../../components/ui/buttons';
 import { Badge } from '../../components/ui/badge';
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { ShoppingCart, Clock, CheckCircle, XCircle, Truck, Package, AlertTriangle } from 'lucide-react';
+import { ShoppingCart, Clock, CheckCircle, XCircle, Truck, Package, AlertTriangle, Download } from 'lucide-react';
+import { getApiBaseUrl } from '../../lib/backend';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const API = getApiBaseUrl();
 
 const OrderManagement = () => {
   const [orders, setOrders] = useState([]);
@@ -66,6 +66,27 @@ const OrderManagement = () => {
       await fetchOrders();
     } catch (err) {
       alert('Error updating order status: ' + err.message);
+    }
+  };
+
+  const downloadInvoice = async (orderId) => {
+    try {
+      const token = localStorage.getItem('admin_token');
+      const response = await fetch(`${API}/orders/${orderId}/invoice`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to open invoice');
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (err) {
+      alert('Error opening invoice: ' + err.message);
     }
   };
 
@@ -176,6 +197,11 @@ const OrderManagement = () => {
                       </span>
                     </div>
                   </div>
+
+                  <Button variant="outline" className="w-full gap-2" onClick={() => downloadInvoice(order.id)}>
+                    <Download className="h-4 w-4" />
+                    Open Invoice
+                  </Button>
 
                   {/* Status Update */}
                   <div>

@@ -12,9 +12,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/ta
 import { toast } from "sonner";
 import { Plus, DollarSign, TrendingUp, TrendingDown, Search, PieChart, BarChart3, Download, Printer, FileText } from "lucide-react";
 import SkeletonLoader from "../../components/ui/SkeletonLoader";
+import { getApiBaseUrl } from "../../lib/backend";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const API = getApiBaseUrl();
 
 const AccountingPage = () => {
   const [expenses, setExpenses] = useState([]);

@@ -7,10 +7,9 @@ import { Button } from '../../components/ui/buttons';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
+import { getApiBaseUrl } from '../../lib/backend';
 
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const API = getApiBaseUrl();
 
 
 const ButchAdmin = () => {

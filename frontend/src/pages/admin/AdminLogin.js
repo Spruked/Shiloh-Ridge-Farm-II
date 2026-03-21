@@ -5,9 +5,9 @@ import { Button } from "../../components/ui/buttons";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { toast } from "sonner";
+import { getApiBaseUrl } from "../../lib/backend";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const API = getApiBaseUrl();
 const LOGO_URL = "/ShilohRidgeFarmicon256.png";
 
 /**

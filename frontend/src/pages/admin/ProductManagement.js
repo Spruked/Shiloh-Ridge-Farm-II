@@ -9,9 +9,9 @@ import { Textarea } from '../../components/ui/textarea';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Plus, Edit, Trash2, Package, AlertTriangle } from 'lucide-react';
+import { getApiBaseUrl } from '../../lib/backend';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const API = getApiBaseUrl();
 
 const normalizeProductForUi = (product) => ({
   ...product,
