@@ -1,0 +1,16 @@
+{
+  "name": "alchemy-demo",
+  "version": "1.0.0",
+  "main": "demo-script.js",
+  "scripts": {
+    "start": "node demo-script.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "Demo script for Alchemy Web3 and NFT APIs",
+  "dependencies": {
+    "alchemy-sdk": "^3.0.0"
+  }
+}

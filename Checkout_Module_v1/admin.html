@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Checkout Module</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Admin Dashboard</h1>
+        <p>Manage products, coupons, and orders.</p>
+
+        <h2>Register Product</h2>
+        <form id="product-form">
+            <input type="text" id="prod-id" placeholder="ID" required>
+            <input type="text" id="prod-ppid" placeholder="PPID" required>
+            <input type="text" id="prod-app-type" placeholder="App Type" required>
+            <input type="text" id="prod-name" placeholder="Product Name" required>
+            <input type="text" id="prod-category" placeholder="Category" required>
+            <input type="text" id="prod-tier" placeholder="Tier" required>
+            <input type="number" id="prod-price" placeholder="Base Price USD" step="0.01" required>
+            <input type="text" id="prod-tax-category" placeholder="Tax Category (standard/exempt)" value="standard" required>
+            <button type="submit">Register Product</button>
+        </form>
+
+        <h2>Create Coupon</h2>
+        <form id="coupon-form">
+            <input type="text" id="coupon-code" placeholder="Code" required>
+            <select id="coupon-type" required>
+                <option value="percent">Percent</option>
+                <option value="fixed">Fixed</option>
+            </select>
+            <input type="number" id="coupon-value" placeholder="Value" step="0.01" required>
+            <input type="text" id="coupon-target-apps" placeholder="Target Apps (comma-separated)" required>
+            <input type="text" id="coupon-source-apps" placeholder="Source Apps (optional)">
+            <input type="number" id="coupon-max-uses" placeholder="Max Uses">
+            <input type="datetime-local" id="coupon-expiry">
+            <button type="submit">Create Coupon</button>
+        </form>
+
+        <h2>Products</h2>
+        <ul id="products-list"></ul>
+
+        <h2>Coupons</h2>
+        <ul id="coupons-list"></ul>
+
+        <h2>Orders</h2>
+        <ul id="orders-list"></ul>
+    </div>
+
+    <script>
+        async function loadData() {
+            const products = await fetch('/admin/products').then(r => r.json());
+            const coupons = await fetch('/admin/coupons').then(r => r.json());
+            const orders = await fetch('/admin/orders').then(r => r.json());
+
+            document.getElementById('products-list').innerHTML = products.map(p => `<li>${p.ppid}: ${p.product_name} - $${p.base_price_usd} (Tax: ${p.tax_category})</li>`).join('');
+            document.getElementById('coupons-list').innerHTML = coupons.map(c => `<li>${c.code}: ${c.discount_type} ${c.discount_value} (${c.uses_count}/${c.max_uses || '∞'})</li>`).join('');
+            document.getElementById('orders-list').innerHTML = orders.map(o => `<li>${o.order_id}: ${o.product_id} - Subtotal: $${o.subtotal_usd}, Tax: $${o.tax_amount_usd}, Total: $${o.total_usd} (${o.status})<br>Tx: ${o.tx_hash || 'N/A'}, Block: ${o.block_number || 'N/A'}, Confirmed: ${o.confirmed_at || 'N/A'}</li>`).join('');
+        }
+
+        document.getElementById('product-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = {
+                id: document.getElementById('prod-id').value,
+                ppid: document.getElementById('prod-ppid').value,
+                app_type: document.getElementById('prod-app-type').value,
+                product_name: document.getElementById('prod-name').value,
+                category: document.getElementById('prod-category').value,
+                tier: document.getElementById('prod-tier').value,
+                base_price_usd: parseFloat(document.getElementById('prod-price').value),
+                tax_category: document.getElementById('prod-tax-category').value
+            };
+            await fetch('/register-product', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
+            loadData();
+        });
+
+        document.getElementById('coupon-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = {
+                code: document.getElementById('coupon-code').value,
+                discount_type: document.getElementById('coupon-type').value,
+                discount_value: parseFloat(document.getElementById('coupon-value').value),
+                target_apps: document.getElementById('coupon-target-apps').value.split(',').map(s => s.trim()),
+                source_apps: document.getElementById('coupon-source-apps').value ? document.getElementById('coupon-source-apps').value.split(',').map(s => s.trim()) : null,
+                max_uses: document.getElementById('coupon-max-uses').value ? parseInt(document.getElementById('coupon-max-uses').value) : null,
+                expiry_date: document.getElementById('coupon-expiry').value || null
+            };
+            await fetch('/create-coupon', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
+            loadData();
+        });
+
+        loadData();
+    </script>
+</body>
+</html>

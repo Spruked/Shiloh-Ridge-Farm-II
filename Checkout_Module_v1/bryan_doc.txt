@@ -1,0 +1,233 @@
+# Checkout_Module_v1: Comprehensive Summary
+
+## Overview
+Checkout_Module_v1 is a modular, enterprise-grade FastAPI-based checkout plugin designed for seamless integration across multiple apps (e.g., Alpha CertSig, TrueMark Mint, GOAT, Vault Forge, APEX Doc). It standardizes payment flows, enforces security, and provides auditability without unifying app operations. Key features include:
+
+- **Multi-Chain Payments**: Supports fiat (Stripe) and crypto (Polygon zkEVM, Ethereum, Solana) with gas cost hiding.
+- **PPID System**: Universal Product IDs (e.g., `PP-AC-CER-BAS-001`) for product validation, app ownership checks, and traceability.
+- **Coupon/Discount System**: Percentage or fixed discounts with validation (expiry, usage limits, app scoping).
+- **Serial Expansion**: Sequential serials (e.g., `PP-AC-CER-BAS-001-2026-000001`) for minting apps (Alpha CertSig, TrueMark Mint) for provenance.
+- **US Tax Compliance**: Tax categories with precise validation (±$0.01), spot price recording for crypto.
+- **Blockchain Verification**: Raw JSON-RPC transaction confirmation with block proofs.
+- **Professional UX**: App-specific branding (logos, language) loaded from metadata; no dropdowns for app_type.
+- **Security**: Bidirectional price variance checks, ownership validation, coupon forgery prevention.
+- **Database**: SQLite with SQLAlchemy ORM for products, orders, coupons.
+- **Frontend**: Simple HTML/JS for testing; apps integrate via API.
+
+The plugin acts as a shared service layer: apps register products once, send PPID + price, and get validated, branded checkouts.
+
+## Design Outline
+- **Architecture**: FastAPI backend with Pydantic models, SQLAlchemy DB, modular routers (payment, minting). No frontend dependencies—apps handle UI.
+- **Data Flow**:
+  1. App registers products via `/register-product`.
+  2. User initiates checkout; app sends PPID, price, optional coupon to `/checkout`.
+  3. Plugin validates PPID, applies coupon, checks variance, processes payment.
+  4. For crypto/minting: Generates serial, mints NFT, logs with tx_hash.
+  5. Returns branded response; app handles redirects (e.g., Stripe).
+- **Security Model**: Server-side validation only; no client trust. API keys for auth (TODO).
+- **Scalability**: SQLite for demo; migrate to PostgreSQL for production. Handles 100k+ orders via indexing.
+- **Error Handling**: HTTP 400/403/404 with descriptive messages; logs to DB.
+- **Dependencies**: FastAPI, SQLAlchemy, Stripe, Web3, Solana SDK, Pydantic.
+
+## All Functions, Endpoints, and Models Report
+### Endpoints (FastAPI Routes)
+- `GET /`: Serves `index.html` (test frontend).
+- `POST /register-product`: Registers a product (PPID, app_type, etc.). Requires auth (TODO).
+- `POST /create-coupon`: Creates a coupon (code, discount, etc.). Admin-only (TODO).
+- `POST /checkout`: Processes checkout (validates PPID, coupon, payment). Returns order_id, payment details, branding.
+- `POST /confirm/{order_id}`: Confirms payment (mints for crypto, updates status).
+- `POST /stripe-webhook`: Handles Stripe webhooks (updates order status).
+
+### Models (Pydantic/SQLAlchemy)
+- **Pydantic**:
+  - `ProductPydantic`: For product registration (id, ppid, app_type, product_name, category, tier, base_price_usd, tax_category, active, metadata).
+  - `CouponPydantic`: For coupon creation (code, discount_type, discount_value, target_apps, source_apps, max_uses, expiry_date, metadata).
+  - `OrderCreate`: For checkout requests (product_id, final_price_usd, customer_email, payment_method, wallet_address, crypto_type, chain_tier, coupon_code, source_app, metadata).
+  - `OrderRecord`: For logging (order_id, product_id, app_type, final_price_usd, tax_amount, spot_price_usd, payment_method, chain_tier, status, tx_hash, block_number, block_hash, confirmed_at, created_at, stripe_session_id, stripe_payment_intent_id, serial_number).
+- **SQLAlchemy**:
+  - `Product`: Products table (id, ppid, app_type, product_name, category, tier, base_price_usd, tax_category, active, created_at, updated_at, product_metadata).
+  - `OrderDB`: Orders table (id, order_id, product_id, app_type, final_price_usd, tax_amount, spot_price_usd, payment_method, chain_tier, status, tx_hash, block_number, block_hash, confirmed_at, created_at, stripe_session_id, stripe_payment_intent_id, serial_number).
+  - `Coupon`: Coupons table (code, discount_type, discount_value, target_apps, source_apps, max_uses, expiry_date, uses_count, metadata).
+
+### Functions (Key Modules)
+- **app.py**:
+  - `read_root()`: Serves frontend.
+  - `register_product_endpoint()`: Calls `register_product()`.
+  - `create_coupon_endpoint()`: Calls `create_coupon()`.
+  - `checkout()`: Validates product/PPID, applies coupon, calculates tax, processes payment.
+  - `confirm()`: Calls `confirm_payment()`.
+  - `stripe_webhook()`: Updates order on Stripe events.
+  - `list_products()`, `list_coupons()`, `list_orders()`: Admin endpoints.
+- **payment_router.py**:
+  - `process_payment()`: Routes to fiat/crypto processing, verifies transactions.
+  - `confirm_payment()`: Mints for crypto, logs with serial.
+- **order_ledger.py**:
+  - `log_order()`: Saves to DB/memory with tax and block data.
+  - `register_product()`: Inserts product.
+  - `get_product()`: Fetches product.
+  - `get_next_serial()`: Generates serial.
+  - `create_coupon()`, `get_coupon()`, `apply_coupon()`: Coupon CRUD/validation.
+- **mint_executor.py**:
+  - `mint_certificate()`: Mints on EVM/Solana.
+- **crypto_engine.py**:
+  - `get_token_price()`, `convert_usd_to_token()`: Crypto pricing.
+  - `json_rpc_call()`, `verify_transaction()`: Blockchain verification.
+- **pricing_engine.py**:
+  - `validate_chain_premium()`: Optional validation.
+- **config.py**: Settings (Stripe, Alchemy, APP_CODE_MAP).
+- **database.py**: DB engine/session.
+- **models.py**: All models.
+- **Frontend (script.js/index.html/admin.html)**: Loads branding from URL, submits to `/checkout`, admin management.
+
+## Updated Documentation (README-Style)
+### Installation
+1. Clone repo.
+2. `pip install -r requirements.txt`.
+3. Set env vars: `STRIPE_SECRET_KEY`, `ALCHEMY_API_KEY`, etc.
+4. Run: `uvicorn app:app --reload`.
+
+### Usage
+- Register products: POST to `/register-product`.
+- Checkout: Apps send PPID + price to `/checkout`.
+- Coupons: Create via `/create-coupon`, apply in checkout.
+- Minting: Serials auto-generated for alpha_certsig/truemark_mint.
+- Tax: Automatic calculation based on tax_category (standard=8%, exempt=0%).
+- Verification: Crypto transactions auto-verified with block proofs.
+
+### New Features (Latest Updates)
+- **Tax Compliance**: Product tax categories, precise $0.01 validation, spot price recording for crypto.
+- **Blockchain Verification**: Raw JSON-RPC calls for transaction and block confirmation.
+- **Admin Dashboard**: Full CRUD for products, coupons, orders with tax and verification details.
+- **Audit Trail**: Complete block-level proofs stored in database.
+
+### API Reference
+- See "All Functions, Endpoints, and Models Report" above.
+- Responses include branding (logo_url, custom_msg).
+
+### Security
+- Validate all inputs server-side.
+- Use HTTPS in production.
+- Add API keys for `/register-product` and `/create-coupon`.
+
+### Contributing
+- Modular design; extend for new chains/apps.
+
+---
+
+# Plugin Integration Guide for Other Apps
+
+This guide details exactly what each app (Alpha CertSig, TrueMark Mint, GOAT, Vault Forge, APEX Doc) needs to integrate with Checkout_Module_v1. Assume the plugin is hosted at `https://checkout.apex.com` (replace with actual URL). Apps must register products once, then send PPID + price for checkouts. No code changes to the plugin required—apps handle UI/redirects.
+
+### General Requirements for All Apps
+- **API Calls**: Use HTTPS; handle 400/403 errors (e.g., invalid PPID).
+- **Product Registration**: Call `/register-product` on app startup/deploy.
+- **Checkout Flow**:
+  1. User selects product → App computes PPID + final_price_usd (apply discounts client-side if needed).
+  2. POST to `/checkout` with OrderCreate fields.
+  3. Handle response: Redirect to Stripe URL (fiat) or confirm mint (crypto).
+  4. For crypto: Provide wallet_address; plugin mints and returns tx_hash + serial.
+- **Branding**: Store logo_url/custom_msg in product metadata; response includes them for app UI.
+- **Auth**: TODO - Add X-App-Key header for registration/checkout.
+- **Testing**: Use test PPIDs (e.g., `PP-AC-CRT-ELT-001`).
+
+### App-Specific Integration Details
+
+#### Alpha CertSig (Minting App)
+- **Products**: Certificates (e.g., PP-AC-CRT-ELT-001 for Elite Certificate).
+- **Registration**:
+  ```
+  POST /register-product
+  {
+    "id": "ac-001",
+    "ppid": "PP-AC-CRT-ELT-001",
+    "app_type": "alpha_certsig",
+    "product_name": "Elite Certificate",
+    "category": "CRT",
+    "tier": "ELT",
+    "base_price_usd": 25.0,
+    "metadata": {"logo_url": "https://alphacertsig.com/logo.png", "lang_strings": {"checkout_msg": "Securely mint your certificate."}}
+  }
+  ```
+- **Checkout**: Send `payment_method: "crypto"`, `chain_tier: "polygon"`, `wallet_address`. Plugin generates serial (e.g., `PP-AC-CRT-ELT-001-2026-000001`) and mints NFT.
+- **Post-Checkout**: Use serial for PDF embedding; tx_hash for on-chain proof.
+- **Coupons**: Applicable if target_apps includes "alpha_certsig".
+
+#### TrueMark Mint (Minting App)
+- **Products**: Provenance NFTs (e.g., PP-TM-NFT-STD-003 for Standard NFT).
+- **Registration**:
+  ```
+  POST /register-product
+  {
+    "id": "tm-003",
+    "ppid": "PP-TM-NFT-STD-003",
+    "app_type": "truemark_mint",
+    "product_name": "Standard Provenance NFT",
+    "category": "NFT",
+    "tier": "STD",
+    "base_price_usd": 10.0,
+    "metadata": {"logo_url": "https://truemark.com/logo.png", "lang_strings": {"checkout_msg": "Mint your blockchain provenance."}}
+  }
+  ```
+- **Checkout**: Similar to Alpha CertSig; serial for traceability.
+- **Post-Checkout**: Embed serial in metadata; use for resale verification.
+- **Coupons**: E.g., GOAT20-TM for 20% off.
+
+#### GOAT (Non-Minting App)
+- **Products**: Subscriptions/Services (e.g., PP-GOAT-SUB-MON-002 for Monthly Sub).
+- **Registration**:
+  ```
+  POST /register-product
+  {
+    "id": "goat-002",
+    "ppid": "PP-GOAT-SUB-MON-002",
+    "app_type": "goat",
+    "product_name": "Monthly Subscription",
+    "category": "SUB",
+    "tier": "MON",
+    "base_price_usd": 9.99,
+    "metadata": {"logo_url": "https://goatapp.com/logo.png", "lang_strings": {"checkout_msg": "Subscribe to GOAT premium."}}
+  }
+  ```
+- **Checkout**: Send `payment_method: "fiat"`; no minting/serial.
+- **Coupons**: Can be source_app for discounts on other apps (e.g., send `source_app: "goat"` with coupon for TrueMark).
+- **Post-Checkout**: Handle Stripe redirect; no crypto.
+
+#### Vault Forge (Non-Minting App)
+- **Products**: Licenses/Tools (e.g., PP-VF-LIC-ENT-004 for Enterprise License).
+- **Registration**:
+  ```
+  POST /register-product
+  {
+    "id": "vf-004",
+    "ppid": "PP-VF-LIC-ENT-004",
+    "app_type": "vault_forge",
+    "product_name": "Enterprise License",
+    "category": "LIC",
+    "tier": "ENT",
+    "base_price_usd": 99.0,
+    "metadata": {"logo_url": "https://vaultforge.com/logo.png", "lang_strings": {"checkout_msg": "Unlock enterprise features."}}
+  }
+  ```
+- **Checkout**: Fiat only; validate price variance.
+- **Coupons**: Target-specific; no serials.
+
+#### APEX Doc (Non-Minting App)
+- **Products**: Documents (e.g., PP-AD-DOC-STD-005 for Standard Doc).
+- **Registration**:
+  ```
+  POST /register-product
+  {
+    "id": "ad-005",
+    "ppid": "PP-AD-DOC-STD-005",
+    "app_type": "apex_doc",
+    "product_name": "Standard Document",
+    "category": "DOC",
+    "tier": "STD",
+    "base_price_usd": 5.0,
+    "metadata": {"logo_url": "https://apexdoc.com/logo.png", "lang_strings": {"checkout_msg": "Generate your document securely."}}
+  }
+  ```
+- **Checkout**: Fiat/crypto; no minting.
+- **Coupons**: General discounts.
+
+For all apps: Test with dev keys; monitor logs for errors. This ensures consistent, secure checkouts across your ecosystem. If issues arise, check PPID format and variance. 🚀
