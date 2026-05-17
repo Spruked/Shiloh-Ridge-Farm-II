@@ -148,14 +148,14 @@ function ReviewQueuePage() {
   const urgentCount = items.filter((item) => (item.confidence ?? 0) < 0.5).length;
 
   return (
-    <div className="min-h-screen bg-[#f7f4ef] px-6 py-8">
+    <div className="min-h-screen bg-[#f3efdf] px-6 py-8">
       <div className="mx-auto max-w-6xl space-y-6">
         <div className="flex flex-col gap-4 rounded-3xl bg-white p-6 shadow-lg md:flex-row md:items-center md:justify-between">
           <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#7b4b2a]">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#b6863a]">
               Livestock Review Queue
             </p>
-            <h1 className="text-3xl font-bold text-[#3d5a3d]">Check flagged field captures</h1>
+            <h1 className="text-3xl font-bold text-[#0f5132]">Check flagged field captures</h1>
             <p className="max-w-3xl text-sm text-stone-600">{REVIEW_HELP_TEXT}</p>
           </div>
 
@@ -166,7 +166,7 @@ function ReviewQueuePage() {
               </Button>
             </Link>
             <Link to="/admin/livestock">
-              <Button type="button" className="bg-[#3d5a3d] hover:bg-[#2d4a2d]">
+              <Button type="button" className="bg-[#0f5132] hover:bg-[#0a3c24]">
                 Open Livestock Manager
               </Button>
             </Link>
@@ -177,7 +177,7 @@ function ReviewQueuePage() {
           <Card className="border-stone-200 shadow-md">
             <CardHeader className="pb-3">
               <CardDescription>Pending captures</CardDescription>
-              <CardTitle className="text-3xl text-[#3d5a3d]">{items.length}</CardTitle>
+              <CardTitle className="text-3xl text-[#0f5132]">{items.length}</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-stone-600">
               Captures waiting for a quick human check before Dominic treats them as fully trusted records.
@@ -187,7 +187,7 @@ function ReviewQueuePage() {
           <Card className="border-stone-200 shadow-md">
             <CardHeader className="pb-3">
               <CardDescription>Urgent attention</CardDescription>
-              <CardTitle className="text-3xl text-[#7b4b2a]">{urgentCount}</CardTitle>
+              <CardTitle className="text-3xl text-[#b6863a]">{urgentCount}</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-stone-600">
               These have especially low confidence and are the best place to start.
@@ -197,7 +197,7 @@ function ReviewQueuePage() {
           <Card className="border-stone-200 shadow-md">
             <CardHeader className="pb-3">
               <CardDescription>Operator shortcut</CardDescription>
-              <CardTitle className="text-xl text-[#3d5a3d]">Review, then edit</CardTitle>
+              <CardTitle className="text-xl text-[#0f5132]">Review, then edit</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-stone-600">
               Use this queue to spot the issue, then open livestock management to finalize the record if needed.
@@ -235,10 +235,10 @@ function ReviewQueuePage() {
         ) : filteredItems.length === 0 ? (
           <Card className="border-stone-200 shadow-md">
             <CardContent className="space-y-3 p-10 text-center">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#e8f4e8] text-[#3d5a3d]">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#e7eddc] text-[#0f5132]">
                 <AlertTriangle className="h-6 w-6" />
               </div>
-              <h2 className="text-xl font-semibold text-[#3d5a3d]">No captures need review right now</h2>
+              <h2 className="text-xl font-semibold text-[#0f5132]">No captures need review right now</h2>
               <p className="text-sm text-stone-600">
                 New low-confidence captures will show up here automatically.
               </p>
@@ -271,7 +271,7 @@ function ReviewQueuePage() {
                       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                         <div className="space-y-2">
                           <div className="flex flex-wrap items-center gap-2">
-                            <h2 className="text-2xl font-semibold text-[#3d5a3d]">
+                            <h2 className="text-2xl font-semibold text-[#0f5132]">
                               {item.temp_id || "Pending tag confirmation"}
                             </h2>
                             <Badge className={getConfidenceBadgeClass(confidence)}>
@@ -304,7 +304,7 @@ function ReviewQueuePage() {
                             {registeringId === item.id ? "Opening..." : "Registration PDF"}
                           </Button>
                           <Link to="/admin/livestock">
-                            <Button type="button" className="gap-2 bg-[#3d5a3d] hover:bg-[#2d4a2d]">
+                            <Button type="button" className="gap-2 bg-[#0f5132] hover:bg-[#0a3c24]">
                               <ExternalLink className="h-4 w-4" />
                               Open In Livestock
                             </Button>
@@ -331,11 +331,11 @@ function ReviewQueuePage() {
                       </div>
 
                       <div className="space-y-2">
-                        <p className="text-sm font-medium text-[#5f3216]">Why this was flagged</p>
+                        <p className="text-sm font-medium text-[#8f6428]">Why this was flagged</p>
                         <div className="flex flex-wrap gap-2">
                           {(item.reasons || []).length > 0 ? (
                             item.reasons.map((reason) => (
-                              <Badge key={reason} variant="outline" className="border-[#d8c3af] bg-[#fdf7f1] text-[#7b4b2a]">
+                              <Badge key={reason} variant="outline" className="border-[#d8c3af] bg-[#fdf7f1] text-[#b6863a]">
                                 {reason}
                               </Badge>
                             ))
@@ -345,8 +345,8 @@ function ReviewQueuePage() {
                         </div>
                       </div>
 
-                      <div className="rounded-2xl bg-[#f7f4ef] p-4 text-sm text-stone-600">
-                        <p className="font-medium text-[#3d5a3d]">Owner-friendly next step</p>
+                      <div className="rounded-2xl bg-[#f3efdf] p-4 text-sm text-stone-600">
+                        <p className="font-medium text-[#0f5132]">Owner-friendly next step</p>
                         <p className="mt-1">
                           If the tag or lineage looks wrong, open livestock management, edit the record, and keep the corrected record there as the source of truth.
                         </p>
@@ -438,7 +438,7 @@ function buildDemoReviewQueue() {
     {
       id: "demo-review-1",
       temp_id: "TEMP-DEMO42",
-      photo_url: `${BACKEND_BASE_URL}/images/katahdin-ram.jpg`,
+      photo_url: "/katahdin-sheep-grazing_orig.jpg",
       suggested_tag: "042",
       confidence: 0.38,
       reasons: ["Tag confidence 0.38 below threshold", "Registration number missing from current capture"],

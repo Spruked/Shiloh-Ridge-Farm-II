@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/buttons';
 import { Badge } from '../components/ui/badge';
@@ -10,16 +10,27 @@ import PriceTicker from '../components/PriceTicker';
 import Footer from '../components/Footer';
 import ButcherCutCalculator from '../components/butcher/ButcherCutCalculator';
 import OrderParserChat from '../components/butcher/OrderParserChat';
-import ButchAssistant from '../components/butcher/ButchAssistant';
-import { getApiBaseUrl, getBackendBaseUrl } from '../lib/backend';
+import { getApiBaseUrl } from '../lib/backend';
 import { useCart } from '../CartContext';
 import { useProducts } from '../ProductDataContext';
 
 const BUTCH_PROFILE_KEY = 'shiloh_butch_profile';
+const BUTCH_ORDER_DRAFT_KEY = 'shiloh_butch_order_draft_v1';
+
+const parseEstimateRangeMidpoint = (estimate) => {
+  const [lowRaw, highRaw] = estimate?.total_estimated_cost || [];
+  const low = Number(lowRaw);
+  const high = Number(highRaw);
+  if (!Number.isFinite(low) || !Number.isFinite(high) || low <= 0 || high <= 0) {
+    return null;
+  }
+  return Number((((low + high) / 2)).toFixed(2));
+};
 
 const ProductPage = () => {
   const { products, loading, error } = useProducts();
-  const { cart, setItemQuantity } = useCart();
+  const { cart, setItemQuantity, setItemPriceOverride, resolveUnitPrice } = useCart();
+  const navigate = useNavigate();
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [orderError, setOrderError] = useState(null);
   const [orderForm, setOrderForm] = useState({
@@ -30,7 +41,6 @@ const ProductPage = () => {
     notes: ''
   });
 
-  const BACKEND_URL = getBackendBaseUrl();
   const API = getApiBaseUrl();
 
   useEffect(() => {
@@ -78,10 +88,80 @@ const ProductPage = () => {
     setItemQuantity(productId, quantity);
   };
 
+  const persistButchOrderDraft = ({ estimate, meatType, orderType }) => {
+    try {
+      localStorage.setItem(
+        BUTCH_ORDER_DRAFT_KEY,
+        JSON.stringify({
+          estimate,
+          meatType,
+          orderType,
+          saved_at: new Date().toISOString(),
+        }),
+      );
+    } catch (storageError) {
+      console.error('Failed to persist Butch order draft:', storageError);
+    }
+  };
+
+  const resolveRecommendedProduct = ({ meatType, orderType }) => {
+    const normalizedType = (meatType || '').toLowerCase();
+    const normalizedOrder = (orderType || '').toLowerCase();
+    const desiredType = normalizedType === 'hog'
+      ? (normalizedOrder === 'half' ? 'half_hog' : 'whole_hog')
+      : (normalizedOrder === 'half' ? 'half_lamb' : 'lamb_meat');
+
+    const isAvailable = (product) => product?.is_available !== false;
+    const byExactType = products.find((product) => isAvailable(product) && String(product.type || '').toLowerCase() === desiredType);
+    if (byExactType) return byExactType;
+
+    const meatKeywords = normalizedType === 'hog'
+      ? ['hog', 'pork', 'swine']
+      : ['lamb', 'sheep', 'mutton'];
+    const byKeyword = products.find((product) => {
+      if (!isAvailable(product)) return false;
+      const searchable = `${product.name || ''} ${product.description || ''} ${product.category || ''} ${product.type || ''}`.toLowerCase();
+      return meatKeywords.some((keyword) => searchable.includes(keyword));
+    });
+
+    return byKeyword || null;
+  };
+
+  const handleOrderSignIn = (payload) => {
+    persistButchOrderDraft(payload || {});
+    navigate('/account/login');
+  };
+
+  const handleOrderCreateAccount = (payload) => {
+    persistButchOrderDraft(payload || {});
+    navigate('/account/register');
+  };
+
+  const handleAddRecommendedToCart = (payload) => {
+    const recommended = resolveRecommendedProduct(payload || {});
+    if (!recommended) {
+      alert('No matching product is currently listed for this recommendation. Please sign in and we can finalize it with you.');
+      return;
+    }
+
+    const estimatedUnitPrice = parseEstimateRangeMidpoint(payload?.estimate);
+    if (estimatedUnitPrice) {
+      setItemPriceOverride(recommended.id, estimatedUnitPrice);
+    }
+
+    setItemQuantity(recommended.id, (cart[recommended.id] || 0) + 1);
+    setOrderForm((current) => ({
+      ...current,
+      notes: current.notes
+        ? current.notes
+        : `Butch recommendation: ${payload?.orderType || 'whole'} ${payload?.meatType || 'hog'}.`,
+    }));
+  };
+
   const getCartTotal = () => {
     return products.reduce((total, product) => {
       const quantity = cart[product.id] || 0;
-      const price = product.price_per_unit || product.price || 0;
+      const price = resolveUnitPrice(product);
       return total + (quantity * price);
     }, 0);
   };
@@ -90,7 +170,7 @@ const ProductPage = () => {
     return products.filter(product => cart[product.id] > 0).map(product => ({
       product_id: product.id,
       quantity: cart[product.id],
-      price_per_unit: product.price_per_unit || product.price || 0
+      price_per_unit: resolveUnitPrice(product)
     }));
   };
 
@@ -167,25 +247,23 @@ const ProductPage = () => {
     }
   };
 
-  const handleButchProfileUpdate = (profile) => {
-    persistVisitorProfile(profile || {});
-  };
+  const hasProducts = products.length > 0;
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#faf9f6]">
+      <div className="min-h-screen bg-[#f7f3e7]">
         <Navigation />
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#3d5a3d]"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0f5132]"></div>
         </div>
         <Footer />
       </div>
     );
   }
 
-  if (error) {
+  if (error && !hasProducts) {
     return (
-      <div className="min-h-screen bg-[#faf9f6]">
+      <div className="min-h-screen bg-[#f7f3e7]">
         <Navigation />
         <div className="container mx-auto px-4 py-8">
           <Alert className="max-w-md mx-auto">
@@ -200,23 +278,8 @@ const ProductPage = () => {
     );
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#faf9f6]">
-        <Navigation />
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#3d5a3d] mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading products...</p>
-          </div>
-        </div>
-        <Footer />
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-[#faf9f6]">
+    <div className="min-h-screen bg-[#f7f3e7]">
       <Navigation />
       <PriceTicker />
 
@@ -238,10 +301,24 @@ const ProductPage = () => {
           </AlertDescription>
         </Alert>
 
+        {error && hasProducts && (
+          <Alert className="max-w-4xl mx-auto mb-8 border-amber-300 bg-amber-50">
+            <AlertTriangle className="h-4 w-4 text-amber-700" />
+            <AlertDescription className="text-amber-900">
+              Live product data is temporarily unavailable (`{error}`). Showing fallback products for now.
+            </AlertDescription>
+          </Alert>
+        )}
+
       <div className="max-w-6xl mx-auto mb-10">
         <div className="grid lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
-            <ButcherCutCalculator onContactOrder={() => setShowOrderForm(true)} />
+            <ButcherCutCalculator
+              onOrderSignIn={handleOrderSignIn}
+              onOrderCreateAccount={handleOrderCreateAccount}
+              onAddRecommendedToCart={handleAddRecommendedToCart}
+              onContactOrder={() => setShowOrderForm(true)}
+            />
           </div>
           <div className="lg:col-span-1">
             <OrderParserChat onOrderParsed={handleButchParsed} />
@@ -259,7 +336,7 @@ const ProductPage = () => {
                   <CardDescription>{product.description}</CardDescription>
                 </div>
                 <Badge variant="secondary" className="ml-2">
-                  ${(product.price_per_unit || product.price || 0).toFixed(2)}/{product.unit || 'unit'}
+                  ${resolveUnitPrice(product).toFixed(2)}/{product.unit || 'unit'}
                 </Badge>
               </div>
             </CardHeader>
@@ -307,7 +384,7 @@ const ProductPage = () => {
 
                 {cart[product.id] > 0 && (
                   <div className="text-sm font-medium">
-                    Subtotal: ${((cart[product.id] || 0) * (product.price_per_unit || product.price || 0)).toFixed(2)}
+                    Subtotal: ${((cart[product.id] || 0) * resolveUnitPrice(product)).toFixed(2)}
                   </div>
                 )}
               </div>
@@ -453,7 +530,6 @@ const ProductPage = () => {
         </div>
       )}
       </div>
-      <ButchAssistant onProfileUpdate={handleButchProfileUpdate} />
       <Footer />
     </div>
   );

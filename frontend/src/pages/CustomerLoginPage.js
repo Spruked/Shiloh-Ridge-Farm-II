@@ -31,13 +31,13 @@ function CustomerLoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#faf9f6]">
+    <div className="min-h-screen bg-[#f7f3e7]">
       <Navigation />
       <PriceTicker />
       <section className="mx-auto max-w-4xl px-6 py-16">
         <Card className="mx-auto max-w-md border-stone-200 shadow-xl">
           <CardHeader>
-            <CardTitle className="text-3xl text-[#3d5a3d]">Customer sign in</CardTitle>
+            <CardTitle className="text-3xl text-[#0f5132]">Customer sign in</CardTitle>
             <CardDescription>See your orders, invoices, and saved farm profile.</CardDescription>
           </CardHeader>
           <CardContent>
@@ -56,13 +56,13 @@ function CustomerLoginPage() {
                 onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
                 required
               />
-              <Button type="submit" disabled={submitting} className="w-full bg-[#3d5a3d] hover:bg-[#2d4a2d]">
+              <Button type="submit" disabled={submitting} className="w-full bg-[#0f5132] hover:bg-[#0a3c24]">
                 {submitting ? "Signing in..." : "Sign In"}
               </Button>
             </form>
             <p className="mt-4 text-sm text-stone-600">
               Need an account?{" "}
-              <Link to="/account/register" className="font-medium text-[#3d5a3d] hover:underline">
+              <Link to="/account/register" className="font-medium text-[#0f5132] hover:underline">
                 Create one
               </Link>
             </p>

@@ -297,12 +297,12 @@ const AuctionsPage = () => {
               </div>
             </div>
             <div className="text-center">
-              <img 
-                src="/pens-with-goats-hogs-and-sheep.webp" 
-                alt="Livestock at auction pens" 
+              <img
+                src="/pens-with-goats-hogs-and-sheep.webp"
+                alt="Live auction ring at regional sale barn"
                 className="rounded-lg shadow-lg max-w-full h-auto"
               />
-              <p className="text-sm text-gray-500 mt-2">Livestock ready for auction at regional sale barns</p>
+              <p className="text-sm text-gray-500 mt-2">Inside the ring at a regional livestock auction</p>
             </div>
           </div>
         </div>

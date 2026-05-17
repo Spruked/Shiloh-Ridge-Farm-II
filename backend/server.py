@@ -3,6 +3,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
+import asyncio
 import os
 import logging
 import smtplib
@@ -12,6 +13,10 @@ from pydantic import BaseModel, Field, ConfigDict, EmailStr
 from typing import List, Optional, Dict, Any
 import requests
 import uuid
+import json
+import io
+from urllib.parse import urlparse, unquote
+import hashlib
 from datetime import datetime, timezone, timedelta
 import jwt
 from passlib.context import CryptContext
@@ -20,22 +25,54 @@ from fastapi.responses import FileResponse
 import tempfile
 from fpdf import FPDF
 from email.message import EmailMessage
+try:
+    from PIL import Image, ImageDraw, ImageFont, ImageOps
+except Exception:  # pragma: no cover - runtime dependency check
+    Image = None
+    ImageDraw = None
+    ImageFont = None
+    ImageOps = None
 
 # Import new routers
 from inventory import router as inventory_router, set_inventory_db
 from sales import router as sales_router, set_sales_db
 from accounting import router as accounting_router, set_accounting_db
-from product_assistant import (
-    router as product_assistant_router,
-    set_product_assistant_db,
-    ensure_assistant_seed_data,
-    prune_assistant_memory,
-    sync_visitor_profile_from_order,
-)
 from butch_core import butch_skg
 from butch_routes import router as butch_router
 from butch_voice import butch_voice
-from mobile_capture import router as mobile_capture_router, set_mobile_capture_db
+from butcher_compat_routes import router as butcher_compat_router, set_butcher_db
+try:
+    from worker_chat_routes import router as worker_chat_router, set_worker_chat_db
+except ModuleNotFoundError:
+    worker_chat_router = None
+
+    def set_worker_chat_db(_db):
+        return None
+from admin_orb_routes import router as admin_orb_router
+try:
+    from mobile_capture import router as mobile_capture_router, set_mobile_capture_db
+except ModuleNotFoundError:
+    mobile_capture_router = None
+
+    def set_mobile_capture_db(_db):
+        return None
+try:
+    from gpu_inference import router as gpu_router, warmup_gpu_stack
+except ModuleNotFoundError:
+    gpu_router = None
+
+    async def warmup_gpu_stack():
+        return None
+try:
+    from routes.farm_goal_routes import create_farm_goal_router
+except ModuleNotFoundError:
+    def create_farm_goal_router(_db):
+        return APIRouter()
+try:
+    from routes.farm_pricing_routes import create_farm_pricing_router
+except ModuleNotFoundError:
+    def create_farm_pricing_router(_db):
+        return APIRouter()
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -49,8 +86,9 @@ db = client[os.environ['DB_NAME']]
 set_inventory_db(db)
 set_sales_db(db)
 set_accounting_db(db)
-set_product_assistant_db(db)
 set_mobile_capture_db(db)
+set_worker_chat_db(db)
+set_butcher_db(db)
 
 # Create the main app
 app = FastAPI()
@@ -62,11 +100,26 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 SECRET_KEY = os.environ['JWT_SECRET']
 ALGORITHM = "HS256"
 USDA_API_KEY = os.environ.get("USDA_API_KEY")
-CORS_ORIGINS = [
-    origin.strip()
-    for origin in os.environ.get("CORS_ORIGINS", "http://localhost:3000,http://localhost:3001").split(",")
-    if origin.strip()
+DEFAULT_CORS_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:3100",
+    "http://127.0.0.1:3100",
+    "https://shilohridgekatahdins.com",
+    "https://www.shilohridgekatahdins.com",
 ]
+
+
+def _load_cors_origins() -> List[str]:
+    configured = [
+        origin.strip()
+        for origin in os.environ.get("CORS_ORIGINS", "").split(",")
+        if origin.strip()
+    ]
+    return list(dict.fromkeys([*DEFAULT_CORS_ORIGINS, *configured]))
+
+
+CORS_ORIGINS = _load_cors_origins()
 LOGIN_RATE_LIMIT_WINDOW = timedelta(minutes=15)
 LOGIN_LOCKOUT_DURATION = timedelta(minutes=15)
 MAX_FAILED_LOGIN_ATTEMPTS = 5
@@ -376,12 +429,13 @@ class SettingsUpdate(BaseModel):
 
 class NFTRecord(BaseModel):
     model_config = ConfigDict(extra="ignore")
-    id: str = Field(default=str(uuid.uuid4()))
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     livestock_id: str
     token_id: Optional[str] = None
     contract_address: Optional[str] = None
     transaction_hash: Optional[str] = None
     metadata_uri: Optional[str] = None
+    image_uri: Optional[str] = None
     status: str = "pending"  # pending, minting, minted, failed
     created_at: datetime = Field(default=datetime.now(timezone.utc))
     updated_at: datetime = Field(default=datetime.now(timezone.utc))
@@ -562,7 +616,7 @@ def _clear_failed_login(key: str) -> None:
 
 
 def _build_contact_notification_message(contact: ContactForm) -> EmailMessage:
-    recipient = os.environ.get("CONTACT_NOTIFICATION_EMAIL", "dominichanway@gmail.com").strip() or "dominichanway@gmail.com"
+    recipient = os.environ.get("CONTACT_NOTIFICATION_EMAIL", "shilohridgefarm@gmail.com").strip() or "shilohridgefarm@gmail.com"
     sender = os.environ.get("SMTP_FROM_EMAIL", "").strip() or os.environ.get("SMTP_USERNAME", "").strip()
 
     message = EmailMessage()
@@ -660,6 +714,58 @@ def _send_email_message(message: EmailMessage) -> tuple[bool, Optional[str]]:
         return False, str(exc)
 
 
+FARM_EMAIL = "shilohridgefarm@gmail.com"
+
+
+def _notify_farm_new_order(order: Dict[str, Any]) -> None:
+    sender = os.environ.get("SMTP_FROM_EMAIL", "").strip() or os.environ.get("SMTP_USERNAME", "").strip()
+    msg = EmailMessage()
+    msg["Subject"] = f"New order placed — {order.get('customer_name') or order.get('customer_email')}"
+    msg["To"] = FARM_EMAIL
+    if sender:
+        msg["From"] = sender
+    lines = [
+        "A new order was placed on Shiloh Ridge Farm.",
+        "",
+        f"Customer: {order.get('customer_name') or '—'}",
+        f"Email:    {order.get('customer_email') or '—'}",
+        f"Phone:    {order.get('customer_phone') or '—'}",
+        f"Address:  {order.get('customer_address') or '—'}",
+        "",
+        "Items:",
+    ]
+    for item in order.get("order_items", []):
+        lines.append(
+            f"  - {item.get('quantity', 0)} x {item.get('product_name') or item.get('product_id')}"
+            f" @ ${float(item.get('price_per_unit', 0) or 0):.2f}"
+        )
+    lines.extend([
+        "",
+        f"Total: ${float(order.get('total_amount', 0) or 0):.2f}",
+        f"Pickup date: {order.get('preferred_pickup_date') or 'Not specified'}",
+        f"Notes: {order.get('notes') or '—'}",
+    ])
+    msg.set_content("\n".join(lines))
+    _send_email_message(msg)
+
+
+def _notify_farm_new_registration(full_name: Optional[str], email: str, phone: Optional[str]) -> None:
+    sender = os.environ.get("SMTP_FROM_EMAIL", "").strip() or os.environ.get("SMTP_USERNAME", "").strip()
+    msg = EmailMessage()
+    msg["Subject"] = f"New customer account: {full_name or email}"
+    msg["To"] = FARM_EMAIL
+    if sender:
+        msg["From"] = sender
+    msg.set_content("\n".join([
+        "A new customer account was created on Shiloh Ridge Farm.",
+        "",
+        f"Name:  {full_name or '—'}",
+        f"Email: {email}",
+        f"Phone: {phone or '—'}",
+    ]))
+    _send_email_message(msg)
+
+
 def send_order_status_notification(order: Dict[str, Any]) -> tuple[bool, Optional[str]]:
     if not order.get("customer_email"):
         return False, "Order has no customer email"
@@ -668,6 +774,7 @@ def send_order_status_notification(order: Dict[str, Any]) -> tuple[bool, Optiona
     message = EmailMessage()
     message["Subject"] = f"Shiloh Ridge Farm order update: {order.get('status', 'pending').title()}"
     message["To"] = order["customer_email"]
+    message["Cc"] = FARM_EMAIL
     if sender:
         message["From"] = sender
 
@@ -788,6 +895,346 @@ def generate_order_invoice_pdf(order: Dict[str, Any]) -> str:
     pdf.output(str(invoice_path))
     return os.path.relpath(invoice_path, ROOT_DIR).replace("\\", "/")
 
+
+NFT_CERTIFICATE_OUTPUT_DIR = ROOT_DIR.parent / "assets" / "images" / "nft_certificates"
+NFT_CERTIFICATE_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _safe_display_text(value: Any, fallback: str = "N/A") -> str:
+    if value is None:
+        return fallback
+    text = str(value).strip()
+    return text if text else fallback
+
+
+def _load_font(size: int, bold: bool = False):
+    if ImageFont is None:
+        return None
+
+    candidates = (
+        ["/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"]
+        if bold
+        else ["/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"]
+    )
+    for candidate in candidates:
+        if Path(candidate).exists():
+            try:
+                return ImageFont.truetype(candidate, size=size)
+            except Exception:
+                continue
+    return ImageFont.load_default()
+
+
+def _resolve_local_image_path(source: str) -> Optional[Path]:
+    if not source:
+        return None
+
+    raw = source.strip()
+    if not raw:
+        return None
+
+    parsed = urlparse(raw)
+    path = raw
+    if parsed.scheme in {"http", "https"} and parsed.path:
+        path = parsed.path
+
+    path = unquote(path).split("?", 1)[0].split("#", 1)[0]
+    assets_root = (ROOT_DIR.parent / "assets" / "images").resolve()
+
+    prefixes = ("/images/", "images/", "/assets/images/", "assets/images/")
+    relative = None
+    for prefix in prefixes:
+        if path.startswith(prefix):
+            relative = path[len(prefix):]
+            break
+
+    if relative is not None:
+        candidate = (assets_root / relative).resolve()
+        if assets_root in candidate.parents or candidate == assets_root:
+            return candidate if candidate.exists() else None
+        return None
+
+    if path.startswith("/"):
+        candidate = Path(path)
+        return candidate if candidate.exists() else None
+
+    candidate = (assets_root / path).resolve()
+    if assets_root in candidate.parents or candidate == assets_root:
+        return candidate if candidate.exists() else None
+    return None
+
+
+def _image_from_source(source: Optional[str]) -> Optional[Any]:
+    if Image is None or not source:
+        return None
+
+    src = source.strip()
+    if not src:
+        return None
+
+    if src.startswith("data:image/") and "," in src:
+        try:
+            encoded = src.split(",", 1)[1]
+            payload = base64.b64decode(encoded)
+            return Image.open(io.BytesIO(payload)).convert("RGB")
+        except Exception:
+            return None
+
+    local_path = _resolve_local_image_path(src)
+    if local_path:
+        try:
+            return Image.open(local_path).convert("RGB")
+        except Exception:
+            return None
+
+    parsed = urlparse(src)
+    if parsed.scheme in {"http", "https"}:
+        try:
+            response = requests.get(src, timeout=8)
+            response.raise_for_status()
+            return Image.open(io.BytesIO(response.content)).convert("RGB")
+        except Exception:
+            return None
+    return None
+
+
+def _fit_cover(image, width: int, height: int):
+    if image is None:
+        return None
+    if ImageOps is None:
+        return image.resize((width, height))
+    return ImageOps.fit(image, (width, height), method=Image.Resampling.LANCZOS)
+
+
+def _draw_label_value(draw, label_font, value_font, x: int, y: int, label: str, value: str):
+    draw.text((x, y), label, fill="#4c5d54", font=label_font)
+    draw.text((x, y + 26), value, fill="#16261d", font=value_font)
+
+
+def _build_nft_certificate_assets(
+    livestock: Dict[str, Any],
+    nft_record_id: str,
+    token_id: str,
+    minted_by: str = "admin",
+) -> tuple[str, str]:
+    if Image is None or ImageDraw is None or ImageFont is None:
+        raise RuntimeError("Pillow is required for NFT image generation but is not installed.")
+
+    width, height = 1600, 2000
+    canvas = Image.new("RGB", (width, height), "#f7f3e7")
+    draw = ImageDraw.Draw(canvas)
+
+    # Framed certificate surface.
+    draw.rectangle([(46, 46), (width - 46, height - 46)], fill="#fffdf8", outline="#0f5132", width=6)
+    draw.rectangle([(66, 66), (width - 66, height - 66)], outline="#b6863a", width=2)
+
+    title_font = _load_font(58, bold=True)
+    subtitle_font = _load_font(24, bold=False)
+    section_title_font = _load_font(34, bold=True)
+    label_font = _load_font(22, bold=True)
+    value_font = _load_font(27, bold=False)
+    body_font = _load_font(24, bold=False)
+
+    logo = _image_from_source("/images/shilohlogo512.png")
+    if logo is not None:
+        logo = _fit_cover(logo, 120, 120)
+        canvas.paste(logo, (120, 106))
+
+    draw.text((270, 114), "NFT Certificate of Ownership", fill="#0f5132", font=title_font)
+    draw.text((273, 194), "Shiloh Ridge Farm · Livestock Registry Asset", fill="#486055", font=subtitle_font)
+    draw.line((110, 246, width - 110, 246), fill="#0f5132", width=3)
+
+    animal_name = _safe_display_text(livestock.get("name") or livestock.get("tag_number"), "Livestock Record")
+    draw.text((110, 280), animal_name, fill="#0f5132", font=section_title_font)
+    draw.text((112, 326), f"Token {token_id}", fill="#6a7c71", font=subtitle_font)
+
+    photo = None
+    photos = livestock.get("photos") or []
+    if isinstance(photos, list) and photos:
+        photo = _image_from_source(str(photos[0]))
+    if photo is None:
+        photo = _image_from_source(livestock.get("capture_photo_url"))
+
+    photo_x0, photo_y0, photo_w, photo_h = 110, 380, 540, 540
+    draw.rectangle([(photo_x0 - 4, photo_y0 - 4), (photo_x0 + photo_w + 4, photo_y0 + photo_h + 4)], outline="#0f5132", width=3)
+    if photo is not None:
+        photo = _fit_cover(photo, photo_w, photo_h)
+        canvas.paste(photo, (photo_x0, photo_y0))
+    else:
+        draw.rectangle([(photo_x0, photo_y0), (photo_x0 + photo_w, photo_y0 + photo_h)], fill="#e9ece8")
+        draw.text((photo_x0 + 145, photo_y0 + 250), "No Photo", fill="#5b6b61", font=label_font)
+
+    # Info panel.
+    panel_x0, panel_y0 = 700, 382
+    draw.rounded_rectangle((panel_x0, panel_y0, width - 110, photo_y0 + photo_h), radius=18, fill="#f6f8f3", outline="#d4dbd2", width=2)
+
+    y = panel_y0 + 34
+    row_gap = 78
+    _draw_label_value(draw, label_font, value_font, panel_x0 + 24, y, "Tag Number", _safe_display_text(livestock.get("tag_number")))
+    y += row_gap
+    _draw_label_value(draw, label_font, value_font, panel_x0 + 24, y, "Animal Type", _safe_display_text(livestock.get("animal_type")).title())
+    y += row_gap
+    _draw_label_value(draw, label_font, value_font, panel_x0 + 24, y, "Registration", _safe_display_text(livestock.get("registration_number")))
+    y += row_gap
+    _draw_label_value(draw, label_font, value_font, panel_x0 + 24, y, "Date of Birth", _safe_display_text(livestock.get("date_of_birth")))
+    y += row_gap
+    _draw_label_value(draw, label_font, value_font, panel_x0 + 24, y, "Bloodline", _safe_display_text(livestock.get("bloodline")))
+    y += row_gap
+    _draw_label_value(draw, label_font, value_font, panel_x0 + 24, y, "Color", _safe_display_text(livestock.get("color")))
+
+    details_y = 980
+    draw.rounded_rectangle((110, details_y, width - 110, 1340), radius=18, fill="#f1f6f2", outline="#d0d7d1", width=2)
+    draw.text((140, details_y + 26), "NFT Details", fill="#0f5132", font=section_title_font)
+
+    _draw_label_value(draw, label_font, value_font, 140, details_y + 90, "Token ID", _safe_display_text(token_id))
+    _draw_label_value(draw, label_font, value_font, 760, details_y + 90, "Status", "Minted")
+    _draw_label_value(draw, label_font, value_font, 140, details_y + 200, "Contract", _safe_display_text("Polygon (Matic)"))
+    _draw_label_value(draw, label_font, value_font, 760, details_y + 200, "Minted On", datetime.now(timezone.utc).strftime("%Y-%m-%d"))
+
+    description = _safe_display_text(livestock.get("description"), "")
+    desc_label_y = 1388
+    draw.text((110, desc_label_y), "Description", fill="#4c5d54", font=label_font)
+    if description:
+        words = description.split()
+        lines: List[str] = []
+        current = ""
+        for word in words:
+            candidate = f"{current} {word}".strip()
+            candidate_w = draw.textlength(candidate, font=body_font)
+            if candidate_w <= width - 240:
+                current = candidate
+            else:
+                lines.append(current)
+                current = word
+        if current:
+            lines.append(current)
+        lines = lines[:4]
+        for idx, line in enumerate(lines):
+            draw.text((110, desc_label_y + 38 + idx * 34), line, fill="#1f2f26", font=body_font)
+
+    footer_line_y = height - 210
+    draw.line((110, footer_line_y, width - 110, footer_line_y), fill="#d3d9d4", width=2)
+    draw.text((110, footer_line_y + 22), "This image is the official NFT ownership certificate for this livestock record.", fill="#41554a", font=subtitle_font)
+    draw.text((110, footer_line_y + 64), f"Generated {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')} · Shiloh Ridge Farm", fill="#4c5d54", font=subtitle_font)
+
+    image_filename = f"nft_certificate_{nft_record_id}.png"
+    image_path = NFT_CERTIFICATE_OUTPUT_DIR / image_filename
+    canvas.save(image_path, format="PNG", optimize=True)
+    image_uri = f"/images/nft_certificates/{image_filename}"
+
+    metadata_filename = f"nft_certificate_{nft_record_id}.json"
+    metadata_path = NFT_CERTIFICATE_OUTPUT_DIR / metadata_filename
+    metadata_uri = f"/images/nft_certificates/{metadata_filename}"
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    species = _safe_display_text(livestock.get("animal_type"), "").lower()
+    breed = _safe_display_text(
+        livestock.get("breed") or ("Katahdin" if species == "sheep" else ""),
+        "",
+    )
+    sex = _safe_display_text(livestock.get("sex"), "").lower()
+    registration_number = _safe_display_text(livestock.get("registration_number"), "")
+    primary_image = _safe_display_text((livestock.get("photos") or [livestock.get("capture_photo_url")])[0], "")
+    gallery = [str(p) for p in (livestock.get("photos") or []) if str(p).strip()]
+    animal_id = _safe_display_text(livestock.get("animal_id") or livestock.get("id") or livestock.get("tag_number"), "")
+    certificate_id = f"CERT-{_safe_display_text(animal_id, 'UNKNOWN').upper()}"
+
+    metadata_payload = {
+        "_id": nft_record_id,
+        "animal_id": animal_id,
+        "farm_tag": _safe_display_text(livestock.get("tag_number"), ""),
+        "name": _safe_display_text(livestock.get("name"), ""),
+        "species": species,
+        "breed": breed,
+        "sex": sex,
+        "birth_date": _safe_display_text(livestock.get("date_of_birth"), ""),
+        "birth_type": _safe_display_text(livestock.get("birth_type"), ""),
+        "breeding_type": _safe_display_text(livestock.get("breeding_type"), ""),
+        "genotype": _safe_display_text(livestock.get("genotype"), ""),
+        "status": _safe_display_text(livestock.get("status"), "available"),
+        "farm": {
+            "farm_name": _safe_display_text(os.environ.get("FARM_NAME"), "Shiloh Ridge Farm"),
+            "flock_id": _safe_display_text(livestock.get("flock_id"), "SRF"),
+            "breeder_name": _safe_display_text(os.environ.get("FARM_BREEDER_NAME"), "Bryan Spruk"),
+            "farm_region": _safe_display_text(os.environ.get("FARM_REGION"), "Maitland, Missouri"),
+            "website": _safe_display_text(os.environ.get("FARM_WEBSITE"), "https://shilohridgekatahdins.com"),
+        },
+        "registration": {
+            "registry": _safe_display_text(os.environ.get("LIVESTOCK_REGISTRY"), "KHSI"),
+            "registration_status": "pending" if not registration_number else "registered",
+            "registration_number": registration_number,
+            "transfer_required": bool(livestock.get("transfer_info")),
+        },
+        "lineage": {
+            "sire_name": _safe_display_text(livestock.get("sire_name"), ""),
+            "sire_tag": _safe_display_text(livestock.get("sire_tag"), ""),
+            "sire_registration_number": _safe_display_text(livestock.get("sire_registration_number"), ""),
+            "dam_name": _safe_display_text(livestock.get("dam_name"), ""),
+            "dam_tag": _safe_display_text(livestock.get("dam_tag"), ""),
+            "dam_registration_number": _safe_display_text(livestock.get("dam_registration_number"), ""),
+        },
+        "measurements": {
+            "current_weight_lbs": livestock.get("weight"),
+            "weight_date": _safe_display_text(livestock.get("weight_date"), ""),
+        },
+        "health": {
+            "health_status": _safe_display_text(livestock.get("health_status"), "farm-inspected"),
+            "vaccination_status": _safe_display_text(livestock.get("vaccination_status"), "record_on_file"),
+            "deworming_status": _safe_display_text(livestock.get("deworming_status"), "record_on_file"),
+            "defects_observed": _safe_display_text(livestock.get("defects_observed"), "none_observed"),
+            "vet_statement": _safe_display_text(
+                livestock.get("vet_statement"),
+                "This certificate is a farm authenticity record, not a veterinary certificate.",
+            ),
+        },
+        "sale": {
+            "sale_status": _safe_display_text(livestock.get("status"), "available"),
+            "price": livestock.get("price"),
+            "price_type": "quote_required" if livestock.get("price") in (None, "") else "fixed",
+            "deposit_required": True,
+            "deposit_amount": livestock.get("deposit_amount"),
+            "buyer_id": livestock.get("buyer_id"),
+            "transfer_date": _safe_display_text(livestock.get("transfer_date"), ""),
+        },
+        "media": {
+            "primary_image_url": primary_image,
+            "gallery": gallery,
+            "certificate_image_url": image_uri,
+            "certificate_pdf_url": "",
+        },
+        "certificate": {
+            "certificate_id": certificate_id,
+            "certificate_type": "Livestock Authenticity Certificate",
+            "certificate_version": "1.0",
+            "issued_at": now_iso,
+            "issued_by": "Shiloh Ridge Farm",
+            "record_hash": "",
+            "qr_code_url": "",
+        },
+        "nft": {
+            "mint_enabled": True,
+            "mint_status": "minted",
+            "chain": "polygon",
+            "contract_address": _safe_display_text(livestock.get("contract_address"), ""),
+            "token_id": token_id,
+            "metadata_uri": metadata_uri,
+            "transaction_hash": _safe_display_text(livestock.get("transaction_hash"), ""),
+            "minted_at": now_iso,
+        },
+        "audit": {
+            "created_at": _safe_display_text(livestock.get("created_at"), now_iso),
+            "updated_at": now_iso,
+            "created_by": _safe_display_text(livestock.get("created_by"), minted_by),
+            "last_verified_at": now_iso,
+            "verification_status": "minted",
+        },
+    }
+    metadata_payload["certificate"]["record_hash"] = hashlib.sha256(
+        json.dumps(metadata_payload, sort_keys=True, separators=(",", ":"), default=str).encode("utf-8")
+    ).hexdigest()
+    metadata_path.write_text(json.dumps(metadata_payload, indent=2), encoding="utf-8")
+    return image_uri, metadata_uri
+
 def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     try:
         payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
@@ -897,8 +1344,8 @@ async def startup_event():
                 "No admin users found. Set INITIAL_ADMIN_USERNAME and INITIAL_ADMIN_PASSWORD once to bootstrap access."
             )
 
-    await ensure_assistant_seed_data()
-    await prune_assistant_memory()
+    warmup_result = await warmup_gpu_stack()
+    logger.info("GPU warmup result: %s", warmup_result)
     
     # Create default about page if not exists
     about = await db.about_content.find_one({"id": "about_page"})
@@ -1373,6 +1820,10 @@ async def customer_register(payload: CustomerRegister):
     await db.customer_accounts.insert_one(account_doc)
     await db.customer_profiles.insert_one(profile_doc)
 
+    asyncio.get_event_loop().run_in_executor(
+        None, _notify_farm_new_registration, payload.full_name, payload.email, payload.phone
+    )
+
     token = create_customer_access_token(customer_account.id, customer_account.email)
     return CustomerAuthResponse(access_token=token, token_type="bearer", profile=customer_profile)
 
@@ -1700,6 +2151,32 @@ async def update_contact_status(contact_id: str, status: str, username: str = De
     await db.contact_forms.update_one({"id": contact_id}, {"$set": {"status": status}})
     return {"message": "Status updated"}
 
+# Admin customer account management
+@api_router.get("/admin/customers")
+async def admin_list_customers(username: str = Depends(verify_token)):
+    profiles = await db.customer_profiles.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    accounts = await db.customer_accounts.find({}, {"_id": 0, "password_hash": 0}).to_list(1000)
+    account_map = {a["id"]: a for a in accounts}
+    result = []
+    for profile in profiles:
+        account = account_map.get(profile.get("customer_id"), {})
+        result.append({
+            "id": profile.get("customer_id"),
+            "email": profile.get("email"),
+            "full_name": profile.get("full_name"),
+            "phone": profile.get("phone"),
+            "address": profile.get("address"),
+            "notes": profile.get("notes"),
+            "created_at": account.get("created_at") or profile.get("created_at"),
+        })
+    return result
+
+@api_router.delete("/admin/customers/{customer_id}")
+async def admin_delete_customer(customer_id: str, username: str = Depends(verify_token)):
+    await db.customer_accounts.delete_one({"id": customer_id})
+    await db.customer_profiles.delete_one({"customer_id": customer_id})
+    return {"message": "Customer deleted"}
+
 # About routes
 @api_router.get("/about", response_model=AboutContent)
 async def get_about():
@@ -1773,26 +2250,51 @@ async def update_settings(settings: SettingsUpdate, username: str = Depends(veri
 @api_router.post("/nft/mint", response_model=NFTRecord)
 async def mint_nft(request: NFTMintRequest, username: str = Depends(verify_token)):
     # Verify livestock exists
-    livestock = await db.livestock.find_one({"id": request.livestock_id})
+    livestock = await db.livestock.find_one({"id": request.livestock_id}, {"_id": 0})
     if not livestock:
         raise HTTPException(status_code=404, detail="Livestock not found")
-    
-    # Create NFT record
+
+    token_id = f"SRF-{uuid.uuid4().hex[:12].upper()}"
+    nft_record_id = str(uuid.uuid4())
+
+    try:
+        image_uri, metadata_uri = _build_nft_certificate_assets(
+            livestock,
+            nft_record_id,
+            token_id,
+            minted_by=username,
+        )
+    except RuntimeError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to generate NFT image certificate: {exc}") from exc
+
+    # Create NFT record with generated image/metadata assets.
     nft_record = NFTRecord(
+        id=nft_record_id,
         livestock_id=request.livestock_id,
-        status="pending"
+        token_id=token_id,
+        metadata_uri=metadata_uri,
+        image_uri=image_uri,
+        status="minted",
     )
     doc = nft_record.model_dump()
-    doc['created_at'] = doc['created_at'].isoformat()
-    doc['updated_at'] = doc['updated_at'].isoformat()
+    doc["created_at"] = doc["created_at"].isoformat()
+    doc["updated_at"] = doc["updated_at"].isoformat()
     await db.nft_records.insert_one(doc)
-    
-    # Update livestock NFT status
+
+    # Update livestock NFT status and token identifier.
     await db.livestock.update_one(
         {"id": request.livestock_id},
-        {"$set": {"nft_minted": True}}
+        {
+            "$set": {
+                "nft_minted": True,
+                "nft_token_id": token_id,
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }
+        }
     )
-    
+
     return nft_record
 
 @api_router.get("/nft", response_model=List[NFTRecord])
@@ -1874,7 +2376,7 @@ async def delete_product(product_id: str, username: str = Depends(verify_token))
 
 # Order routes
 @api_router.post("/orders", response_model=Order)
-async def create_order(order: OrderCreate):
+async def create_order(order: OrderCreate, customer=Depends(verify_customer_token)):
     # Calculate total amount and resolve cut/pricing selections
     total_amount = 0.0
     stored_items: List[Dict[str, Any]] = []
@@ -1906,20 +2408,31 @@ async def create_order(order: OrderCreate):
             )
 
         price_per_unit: Optional[float] = None
+        requested_price = float(item.price_per_unit) if item.price_per_unit is not None else None
+        if requested_price is not None and requested_price <= 0:
+            requested_price = None
 
         # If product defines cuts, require a cut selection and pick tiered pricing
         if product.get("cuts"):
-            if not item.cut:
-                raise HTTPException(status_code=400, detail=f"Product {product.get('name')} requires a cut selection")
-            cuts = product.get("cuts", {})
-            cut_info = cuts.get(item.cut)
-            if not cut_info:
-                raise HTTPException(status_code=400, detail=f"Cut '{item.cut}' not available for product {product.get('name')}")
-            pricing_tier = item.pricing_tier if item.pricing_tier in ["normalized", "premium"] else "normalized"
-            price_per_unit = cut_info.get(pricing_tier) or cut_info.get("normalized")
+            if item.cut:
+                cuts = product.get("cuts", {})
+                cut_info = cuts.get(item.cut)
+                if not cut_info:
+                    raise HTTPException(status_code=400, detail=f"Cut '{item.cut}' not available for product {product.get('name')}")
+                pricing_tier = item.pricing_tier if item.pricing_tier in ["normalized", "premium"] else "normalized"
+                price_per_unit = cut_info.get(pricing_tier) or cut_info.get("normalized")
+            elif requested_price is not None:
+                # Calculator-driven cart items may not include a specific cut yet.
+                # Accept the pre-order estimate price and let owner confirm final cut sheet.
+                price_per_unit = requested_price
+            else:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Product {product.get('name')} requires a cut selection or an estimated price",
+                )
         else:
             # Fallback to product-level price
-            price_per_unit = product.get("price_per_unit")
+            price_per_unit = requested_price if requested_price is not None else product.get("price_per_unit")
             if price_per_unit is None:
                 raise HTTPException(status_code=400, detail=f"Product {product.get('name')} has no price set")
 
@@ -1947,7 +2460,9 @@ async def create_order(order: OrderCreate):
     doc['created_at'] = doc['created_at'].isoformat()
     doc['updated_at'] = doc['updated_at'].isoformat()
     await db.orders.insert_one(doc)
-    await sync_visitor_profile_from_order(db, doc)
+
+    asyncio.get_event_loop().run_in_executor(None, _notify_farm_new_order, order_obj.model_dump())
+
     butch_skg.record_order(
         customer_id=f"email:{order.customer_email.strip().lower()}",
         order_details={
@@ -2206,10 +2721,22 @@ async def upload_image(file: UploadFile = File(...), username: str = Depends(ver
 api_router.include_router(inventory_router)
 api_router.include_router(sales_router)
 api_router.include_router(accounting_router)
-api_router.include_router(product_assistant_router)
+if worker_chat_router is not None:
+    api_router.include_router(worker_chat_router)
+api_router.include_router(butcher_compat_router)
 api_router.include_router(butch_router)
-api_router.include_router(mobile_capture_router)
+api_router.include_router(admin_orb_router)
+if mobile_capture_router is not None:
+    api_router.include_router(mobile_capture_router)
+if gpu_router is not None:
+    api_router.include_router(gpu_router)
+@api_router.get("/health")
+async def health_check():
+    return {"status": "ok"}
+
 app.include_router(api_router)
+app.include_router(create_farm_goal_router(db))
+app.include_router(create_farm_pricing_router(db))
 
 # Mount static files
 from fastapi.staticfiles import StaticFiles

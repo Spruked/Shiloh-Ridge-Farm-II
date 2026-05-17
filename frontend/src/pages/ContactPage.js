@@ -63,9 +63,9 @@ const ContactPage = () => {
       };
       const response = await axios.post(`${API}/contact`, submitData);
       if (response.data?.notification_sent) {
-        toast.success("Message sent successfully to Dominic. We'll get back to you soon.");
+        toast.success("Message sent! We'll get back to you soon.");
       } else {
-        toast.success("Message was saved successfully. Email notification still needs to be configured.");
+        toast.success("Message saved — we'll be in touch soon.");
       }
       setFormData({
         name: "",
@@ -85,12 +85,20 @@ const ContactPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#faf9f6]">
+    <div className="min-h-screen bg-[#f7f3e7]">
       <Navigation />
       <PriceTicker />
 
       <section className="py-20 px-6 max-w-4xl mx-auto" data-testid="contact-page">
-        <h1 className="text-4xl sm:text-5xl font-bold text-center mb-4 text-[#3d5a3d]" data-testid="contact-title">
+        <div className="text-center mb-6">
+          <img
+            src="/ShilohRidgeFarmicon256.png"
+            alt="Shiloh Ridge Farm"
+            className="w-36 mx-auto object-contain opacity-90"
+          />
+        </div>
+
+        <h1 className="text-4xl sm:text-5xl font-bold text-center mb-4 text-[#0f5132]" data-testid="contact-title">
           {normalizedInquiryType === "offer" ? "Submit An Offer" : normalizedInquiryType === "buy" ? "Buy This Animal" : "Contact Us"}
         </h1>
         <p className="text-center text-gray-600 mb-12 text-lg">
@@ -105,19 +113,19 @@ const ContactPage = () => {
 
         {animal && (
           <div className="bg-white rounded-2xl p-6 shadow-lg mb-8 flex items-center gap-4" data-testid="contact-animal-info">
-            <div className="w-20 h-20 bg-[#e8f4e8] rounded-lg flex items-center justify-center">
+            <div className="w-20 h-20 bg-[#e7eddc] rounded-lg flex items-center justify-center">
               {resolveMediaUrl(animal.photos?.[0]) ? (
                 <img src={resolveMediaUrl(animal.photos?.[0])} alt={animal.name} className="w-full h-full object-cover rounded-lg" />
               ) : (
-                <span className="text-3xl">
-                  {animal.animal_type === 'sheep' ? '🐑' : animal.animal_type === 'hog' ? '🐖' : '🐄'}
+                <span className="text-sm font-semibold text-[#0f5132] uppercase tracking-wide">
+                  {animal.animal_type || 'Animal'}
                 </span>
               )}
             </div>
             <div>
-              <h3 className="text-xl font-bold text-[#3d5a3d]">{animal.name || animal.tag_number}</h3>
+              <h3 className="text-xl font-bold text-[#0f5132]">{animal.name || animal.tag_number}</h3>
               <p className="text-gray-600 capitalize">{animal.animal_type}</p>
-              {animal.price && <p className="text-lg font-semibold text-[#3d5a3d]">${animal.price.toLocaleString()}</p>}
+              {animal.price && <p className="text-lg font-semibold text-[#0f5132]">${animal.price.toLocaleString()}</p>}
             </div>
           </div>
         )}
@@ -181,7 +189,7 @@ const ContactPage = () => {
             )}
 
             {formData.inquiry_type === "buy" && (
-              <div className="mb-6 rounded-xl bg-[#e8f4e8] p-4 text-sm text-[#3d5a3d]">
+              <div className="mb-6 rounded-xl bg-[#e7eddc] p-4 text-sm text-[#0f5132]">
                 This sends Dominic a purchase request for this animal. He can confirm availability, pickup timing, and any final paperwork with you directly.
               </div>
             )}
@@ -203,7 +211,7 @@ const ContactPage = () => {
             <Button
               type="submit"
               disabled={submitting}
-              className="w-full btn-hover bg-[#3d5a3d] hover:bg-[#2d4a2d] text-white font-semibold py-6 rounded-full text-lg"
+              className="w-full btn-hover bg-[#0f5132] hover:bg-[#0a3c24] text-white font-semibold py-6 rounded-full text-lg"
               data-testid="contact-submit-btn"
             >
               {submitting
@@ -217,21 +225,24 @@ const ContactPage = () => {
           </form>
         </div>
 
-        <div className="mt-12 bg-[#e8f4e8] rounded-2xl p-8 text-center" data-testid="contact-info">
-          <h3 className="text-2xl font-bold text-[#3d5a3d] mb-4">Contact Information</h3>
+        <div className="mt-12 bg-[#e7eddc] rounded-2xl p-8 text-center" data-testid="contact-info">
+          <h3 className="text-2xl font-bold text-[#0f5132] mb-4">Contact Information</h3>
           <div className="text-gray-700 text-lg space-y-2">
             <div>
-              <p className="font-semibold text-xl text-[#3d5a3d] mb-2">Shiloh Ridge Farm</p>
+              <p className="font-semibold text-xl text-[#0f5132] mb-2">Shiloh Ridge Farm</p>
               <p className="font-medium">Dominic Hanway</p>
               <p>20705 Quebec Road</p>
               <p>Maitland, Missouri 64466</p>
             </div>
             <div className="pt-4">
               <p>
-                Email: <a href="mailto:dominichanway@gmail.com" className="text-[#3d5a3d] font-medium hover:underline">dominichanway@gmail.com</a>
+                Farm Email: <a href="mailto:shilohridgefarm@gmail.com" className="text-[#0f5132] font-medium hover:underline">shilohridgefarm@gmail.com</a>
               </p>
               <p>
-                Phone: <a href="tel:+1-660-254-6226" className="text-[#3d5a3d] font-medium hover:underline">(660) 254-6226</a>
+                Direct: <a href="mailto:dominichanway@gmail.com" className="text-[#0f5132] font-medium hover:underline">dominichanway@gmail.com</a>
+              </p>
+              <p>
+                Phone: <a href="tel:+1-660-254-6226" className="text-[#0f5132] font-medium hover:underline">(660) 254-6226</a>
               </p>
               <p className="text-sm text-gray-600 mt-2">
                 For inquiries about livestock, pricing, or farm visits, please contact us directly.

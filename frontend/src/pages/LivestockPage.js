@@ -73,13 +73,35 @@ const LivestockPage = () => {
   const getAnimalPhotos = (animal) =>
     (animal?.photos || []).map((photo) => resolveMediaUrl(photo)).filter(Boolean);
 
+  const primeButchForLivestock = () => {
+    const handoffContext = {
+      source: "livestock_page",
+      role: "ranch_hand",
+      message: "Visitor is browsing livestock and wants ranch-hand guidance on tags, bloodlines, breeding fit, animal condition, or next questions for Dominic.",
+      llm_model: "qwen2.5:3b",
+      tts_engine: "qwen3-tts",
+      cochlear_processor: "CP 3.0",
+    };
+    localStorage.setItem("shep_butch_handoff", JSON.stringify(handoffContext));
+    window.dispatchEvent(new CustomEvent("shep-butch-handoff", { detail: handoffContext }));
+  };
+
   return (
-    <div className="min-h-screen bg-[#faf9f6]">
+    <div className="min-h-screen bg-[#f7f3e7]">
       <Navigation />
       <PriceTicker />
 
       <section className="py-20 px-6 max-w-7xl mx-auto">
-        <h1 className="text-4xl sm:text-5xl font-bold text-center mb-4 text-[#3d5a3d]" data-testid="livestock-page-title">
+        <div className="rounded-2xl overflow-hidden shadow-lg mb-12">
+          <img
+            src="/flockofdominicskatahdins.jpeg"
+            alt="Shiloh Ridge Farm flock"
+            className="w-full object-cover"
+            style={{ maxHeight: "320px", objectFit: "cover", objectPosition: "center 60%" }}
+          />
+        </div>
+
+        <h1 className="text-4xl sm:text-5xl font-bold text-center mb-4 text-[#0f5132]" data-testid="livestock-page-title">
           Available Livestock
         </h1>
         <p className="text-center text-gray-600 mb-12 text-lg">
@@ -92,7 +114,7 @@ const LivestockPage = () => {
             placeholder="Search by name, tag, or bloodline..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="md:flex-1 rounded-full border-gray-300 focus:border-[#3d5a3d]"
+            className="md:flex-1 rounded-full border-gray-300 focus:border-[#0f5132]"
             data-testid="livestock-search-input"
           />
           <Select value={filterType} onValueChange={setFilterType}>
@@ -108,6 +130,34 @@ const LivestockPage = () => {
           </Select>
         </div>
 
+        <section className="mb-12 rounded-2xl border border-[#b6863a]/35 bg-white p-6 shadow-sm">
+          <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#b6863a]">
+                Butch Ranch Hand
+              </p>
+              <h2 className="mt-2 text-2xl font-bold text-[#0f5132]">
+                Talk through the animal before you call.
+              </h2>
+              <p className="mt-3 max-w-3xl text-sm leading-6 text-gray-600">
+                Butch can help frame tag questions, bloodline context, breeding or finishing fit, and what to ask Dominic next. He still handles the butcher side on products, but here he works as the ranch hand.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-[#21432f]">
+                <span className="rounded-full border border-[#0f5132]/20 bg-[#f7f3e7] px-3 py-1">Qwen 2.5 3B</span>
+                <span className="rounded-full border border-[#0f5132]/20 bg-[#f7f3e7] px-3 py-1">Qwen 3 TTS voice</span>
+                <span className="rounded-full border border-[#0f5132]/20 bg-[#f7f3e7] px-3 py-1">CP 3.0 ears</span>
+              </div>
+            </div>
+            <Button
+              type="button"
+              onClick={primeButchForLivestock}
+              className="bg-[#b6863a] px-5 py-3 hover:bg-[#7a5724]"
+            >
+              Ask Butch
+            </Button>
+          </div>
+        </section>
+
         {/* Livestock Grid */}
         {loading ? (
           <SkeletonLoader count={6} />
@@ -120,7 +170,7 @@ const LivestockPage = () => {
             {filteredLivestock.map((animal) => (
               <div key={animal.id} className="card-hover bg-white rounded-2xl overflow-hidden shadow-lg flex flex-col">
                 <Link to={`/livestock/${animal.id}`}>
-                  <div className="h-64 bg-[#e8f4e8] flex items-center justify-center relative">
+                  <div className="h-64 bg-[#e7eddc] flex items-center justify-center relative">
                     {getAnimalPhotos(animal).length > 0 ? (
                       <div className="flex gap-2 overflow-x-auto max-w-full px-2">
                         {getAnimalPhotos(animal).map((photo, idx) => (
@@ -128,8 +178,8 @@ const LivestockPage = () => {
                         ))}
                       </div>
                     ) : (
-                      <span className="text-6xl">
-                        {animal.animal_type === 'sheep' ? '🐑' : animal.animal_type === 'hog' ? '🐖' : '🐄'}
+                      <span className="text-sm font-semibold text-[#0f5132] uppercase tracking-widest">
+                        {animal.animal_type || 'Animal'}
                       </span>
                     )}
                   </div>
@@ -137,7 +187,7 @@ const LivestockPage = () => {
                   <div className="p-6 flex-1 flex flex-col justify-between">
                     <div className="flex justify-between items-start mb-2">
                       <Link to={`/livestock/${animal.id}`} className="min-w-0">
-                        <h3 className="text-2xl font-bold text-[#3d5a3d] hover:text-[#2d4a2d]">{animal.name || animal.tag_number}</h3>
+                        <h3 className="text-2xl font-bold text-[#0f5132] hover:text-[#0a3c24]">{animal.name || animal.tag_number}</h3>
                       </Link>
                       {animal.nft_minted && (
                         <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">NFT</span>
@@ -149,17 +199,17 @@ const LivestockPage = () => {
                       <p className="text-sm text-gray-500 mb-4">Bloodline: {animal.bloodline}</p>
                     )}
                     {animal.price && (
-                      <p className="text-2xl font-bold text-[#3d5a3d]">${animal.price.toLocaleString()}</p>
+                      <p className="text-2xl font-bold text-[#0f5132]">${animal.price.toLocaleString()}</p>
                     )}
 
                     <div className="mt-5 grid gap-2 sm:grid-cols-2">
                       <Link to={`/contact?animal=${animal.id}&type=buy`}>
-                        <Button className="w-full bg-[#3d5a3d] hover:bg-[#2d4a2d]">
+                        <Button className="w-full bg-[#0f5132] hover:bg-[#0a3c24]">
                           Buy Now
                         </Button>
                       </Link>
                       <Link to={`/contact?animal=${animal.id}&type=offer`}>
-                        <Button variant="outline" className="w-full border-[#3d5a3d] text-[#3d5a3d] hover:bg-[#3d5a3d] hover:text-white">
+                        <Button variant="outline" className="w-full border-[#0f5132] text-[#0f5132] hover:bg-[#0f5132] hover:text-white">
                           Submit Offer
                         </Button>
                       </Link>

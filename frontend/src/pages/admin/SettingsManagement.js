@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import axios from "axios";
 import { Button } from "../../components/ui/buttons";
 import { Input } from "../../components/ui/input";
@@ -61,7 +62,10 @@ const SettingsManagement = () => {
 
   return (
     <div className="bg-white rounded-2xl shadow-lg p-8" data-testid="settings-management">
-      <h2 className="text-3xl font-bold text-[#3d5a3d] mb-6" data-testid="settings-title">API Keys & Settings</h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-3xl font-bold text-[#0f5132]" data-testid="settings-title">API Keys & Settings</h2>
+        <Link to="/admin/dashboard"><Button variant="outline">Back to Dashboard</Button></Link>
+      </div>
       <p className="text-gray-600 mb-6">
         Manage all your API keys and integrations. These keys are stored securely and used for various features across the site.
       </p>
@@ -120,7 +124,7 @@ const SettingsManagement = () => {
         </div>
 
         <div className="border-t pt-6 mt-6">
-          <h3 className="text-xl font-bold text-[#3d5a3d] mb-4">Polygon/NFT Settings</h3>
+          <h3 className="text-xl font-bold text-[#0f5132] mb-4">Polygon/NFT Settings</h3>
           
           <div className="space-y-4">
             <div>
@@ -151,7 +155,7 @@ const SettingsManagement = () => {
           </div>
         </div>
 
-        <Button type="submit" className="bg-[#3d5a3d] hover:bg-[#2d4a2d] rounded-full" data-testid="settings-submit-btn">
+        <Button type="submit" className="bg-[#0f5132] hover:bg-[#0a3c24] rounded-full" data-testid="settings-submit-btn">
           Save Settings
         </Button>
       </form>

@@ -492,7 +492,7 @@ export default function MobileCapturePage() {
           {lastCapture ? (
             <div className="w-full rounded-[2rem] border border-white/10 bg-white/92 p-4 text-[#2b1f15] shadow-2xl">
               <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#3d5a3d] text-white">
+                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#0f5132] text-white">
                   <Check className="h-5 w-5" />
                 </div>
                 <div className="min-w-0 flex-1">

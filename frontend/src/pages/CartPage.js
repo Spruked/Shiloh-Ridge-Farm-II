@@ -10,7 +10,7 @@ import { useCart } from "../CartContext";
 import { useProducts } from "../ProductDataContext";
 
 function CartPage() {
-  const { cart, setItemQuantity, clearCart } = useCart();
+  const { cart, setItemQuantity, clearCart, resolveUnitPrice } = useCart();
   const { products } = useProducts();
 
   const items = products
@@ -18,20 +18,20 @@ function CartPage() {
     .map((product) => ({
       product,
       quantity: cart[product.id],
-      unitPrice: product.price_per_unit || product.price || 0,
+      unitPrice: resolveUnitPrice(product),
     }));
 
   const total = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
 
   return (
-    <div className="min-h-screen bg-[#faf9f6]">
+    <div className="min-h-screen bg-[#f7f3e7]">
       <Navigation />
       <PriceTicker />
 
       <section className="mx-auto max-w-5xl px-6 py-16">
         <div className="mb-10 space-y-3 text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#7b4b2a]">Cart</p>
-          <h1 className="text-4xl font-bold text-[#3d5a3d]">Your farm order</h1>
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#b6863a]">Cart</p>
+          <h1 className="text-4xl font-bold text-[#0f5132]">Your farm order</h1>
           <p className="mx-auto max-w-2xl text-stone-600">
             Review your pre-order before checkout. Dominic will confirm timing, availability, pickup, delivery, or shipping details by email.
           </p>
@@ -40,15 +40,15 @@ function CartPage() {
         {items.length === 0 ? (
           <Card className="border-stone-200 shadow-md">
             <CardContent className="space-y-4 p-10 text-center">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#e8f4e8] text-[#3d5a3d]">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#e7eddc] text-[#0f5132]">
                 <ShoppingCart className="h-7 w-7" />
               </div>
-              <h2 className="text-2xl font-semibold text-[#3d5a3d]">Your cart is empty</h2>
+              <h2 className="text-2xl font-semibold text-[#0f5132]">Your cart is empty</h2>
               <p className="text-sm text-stone-600">
                 Add products from the farm page, then come back here to complete your order.
               </p>
               <Link to="/products">
-                <Button className="bg-[#3d5a3d] hover:bg-[#2d4a2d]">Browse Products</Button>
+                <Button className="bg-[#0f5132] hover:bg-[#0a3c24]">Browse Products</Button>
               </Link>
             </CardContent>
           </Card>
@@ -59,7 +59,7 @@ function CartPage() {
                 <Card key={product.id} className="border-stone-200 shadow-md">
                   <CardContent className="flex flex-col gap-4 p-6 md:flex-row md:items-center md:justify-between">
                     <div>
-                      <h2 className="text-xl font-semibold text-[#3d5a3d]">{product.name}</h2>
+                      <h2 className="text-xl font-semibold text-[#0f5132]">{product.name}</h2>
                       <p className="text-sm text-stone-600">{product.description}</p>
                       <p className="mt-2 text-sm text-stone-600">
                         ${unitPrice.toFixed(2)} per {product.unit || "unit"}
@@ -84,7 +84,7 @@ function CartPage() {
                           +
                         </Button>
                       </div>
-                      <p className="text-sm font-semibold text-[#5f3216]">
+                      <p className="text-sm font-semibold text-[#8f6428]">
                         ${(quantity * unitPrice).toFixed(2)}
                       </p>
                       <Button
@@ -104,7 +104,7 @@ function CartPage() {
 
             <Card className="border-stone-200 shadow-md">
               <CardHeader>
-                <CardTitle className="text-[#3d5a3d]">Order summary</CardTitle>
+                <CardTitle className="text-[#0f5132]">Order summary</CardTitle>
                 <CardDescription>Pre-order totals are estimates until Dominic confirms the order.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-5">
@@ -119,13 +119,13 @@ function CartPage() {
                   </div>
                 </div>
 
-                <div className="rounded-2xl bg-[#f7f4ef] p-4 text-sm text-stone-600">
+                <div className="rounded-2xl bg-[#f3efdf] p-4 text-sm text-stone-600">
                   Orders are handled as farm pre-orders. Customers are updated by email when an order is confirmed, ready, shipped, or scheduled for pickup.
                 </div>
 
                 <div className="space-y-3">
                   <Link to="/checkout" className="block">
-                    <Button className="w-full gap-2 bg-[#3d5a3d] hover:bg-[#2d4a2d]">
+                    <Button className="w-full gap-2 bg-[#0f5132] hover:bg-[#0a3c24]">
                       Continue To Checkout
                       <ArrowRight className="h-4 w-4" />
                     </Button>

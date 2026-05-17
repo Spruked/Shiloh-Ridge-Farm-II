@@ -1,10 +1,19 @@
 import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
-import { ShoppingCart } from "lucide-react";
-import { Button } from "./ui/buttons";
+import { ShoppingCart, User, Sun, Moon, Menu, X } from "lucide-react";
 import { useTheme } from "../ThemeContext";
 import { useCart } from "../CartContext";
 import { useCustomerAuth } from "../CustomerAuthContext";
+
+const NAV_LINKS = [
+  { to: "/livestock", label: "Livestock" },
+  { to: "/products",  label: "Products" },
+  { to: "/about",     label: "About" },
+  { to: "/katahdin",  label: "Katahdin" },
+  { to: "/blog",      label: "Blog" },
+  { to: "/auctions",  label: "Auctions" },
+  { to: "/contact",   label: "Contact" },
+];
 
 const Navigation = () => {
   const location = useLocation();
@@ -12,177 +21,221 @@ const Navigation = () => {
   const { theme, toggleTheme } = useTheme();
   const { cart } = useCart();
   const { isAuthenticated } = useCustomerAuth();
-  const cartCount = Object.values(cart).reduce((sum, value) => sum + value, 0);
+  const cartCount = Object.values(cart).reduce((sum, v) => sum + v, 0);
 
   const isActive = (path) => location.pathname === path;
+  const linkClass = (path) =>
+    `px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+      isActive(path)
+        ? "bg-[#e6ede2] text-[#0f5132]"
+        : "text-gray-600 hover:text-[#0f5132] hover:bg-gray-50"
+    }`;
 
   return (
-    <nav className="sticky top-0 z-50 glass border-b border-gray-200">
-      <div className="max-w-7xl mx-auto px-6 py-4">
-        <div className="flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-3">
-            <img 
-              src="/ShilohRidgeFarmicon256.png" 
-              alt="Shiloh Ridge Farm" 
-              className="w-16 h-16"
+    <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-200 shadow-sm">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="flex items-center justify-between h-16">
+
+          {/* Brand */}
+          <Link
+            to="/"
+            className="flex items-center gap-2.5 shrink-0"
+            data-testid="nav-brand"
+          >
+            <img
+              src="/ShilohRidgeFarmicon256.png"
+              alt="Shiloh Ridge Farm"
+              className="w-10 object-contain"
               data-testid="nav-logo"
             />
-            <span className="text-2xl font-bold text-[#3d5a3d]" data-testid="nav-brand">Shiloh Ridge Farm</span>
+            <span className="hidden sm:block text-lg font-bold text-[#0f5132] leading-tight">
+              Shiloh Ridge Farm
+            </span>
           </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-8" data-testid="desktop-nav">
-            <Link 
-              to="/" 
-              className={`font-medium transition-colors ${isActive('/') ? 'text-[#3d5a3d]' : 'text-gray-700 hover:text-[#3d5a3d]'}`}
-              data-testid="nav-home"
+          {/* Desktop nav links */}
+          <div className="hidden lg:flex items-center gap-1" data-testid="desktop-nav">
+            {NAV_LINKS.map(({ to, label }) => (
+              <Link
+                key={to}
+                to={to}
+                className={linkClass(to)}
+                data-testid={`nav-${label.toLowerCase()}`}
+              >
+                {label}
+              </Link>
+            ))}
+          </div>
+
+          {/* Desktop utility */}
+          <div className="hidden lg:flex items-center gap-1">
+            {/* Dark mode */}
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-md text-gray-500 hover:text-[#0f5132] hover:bg-gray-50 transition-colors"
+              aria-label="Toggle dark mode"
+              data-testid="nav-darkmode-btn"
             >
-              Home
-            </Link>
-            <Link 
-              to="/livestock" 
-              className={`font-medium transition-colors ${isActive('/livestock') ? 'text-[#3d5a3d]' : 'text-gray-700 hover:text-[#3d5a3d]'}`}
-              data-testid="nav-livestock"
-            >
-              Livestock
-            </Link>
-            <Link 
-              to="/products" 
-              className={`font-medium transition-colors ${isActive('/products') ? 'text-[#3d5a3d]' : 'text-gray-700 hover:text-[#3d5a3d]'}`}
-              data-testid="nav-products"
-            >
-              Products
-            </Link>
-            <Link 
-              to="/about" 
-              className={`font-medium transition-colors ${isActive('/about') ? 'text-[#3d5a3d]' : 'text-gray-700 hover:text-[#3d5a3d]'}`}
-              data-testid="nav-about"
-            >
-              About
-            </Link>
-            <Link 
-              to="/katahdin" 
-              className={`font-medium transition-colors ${isActive('/katahdin') ? 'text-[#3d5a3d]' : 'text-gray-700 hover:text-[#3d5a3d]'}`}
-              data-testid="nav-katahdin"
-            >
-              Katahdin
-            </Link>
-            <Link 
-              to="/blog" 
-              className={`font-medium transition-colors ${isActive('/blog') ? 'text-[#3d5a3d]' : 'text-gray-700 hover:text-[#3d5a3d]'}`}
-              data-testid="nav-blog"
-            >
-              Blog
-            </Link>
-            <Link 
-              to="/auctions" 
-              className={`font-medium transition-colors ${isActive('/auctions') ? 'text-[#3d5a3d]' : 'text-gray-700 hover:text-[#3d5a3d]'}`}
-              data-testid="nav-auctions"
-            >
-              Auctions
-            </Link>
-            <Link 
-              to="/contact" 
-              className={`font-medium transition-colors ${isActive('/contact') ? 'text-[#3d5a3d]' : 'text-gray-700 hover:text-[#3d5a3d]'}`}
-              data-testid="nav-contact"
-            >
-              Contact
-            </Link>
+              {theme === "dark" ? <Moon size={18} /> : <Sun size={18} />}
+            </button>
+
+            {/* Account (prominent) */}
             <Link
               to={isAuthenticated ? "/account/dashboard" : "/account/login"}
-              className={`font-medium transition-colors ${location.pathname.startsWith('/account') ? 'text-[#3d5a3d]' : 'text-gray-700 hover:text-[#3d5a3d]'}`}
+              className={`ml-1 inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold transition-colors ${
+                location.pathname.startsWith("/account")
+                  ? "bg-[#0f5132] text-white"
+                  : isAuthenticated
+                    ? "bg-[#e6ede2] text-[#0f5132] hover:bg-[#d8e4d2]"
+                    : "bg-[#b6863a] text-white hover:bg-[#9c702f]"
+              }`}
+              aria-label={isAuthenticated ? "My Account" : "Customer Sign In"}
               data-testid="nav-account"
             >
-              Account
+              <User size={16} />
+              <span>{isAuthenticated ? "My Account" : "Customer Sign In"}</span>
             </Link>
+
+            {/* Cart */}
             <Link
               to="/cart"
-              className={`relative font-medium transition-colors ${isActive('/cart') ? 'text-[#3d5a3d]' : 'text-gray-700 hover:text-[#3d5a3d]'}`}
+              className={`relative p-2 rounded-md transition-colors ${
+                isActive("/cart")
+                  ? "text-[#0f5132] bg-[#e6ede2]"
+                  : "text-gray-500 hover:text-[#0f5132] hover:bg-gray-50"
+              }`}
+              aria-label="Cart"
               data-testid="nav-cart"
             >
-              <span className="inline-flex items-center gap-2">
-                <ShoppingCart className="h-4 w-4" />
-                Cart
-              </span>
+              <ShoppingCart size={18} />
               {cartCount > 0 && (
-                <span className="absolute -right-4 -top-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#7b4b2a] px-1 text-[10px] font-bold text-white">
+                <span className="absolute top-0.5 right-0.5 h-4 min-w-4 flex items-center justify-center rounded-full bg-[#b6863a] text-[9px] font-bold text-white px-0.5">
                   {cartCount}
                 </span>
               )}
             </Link>
-            <Link to="/admin/login">
-              <Button 
-                variant="outline" 
-                className="border-[#3d5a3d] text-[#3d5a3d] hover:bg-[#3d5a3d] hover:text-white font-medium rounded-full"
-                data-testid="nav-admin-btn"
-              >
-                Admin Login
-              </Button>
+
+            {/* Admin — subtle */}
+            <Link
+              to="/admin/login"
+              className="ml-2 text-xs text-gray-400 hover:text-[#0f5132] transition-colors"
+              data-testid="nav-admin-btn"
+            >
+              Admin
             </Link>
-                {/* Dark mode toggle */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={toggleTheme}
-                  className="ml-2"
-                  aria-label="Toggle dark mode"
-                  data-testid="nav-darkmode-btn"
-                >
-                  {theme === "dark" ? "🌙" : "☀️"}
-                </Button>
           </div>
 
-          {/* Mobile Menu Button */}
-          <button 
-            className="md:hidden text-[#3d5a3d]"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            data-testid="mobile-menu-btn"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
+          {/* Mobile: cart badge + hamburger */}
+          <div className="lg:hidden flex items-center gap-2">
+            <Link
+              to={isAuthenticated ? "/account/dashboard" : "/account/login"}
+              className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
+                isAuthenticated
+                  ? "bg-[#e6ede2] text-[#0f5132]"
+                  : "bg-[#b6863a] text-white"
+              }`}
+              data-testid="mobile-nav-account-cta"
+            >
+              {isAuthenticated ? "Account" : "Sign In"}
+            </Link>
+            <Link
+              to="/cart"
+              className="relative p-2 text-gray-500"
+              data-testid="mobile-nav-cart"
+            >
+              <ShoppingCart size={20} />
+              {cartCount > 0 && (
+                <span className="absolute top-0.5 right-0.5 h-4 min-w-4 flex items-center justify-center rounded-full bg-[#b6863a] text-[9px] font-bold text-white px-0.5">
+                  {cartCount}
+                </span>
+              )}
+            </Link>
+            <button
+              className="p-2 text-[#0f5132]"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              aria-label="Toggle menu"
+              data-testid="mobile-menu-btn"
+            >
+              {isMobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+            </button>
+          </div>
         </div>
-
-        {/* Mobile Navigation */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden mt-4 pb-4 space-y-3" data-testid="mobile-nav">
-            <Link to="/" className="block font-medium text-gray-700 hover:text-[#3d5a3d]" data-testid="mobile-nav-home">
-              Home
-            </Link>
-            <Link to="/livestock" className="block font-medium text-gray-700 hover:text-[#3d5a3d]" data-testid="mobile-nav-livestock">
-              Livestock
-            </Link>
-            <Link to="/products" className="block font-medium text-gray-700 hover:text-[#3d5a3d]" data-testid="mobile-nav-products">
-              Products
-            </Link>
-            <Link to="/about" className="block font-medium text-gray-700 hover:text-[#3d5a3d]" data-testid="mobile-nav-about">
-              About
-            </Link>
-            <Link to="/katahdin" className="block font-medium text-gray-700 hover:text-[#3d5a3d]" data-testid="mobile-nav-katahdin">
-              Katahdin
-            </Link>
-            <Link to="/blog" className="block font-medium text-gray-700 hover:text-[#3d5a3d]" data-testid="mobile-nav-blog">
-              Blog
-            </Link>
-            <Link to="/auctions" className="block font-medium text-gray-700 hover:text-[#3d5a3d]" data-testid="mobile-nav-auctions">
-              Auctions
-            </Link>
-            <Link to="/contact" className="block font-medium text-gray-700 hover:text-[#3d5a3d]" data-testid="mobile-nav-contact">
-              Contact
-            </Link>
-            <Link to={isAuthenticated ? "/account/dashboard" : "/account/login"} className="block font-medium text-gray-700 hover:text-[#3d5a3d]">
-              Account
-            </Link>
-            <Link to="/cart" className="block font-medium text-gray-700 hover:text-[#3d5a3d]" data-testid="mobile-nav-cart">
-              Cart {cartCount > 0 ? `(${cartCount})` : ""}
-            </Link>
-            <Link to="/admin/login" className="block font-medium text-gray-700 hover:text-[#3d5a3d]" data-testid="mobile-nav-admin">
-              Admin Login
-            </Link>
-          </div>
-        )}
       </div>
+
+      {/* Mobile menu */}
+      {isMobileMenuOpen && (
+        <div
+          className="lg:hidden border-t border-gray-100 bg-white px-4 pt-3 pb-5 space-y-1"
+          data-testid="mobile-nav"
+        >
+          <Link
+            to="/"
+            className="block px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-[#0f5132] hover:bg-gray-50"
+            onClick={() => setIsMobileMenuOpen(false)}
+            data-testid="mobile-nav-home"
+          >
+            Home
+          </Link>
+          {NAV_LINKS.map(({ to, label }) => (
+            <Link
+              key={to}
+              to={to}
+              className={`block px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                isActive(to)
+                  ? "bg-[#e6ede2] text-[#0f5132]"
+                  : "text-gray-700 hover:text-[#0f5132] hover:bg-gray-50"
+              }`}
+              onClick={() => setIsMobileMenuOpen(false)}
+              data-testid={`mobile-nav-${label.toLowerCase()}`}
+            >
+              {label}
+            </Link>
+          ))}
+
+          <div className="pt-3 border-t border-gray-100 space-y-2">
+            <Link
+              to={isAuthenticated ? "/account/dashboard" : "/account/login"}
+              className={`flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-semibold ${
+                isAuthenticated
+                  ? "bg-[#e6ede2] text-[#0f5132]"
+                  : "bg-[#b6863a] text-white"
+              }`}
+              onClick={() => setIsMobileMenuOpen(false)}
+              data-testid="mobile-nav-account"
+            >
+              <User size={16} /> {isAuthenticated ? "My Account" : "Customer Sign In"}
+            </Link>
+            {!isAuthenticated && (
+              <Link
+                to="/account/register"
+                className="flex items-center justify-center rounded-md border border-[#0f5132] px-3 py-2 text-sm font-semibold text-[#0f5132]"
+                onClick={() => setIsMobileMenuOpen(false)}
+                data-testid="mobile-nav-register"
+              >
+                Create Account
+              </Link>
+            )}
+            <div className="flex items-center justify-end">
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-md text-gray-500 hover:text-[#0f5132] hover:bg-gray-50"
+                aria-label="Toggle dark mode"
+              >
+                {theme === "dark" ? <Moon size={18} /> : <Sun size={18} />}
+              </button>
+            </div>
+          </div>
+
+          <Link
+            to="/admin/login"
+            className="block px-3 py-1.5 text-xs text-gray-400 hover:text-[#0f5132]"
+            onClick={() => setIsMobileMenuOpen(false)}
+            data-testid="mobile-nav-admin"
+          >
+            Admin Login
+          </Link>
+        </div>
+      )}
     </nav>
   );
 };

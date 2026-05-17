@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/buttons';
 import { Badge } from '../../components/ui/badge';
@@ -123,9 +124,12 @@ const OrderManagement = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Order Management</h1>
-        <p className="text-gray-600">Manage customer orders and fulfillment</p>
+      <div className="flex justify-between items-start mb-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Order Management</h1>
+          <p className="text-gray-600">Manage customer orders and fulfillment</p>
+        </div>
+        <Link to="/admin/dashboard"><Button variant="outline">Back to Dashboard</Button></Link>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import axios from "axios";
 import { Button } from "../../components/ui/buttons";
 import { Input } from "../../components/ui/input";
@@ -100,7 +101,10 @@ const AboutManagement = () => {
 
   return (
     <div className="bg-white rounded-2xl shadow-lg p-8" data-testid="about-management">
-      <h2 className="text-3xl font-bold text-[#3d5a3d] mb-6" data-testid="about-management-title">About Page Management</h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-3xl font-bold text-[#0f5132]" data-testid="about-management-title">About Page Management</h2>
+        <Link to="/admin/dashboard"><Button variant="outline">Back to Dashboard</Button></Link>
+      </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
@@ -150,7 +154,7 @@ const AboutManagement = () => {
           />
         </div>
 
-        <Button type="submit" className="bg-[#3d5a3d] hover:bg-[#2d4a2d] rounded-full" data-testid="about-submit-btn">
+        <Button type="submit" className="bg-[#0f5132] hover:bg-[#0a3c24] rounded-full" data-testid="about-submit-btn">
           Update About Page
         </Button>
       </form>

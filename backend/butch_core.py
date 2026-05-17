@@ -1,3 +1,4 @@
+import csv
 import hashlib
 import json
 from dataclasses import asdict, dataclass, field
@@ -77,8 +78,35 @@ class ButchSKG:
         self.consolidation_interval = 24
         self.last_pruning = utc_now()
         self.acp_profiles = {}
+        self.knowledge_base: List[Dict[str, Any]] = []
 
+        self._load_knowledge_base()
         self._load_state()
+
+    def _load_knowledge_base(self):
+        """Load butch_product_knowledge.csv so every row's triggers are checked first."""
+        csv_path = Path(__file__).parent.parent / "assets" / "butch_product_knowledge.csv"
+        if not csv_path.exists():
+            return
+        with open(csv_path, "r", encoding="utf-8") as fh:
+            reader = csv.DictReader(fh)
+            for row in reader:
+                triggers = [t.strip().lower() for t in row.get("triggers", "").split("|") if t.strip()]
+                suggestions = [s.strip() for s in row.get("suggestions", "").split("|") if s.strip()]
+                self.knowledge_base.append({
+                    "key": row.get("key", ""),
+                    "triggers": triggers,
+                    "response": row.get("response", ""),
+                    "suggestions": suggestions,
+                })
+
+    def _lookup_knowledge_base(self, message: str) -> Optional[Dict[str, Any]]:
+        """Return the first KB entry whose trigger phrase appears in message, else None."""
+        msg_lower = (message or "").lower()
+        for entry in self.knowledge_base:
+            if any(trigger in msg_lower for trigger in entry["triggers"]):
+                return entry
+        return None
 
     def _coerce_memory_node(self, memory: Any) -> MemoryNode:
         if isinstance(memory, MemoryNode):
@@ -170,7 +198,13 @@ class ButchSKG:
         intent = self._classify_intent(message)
         entities = self._extract_entities(message)
         self._update_profile_from_interaction(profile, message, entities)
-        response_text = self._generate_response(intent, entities, profile, context)
+        kb_match = self._lookup_knowledge_base(message)
+        if kb_match:
+            response_text = kb_match["response"]
+            kb_suggestions = kb_match["suggestions"]
+        else:
+            response_text = self._generate_response(intent, entities, profile, context, message)
+            kb_suggestions = None
         valence = self._calculate_sentiment(message)
 
         memory_node = MemoryNode(
@@ -199,7 +233,7 @@ class ButchSKG:
             "acp_settings": acp_settings,
             "aacp_settings": acp_settings,
             "voice_profile": "butch_friendly",
-            "suggested_cuts": self._suggest_cuts(profile),
+            "suggested_cuts": kb_suggestions if kb_suggestions is not None else self._suggest_cuts(profile),
             "available_discounts": self._get_available_discounts(profile)
         }
 
@@ -232,15 +266,39 @@ class ButchSKG:
 
     def _classify_intent(self, message: str) -> str:
         msg_lower = (message or "").lower()
-        if any(word in msg_lower for word in ["price", "cost", "how much", "expensive"]):
+        if any(word in msg_lower for word in ["price", "cost", "how much", "expensive", "per pound", "/lb", "lb?", "pricing", "charge", "rate", "dollar"]):
             return "pricing_inquiry"
-        if any(word in msg_lower for word in ["recommend", "suggest", "what cut", "best for"]):
-            return "recommendation"
-        if any(word in msg_lower for word in ["order", "status", "when", "ready", "pickup"]):
+
+        order_status_phrases = [
+            "order status",
+            "status of my order",
+            "where is my order",
+            "is my order ready",
+            "when is pickup",
+            "ready for pickup",
+            "pickup time",
+        ]
+        if any(phrase in msg_lower for phrase in order_status_phrases):
             return "order_status"
-        if any(word in msg_lower for word in ["cook", "recipe", "how to", "grill", "roast"]):
+
+        mentions_order = any(word in msg_lower for word in ["order", "pickup", "processing", "invoice"])
+        status_words = ["status", "ready", "delayed", "eta", "arrive", "scheduled", "confirm", "when"]
+        if mentions_order and any(word in msg_lower for word in status_words):
+            return "order_status"
+
+        if any(word in msg_lower for word in ["cook", "recipe", "how to", "grill", "roast", "bake", "braise", "slow cook", "smoke", "bbq", "temperature", "prepare", "prep"]):
             return "cooking_advice"
-        if any(word in msg_lower for word in ["dominic", "owner", "farm", "shiloh"]):
+
+        if any(word in msg_lower for word in [
+            "recommend", "suggest", "what cut", "best for", "freezer", "whole", "half",
+            "how many pounds", "tell me more", "tell me about", "more about", "what is",
+            "what are", "explain", "describe", "chop", "ground", "rack", "loin", "shoulder",
+            "roast", "rib", "shank", "stew", "sausage", "bacon", "ham", "lamb", "hog", "pork",
+            "yield", "take home", "pounds", "lbs", "estimate", "calculator", "planning"
+        ]):
+            return "recommendation"
+
+        if any(word in msg_lower for word in ["dominic", "owner", "farm", "shiloh", "maitland", "missouri", "raised", "pasture", "operation"]):
             return "farm_info"
         return "general_chat"
 
@@ -250,7 +308,8 @@ class ButchSKG:
             "chops": ["chops", "rib chop", "loin chop"],
             "ground": ["ground", "burger", "meatball"],
             "stew": ["stew", "stew meat", "braise"],
-            "whole": ["whole", "half", "whole lamb", "whole hog"],
+            "whole": ["whole", "whole lamb", "whole hog"],
+            "half": ["half", "half lamb", "half hog"],
             "rack": ["rack", "ribs"],
             "leg": ["leg", "leg of lamb"]
         }
@@ -265,10 +324,12 @@ class ButchSKG:
         intent: str,
         entities: Dict[str, Any],
         profile: CustomerProfile,
-        context: Dict[str, Any]
+        context: Dict[str, Any],
+        message: str
     ) -> str:
         name = profile.name if profile.name != "Friend" else "there"
         greeting = f"Hey {name}!" if profile.interaction_count > 1 else "Well hey there, welcome to Shiloh Ridge!"
+        msg_lower = (message or "").lower()
 
         if intent == "pricing_inquiry":
             cuts = entities.get("cuts", [])
@@ -283,10 +344,20 @@ class ButchSKG:
             )
 
         if intent == "recommendation":
-            message = context.get("message", "")
-            if "grill" in message.lower():
+            if any(keyword in msg_lower for keyword in ["grill", "smoker", "bbq"]):
                 return (
                     f"{greeting} For grilling, you can't beat the rib chops. Dominic cuts them thick and they do great over direct heat."
+                )
+            if "freezer" in msg_lower or "whole" in msg_lower or "half" in msg_lower:
+                return (
+                    f"{greeting} If freezer planning is the goal, a half order is usually the sweet spot for most families. "
+                    "Tell me your freezer size and how many people you feed, and I can map cuts and pounds for you."
+                )
+            if entities.get("cuts"):
+                primary_cut = entities["cuts"][0]
+                return (
+                    f"{greeting} If you're leaning toward {primary_cut}, I can help you balance that with a few complementary cuts "
+                    "so you don't end up with a freezer full of only one thing."
                 )
             if profile.preferred_cuts:
                 return (
@@ -405,10 +476,10 @@ class ButchSKG:
 
         if profile.sentiment_history:
             avg_sentiment = float(np.mean(profile.sentiment_history[-10:]))
-            if avg_sentiment < 0.3:
+            if avg_sentiment < 0.45:
                 base_settings["frequency_response"]["low_boost"] = 1.2
                 base_settings["dynamic_range"]["compression"] = 0.5
-            elif avg_sentiment > 0.7:
+            elif avg_sentiment > 0.65:
                 base_settings["frequency_response"]["high_clarity"] = 1.3
 
         base_settings["voice_warmth"] = 0.9 if profile.interaction_count > 10 else 0.6
@@ -470,8 +541,9 @@ class ButchSKG:
         pos_count = sum(1 for word in positive if word in text_lower)
         neg_count = sum(1 for word in negative if word in text_lower)
         if pos_count + neg_count == 0:
-            return 0.0
-        return (pos_count - neg_count) / (pos_count + neg_count)
+            return 0.5
+        raw = (pos_count - neg_count) / (pos_count + neg_count)
+        return (raw + 1) / 2
 
     def add_promo_code(
         self,

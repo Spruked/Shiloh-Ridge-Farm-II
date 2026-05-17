@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import axios from "axios";
 import { Button } from "../../components/ui/buttons";
 import { Input } from "../../components/ui/input";
@@ -394,6 +395,7 @@ const InventoryPage = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Livestock Inventory</h1>
         <div className="flex gap-2">
+          <Link to="/admin/dashboard"><Button variant="outline">Back to Dashboard</Button></Link>
           <Button variant="outline" onClick={handleExportCSV}>
             <Download className="w-4 h-4 mr-2" />
             Export CSV

@@ -9,7 +9,10 @@ import {
   Package,
   DollarSign,
   ChefHat,
-  ArrowRight
+  ArrowRight,
+  LogIn,
+  UserPlus,
+  ShoppingCart
 } from 'lucide-react';
 import { getApiBaseUrl } from '../../lib/backend';
 
@@ -165,7 +168,12 @@ const CutGuide = ({ meatType, apiBaseUrl }) => {
   );
 };
 
-const ButcherCutCalculator = ({ onContactOrder }) => {
+const ButcherCutCalculator = ({
+  onContactOrder,
+  onOrderSignIn,
+  onOrderCreateAccount,
+  onAddRecommendedToCart,
+}) => {
   const apiBaseUrl = getApiBaseUrl();
   const [meatType, setMeatType] = useState('hog');
   const [orderType, setOrderType] = useState('whole');
@@ -438,13 +446,47 @@ const ButcherCutCalculator = ({ onContactOrder }) => {
                   </ul>
                 </div>
 
-                <button
-                  onClick={() => onContactOrder?.(estimate)}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-4 font-semibold text-white transition-colors hover:bg-emerald-700"
-                >
-                  Contact Us To Order
-                  <ArrowRight className="h-5 w-5" />
-                </button>
+                <div className="space-y-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                  <p className="text-sm font-medium text-emerald-900">
+                    Ready to place this order? Sign in or create an account, then add this recommendation to your cart.
+                  </p>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <button
+                      onClick={() => onOrderSignIn?.({ estimate, meatType, orderType })}
+                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-700 py-3 font-semibold text-white transition-colors hover:bg-emerald-800"
+                    >
+                      Sign In To Order
+                      <LogIn className="h-4 w-4" />
+                    </button>
+
+                    <button
+                      onClick={() => onOrderCreateAccount?.({ estimate, meatType, orderType })}
+                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-white py-3 font-semibold text-emerald-800 ring-1 ring-inset ring-emerald-300 transition-colors hover:bg-emerald-100"
+                    >
+                      Create Account
+                      <UserPlus className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={() => onAddRecommendedToCart?.({ estimate, meatType, orderType })}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-600 py-3 font-semibold text-white transition-colors hover:bg-amber-700"
+                  >
+                    Add Recommended To Cart
+                    <ShoppingCart className="h-4 w-4" />
+                  </button>
+
+                  {!onOrderSignIn && (
+                    <button
+                      onClick={() => onContactOrder?.(estimate)}
+                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-700 py-3 font-semibold text-white transition-colors hover:bg-slate-800"
+                    >
+                      Contact Us To Order
+                      <ArrowRight className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
               </div>
             )}
           </div>

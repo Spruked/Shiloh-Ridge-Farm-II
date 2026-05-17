@@ -45,6 +45,12 @@ class OrderRecordRequest(BaseModel):
     order_details: Dict[str, Any]
 
 
+class HandoffRequest(BaseModel):
+    customer_id: str
+    customer_context: Dict[str, Any] = Field(default_factory=dict)
+    handoff_context: Dict[str, Any] = Field(default_factory=dict)
+
+
 def _serialize_profile(profile: CustomerProfile) -> Dict[str, Any]:
     data = asdict(profile)
     if isinstance(data.get("last_visit"), datetime):
@@ -101,6 +107,65 @@ async def chat_with_butch(request: ChatRequest):
         audio_url=audio_result.get("audio_url"),
         loyalty_tier=result["loyalty_tier"],
         suggestions=result["suggested_cuts"],
+        available_discounts=result["available_discounts"],
+        customer_id=resolved_customer_id,
+        voice_available=audio_result.get("available", False),
+        voice_backend=audio_result.get("backend_used"),
+        use_browser_tts=audio_result.get("use_browser_tts", True),
+        acp_settings=result["acp_settings"],
+        aacp_settings=result["acp_settings"],
+    )
+
+
+@router.post("/handoff", response_model=ChatResponse)
+async def handoff_from_shep(request: HandoffRequest):
+    """Shep hands off to Butch mid-conversation — no restart, full context preserved."""
+    resolved_customer_id = _resolve_customer_id(request.customer_id, request.customer_context)
+    ctx = request.handoff_context
+
+    original_question = ctx.get("original_question", "")
+    shep_answer = ctx.get("shep_answer", "")
+    animal = ctx.get("animal", "general")
+
+    # Build Butch's context-aware opener — he walks in already knowing what was said
+    if animal == "hog":
+        detail_offer = (
+            "I can break that down by cut — how many pork chops you'd get, "
+            "how much belly for bacon, whether a boston butt or picnic shoulder fits better "
+            "for what you cook. What matters more to you: chops and bacon, or bulk roasts and ground?"
+        )
+    elif animal == "lamb":
+        detail_offer = (
+            "I can walk you through the rack, leg, chops, and ground breakdown specifically. "
+            "Katahdin lamb is mild enough that most people want more chops than they expect. "
+            "What's your household actually cooking — grilling, braising, or a mix?"
+        )
+    else:
+        detail_offer = (
+            "Tell me which animal you're looking at — whole hog, half hog, whole lamb, or half lamb — "
+            "and I'll give you the exact cut breakdown, lbs per cut, and what fits your freezer."
+        )
+
+    opener = (
+        f"Got it — Shep filled me in.\n\n"
+        f"You asked: \"{original_question}\"\n\n"
+        f"{detail_offer}"
+    )
+
+    # Record this as an interaction so Butch's memory updates
+    result = await butch_skg.process_interaction(
+        resolved_customer_id,
+        f"[Handoff from Shep] {original_question}",
+        {**request.customer_context, "shep_answer": shep_answer},
+    )
+
+    audio_result = await butch_voice.synthesize(opener, resolved_customer_id, result["acp_settings"])
+
+    return ChatResponse(
+        text=opener,
+        audio_url=audio_result.get("audio_url"),
+        loyalty_tier=result["loyalty_tier"],
+        suggestions=["More chops and bacon", "Bulk roasts and ground", "How much freezer space?"],
         available_discounts=result["available_discounts"],
         customer_id=resolved_customer_id,
         voice_available=audio_result.get("available", False),

@@ -18,9 +18,9 @@ const API = getApiBaseUrl();
 
 function CheckoutPage() {
   const navigate = useNavigate();
-  const { cart, clearCart } = useCart();
+  const { cart, clearCart, resolveUnitPrice } = useCart();
   const { products } = useProducts();
-  const { isAuthenticated, profile } = useCustomerAuth();
+  const { isAuthenticated, profile, token } = useCustomerAuth();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -35,6 +35,12 @@ function CheckoutPage() {
     payment_method: "fiat",
     coupon_code: "",
   });
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate("/account/login?next=/checkout");
+    }
+  }, [isAuthenticated, navigate]);
 
   useEffect(() => {
     if (!profile) {
@@ -58,10 +64,10 @@ function CheckoutPage() {
         .map((product) => ({
           product_id: product.id,
           quantity: cart[product.id],
-          price_per_unit: product.price_per_unit || product.price || 0,
+          price_per_unit: resolveUnitPrice(product),
           product,
         })),
-    [products, cart],
+    [products, cart, resolveUnitPrice],
   );
 
   const total = items.reduce((sum, item) => sum + (item.quantity * item.price_per_unit), 0);
@@ -83,13 +89,15 @@ function CheckoutPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
         },
         body: JSON.stringify({
           ...form,
           source_app: "shiloh_ridge_farm",
-          order_items: items.map(({ product_id, quantity }) => ({
+          order_items: items.map(({ product_id, quantity, price_per_unit }) => ({
             product_id,
             quantity,
+            price_per_unit,
           })),
         }),
       });
@@ -114,36 +122,23 @@ function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#faf9f6]">
+    <div className="min-h-screen bg-[#f7f3e7]">
       <Navigation />
       <PriceTicker />
 
       <section className="mx-auto max-w-6xl px-6 py-16">
         <div className="mb-10 space-y-3 text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#7b4b2a]">Checkout</p>
-          <h1 className="text-4xl font-bold text-[#3d5a3d]">Complete your pre-order</h1>
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#b6863a]">Checkout</p>
+          <h1 className="text-4xl font-bold text-[#0f5132]">Complete your pre-order</h1>
           <p className="mx-auto max-w-3xl text-stone-600">
             This checkout uses the farm’s pre-order system. Dominic will confirm availability and email the customer when the order is confirmed, in process, ready, delivered, or shipped.
           </p>
-          {!isAuthenticated && (
-            <p className="text-sm text-stone-600">
-              Want your orders and invoices saved to a customer dashboard?{" "}
-              <Link to="/account/register" className="font-medium text-[#3d5a3d] hover:underline">
-                Create an account
-              </Link>
-              {" "}or{" "}
-              <Link to="/account/login" className="font-medium text-[#3d5a3d] hover:underline">
-                sign in
-              </Link>
-              .
-            </p>
-          )}
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[1fr,360px]">
           <Card className="border-stone-200 shadow-md">
             <CardHeader>
-              <CardTitle className="text-[#3d5a3d]">Customer details</CardTitle>
+              <CardTitle className="text-[#0f5132]">Customer details</CardTitle>
               <CardDescription>
                 Keep this simple and clear so the owner can follow up and the customer can receive order updates.
               </CardDescription>
@@ -243,7 +238,7 @@ function CheckoutPage() {
                 <Button
                   type="submit"
                   disabled={submitting || items.length === 0}
-                  className="w-full bg-[#3d5a3d] hover:bg-[#2d4a2d]"
+                  className="w-full bg-[#0f5132] hover:bg-[#0a3c24]"
                 >
                   {submitting ? "Submitting..." : "Submit Pre-Order"}
                 </Button>
@@ -253,7 +248,7 @@ function CheckoutPage() {
 
           <Card className="border-stone-200 shadow-md">
             <CardHeader>
-              <CardTitle className="text-[#3d5a3d]">Order summary</CardTitle>
+              <CardTitle className="text-[#0f5132]">Order summary</CardTitle>
               <CardDescription>Based on the products currently in the cart.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -276,7 +271,7 @@ function CheckoutPage() {
                 </div>
               </div>
 
-              <div className="rounded-2xl bg-[#f7f4ef] p-4 text-sm text-stone-600">
+              <div className="rounded-2xl bg-[#f3efdf] p-4 text-sm text-stone-600">
                 This integrates the added checkout module ideas into the farm system: payment choice, coupon field, and structured order metadata, while keeping the Shiloh pre-order workflow intact.
               </div>
             </CardContent>

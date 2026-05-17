@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import axios from "axios";
 import { Button } from "../../components/ui/buttons";
 import { Input } from "../../components/ui/input";
@@ -319,12 +320,12 @@ const LivestockManagement = () => {
         <title>Shiloh Ridge Farm - Livestock Inventory</title>
         <style>
           body { font-family: Arial, sans-serif; padding: 20px; }
-          .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #3d5a3d; padding-bottom: 20px; }
-          .header h1 { color: #3d5a3d; margin: 0; }
+          .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #0f5132; padding-bottom: 20px; }
+          .header h1 { color: #0f5132; margin: 0; }
           .header p { margin: 5px 0; color: #666; }
           table { width: 100%; border-collapse: collapse; margin-top: 20px; }
           th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-          th { background-color: #3d5a3d; color: white; }
+          th { background-color: #0f5132; color: white; }
           tr:nth-child(even) { background-color: #f9f9f9; }
           .footer { margin-top: 40px; text-align: center; font-size: 12px; color: #666; }
           @media print { button { display: none; } }
@@ -379,7 +380,7 @@ const LivestockManagement = () => {
           <p>Contact: dominichanway@gmail.com</p>
         </div>
         <div style="text-align: center; margin-top: 20px;">
-          <button onclick="window.print()" style="background: #3d5a3d; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">Print</button>
+          <button onclick="window.print()" style="background: #0f5132; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">Print</button>
         </div>
       </body>
       </html>
@@ -408,11 +409,11 @@ const LivestockManagement = () => {
         <title>Bill of Sale - ${selectedAnimalForSale.tag_number}</title>
         <style>
           body { font-family: 'Times New Roman', serif; padding: 40px; max-width: 800px; margin: 0 auto; }
-          .header { text-align: center; margin-bottom: 40px; border-bottom: 3px solid #3d5a3d; padding-bottom: 20px; }
-          .header h1 { color: #3d5a3d; margin: 0; font-size: 32px; }
+          .header { text-align: center; margin-bottom: 40px; border-bottom: 3px solid #0f5132; padding-bottom: 20px; }
+          .header h1 { color: #0f5132; margin: 0; font-size: 32px; }
           .header p { margin: 5px 0; color: #666; }
           .section { margin: 30px 0; }
-          .section-title { font-weight: bold; color: #3d5a3d; font-size: 18px; margin-bottom: 15px; border-bottom: 2px solid #e8f4e8; padding-bottom: 5px; }
+          .section-title { font-weight: bold; color: #0f5132; font-size: 18px; margin-bottom: 15px; border-bottom: 2px solid #e7eddc; padding-bottom: 5px; }
           .info-row { display: flex; margin: 10px 0; }
           .info-label { font-weight: bold; width: 200px; }
           .info-value { flex: 1; }
@@ -540,7 +541,7 @@ const LivestockManagement = () => {
           <p>${selectedAnimalForSale.health_records}</p>
         </div>` : ''}
 
-        <div class="section" style="margin-top: 40px; padding: 15px; background: #f9f9f9; border-left: 4px solid #3d5a3d;">
+        <div class="section" style="margin-top: 40px; padding: 15px; background: #f9f9f9; border-left: 4px solid #0f5132;">
           <p style="margin: 0; font-size: 13px; line-height: 1.6;">
             <strong>Terms:</strong> The seller certifies that they are the legal owner of the above-described animal and has the right to sell it. 
             The animal is sold "as is" with all faults. The seller makes no warranties, express or implied, regarding the animal's condition, 
@@ -569,7 +570,7 @@ const LivestockManagement = () => {
         </div>
 
         <div style="text-align: center; margin-top: 30px;">
-          <button onclick="window.print()" style="background: #3d5a3d; color: white; padding: 12px 30px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">Print Bill of Sale</button>
+          <button onclick="window.print()" style="background: #0f5132; color: white; padding: 12px 30px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">Print Bill of Sale</button>
         </div>
       </body>
       </html>
@@ -581,12 +582,13 @@ const LivestockManagement = () => {
   return (
     <div className="bg-white rounded-2xl shadow-lg p-8" data-testid="livestock-management">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-3xl font-bold text-[#3d5a3d]" data-testid="livestock-management-title">Livestock Management</h2>
+        <h2 className="text-3xl font-bold text-[#0f5132]" data-testid="livestock-management-title">Livestock Management</h2>
         <div className="flex gap-3">
+          <Link to="/admin/dashboard"><Button variant="outline">Back to Dashboard</Button></Link>
           <Button 
             onClick={printInventoryList}
             variant="outline" 
-            className="border-[#3d5a3d] text-[#3d5a3d] hover:bg-[#3d5a3d] hover:text-white rounded-full"
+            className="border-[#0f5132] text-[#0f5132] hover:bg-[#0f5132] hover:text-white rounded-full"
             data-testid="print-inventory-btn"
           >
             <Printer className="w-4 h-4 mr-2" />
@@ -597,7 +599,7 @@ const LivestockManagement = () => {
             if (!open) resetForm();
           }}>
             <DialogTrigger asChild>
-              <Button className="bg-[#3d5a3d] hover:bg-[#2d4a2d] rounded-full" data-testid="add-livestock-btn">
+              <Button className="bg-[#0f5132] hover:bg-[#0a3c24] rounded-full" data-testid="add-livestock-btn">
                 Add New Livestock
               </Button>
             </DialogTrigger>
@@ -709,7 +711,7 @@ const LivestockManagement = () => {
                     />
                     {uploadingImages && (
                       <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#3d5a3d]"></div>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#0f5132]"></div>
                         Uploading images...
                       </div>
                     )}
@@ -735,7 +737,7 @@ const LivestockManagement = () => {
                     )}
                   </div>
                 </div>
-                <Button type="submit" className="w-full bg-[#3d5a3d] hover:bg-[#2d4a2d] rounded-full" data-testid="livestock-submit-btn">
+                <Button type="submit" className="w-full bg-[#0f5132] hover:bg-[#0a3c24] rounded-full" data-testid="livestock-submit-btn">
                   {editingAnimal ? "Update" : "Add"} Livestock
                 </Button>
               </form>
@@ -749,15 +751,15 @@ const LivestockManagement = () => {
           <SkeletonLoader count={4} />
         ) : (
           <table className="w-full" data-testid="livestock-table">
-            <thead className="bg-[#e8f4e8]">
+            <thead className="bg-[#e7eddc]">
               <tr>
-                <th className="px-4 py-3 text-left font-semibold text-[#3d5a3d]">Tag</th>
-                <th className="px-4 py-3 text-left font-semibold text-[#3d5a3d]">Name</th>
-                <th className="px-4 py-3 text-left font-semibold text-[#3d5a3d]">Type</th>
-                <th className="px-4 py-3 text-left font-semibold text-[#3d5a3d]">Status</th>
-                <th className="px-4 py-3 text-left font-semibold text-[#3d5a3d]">Price</th>
-                <th className="px-4 py-3 text-left font-semibold text-[#3d5a3d]">Images</th>
-                <th className="px-4 py-3 text-left font-semibold text-[#3d5a3d]">Actions</th>
+                <th className="px-4 py-3 text-left font-semibold text-[#0f5132]">Tag</th>
+                <th className="px-4 py-3 text-left font-semibold text-[#0f5132]">Name</th>
+                <th className="px-4 py-3 text-left font-semibold text-[#0f5132]">Type</th>
+                <th className="px-4 py-3 text-left font-semibold text-[#0f5132]">Status</th>
+                <th className="px-4 py-3 text-left font-semibold text-[#0f5132]">Price</th>
+                <th className="px-4 py-3 text-left font-semibold text-[#0f5132]">Images</th>
+                <th className="px-4 py-3 text-left font-semibold text-[#0f5132]">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -844,7 +846,7 @@ const LivestockManagement = () => {
             </div>
             <Button 
               onClick={printBillOfSale}
-              className="w-full bg-[#3d5a3d] hover:bg-[#2d4a2d] rounded-full"
+              className="w-full bg-[#0f5132] hover:bg-[#0a3c24] rounded-full"
               data-testid="generate-bill-btn"
             >
               <Printer className="w-4 h-4 mr-2" />

@@ -34,11 +34,11 @@ const LivestockDetail = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#faf9f6]">
+      <div className="min-h-screen bg-[#f7f3e7]">
         <Navigation />
         <PriceTicker />
         <div className="text-center py-20" data-testid="detail-loading">
-          <div className="spinner w-12 h-12 border-4 border-[#3d5a3d] border-t-transparent rounded-full mx-auto"></div>
+          <div className="spinner w-12 h-12 border-4 border-[#0f5132] border-t-transparent rounded-full mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading...</p>
         </div>
       </div>
@@ -47,7 +47,7 @@ const LivestockDetail = () => {
 
   if (!animal) {
     return (
-      <div className="min-h-screen bg-[#faf9f6]">
+      <div className="min-h-screen bg-[#f7f3e7]">
         <Navigation />
         <PriceTicker />
         <div className="text-center py-20" data-testid="detail-not-found">
@@ -58,7 +58,7 @@ const LivestockDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#faf9f6]">
+    <div className="min-h-screen bg-[#f7f3e7]">
       <Navigation />
       <PriceTicker />
 
@@ -66,12 +66,12 @@ const LivestockDetail = () => {
         <div className="grid md:grid-cols-2 gap-12">
           {/* Image Section */}
           <div>
-            <div className="bg-[#e8f4e8] rounded-2xl overflow-hidden shadow-xl h-96 flex items-center justify-center">
+            <div className="bg-[#e7eddc] rounded-2xl overflow-hidden shadow-xl h-96 flex items-center justify-center">
               {primaryPhoto ? (
                 <img src={primaryPhoto} alt={animal.name} className="w-full h-full object-cover" data-testid="detail-photo" />
               ) : (
-                <span className="text-8xl">
-                  {animal.animal_type === 'sheep' ? '🐑' : animal.animal_type === 'hog' ? '🐖' : '🐄'}
+                <span className="text-base font-semibold text-[#0f5132] uppercase tracking-widest">
+                  {animal.animal_type || 'Animal'}
                 </span>
               )}
             </div>
@@ -80,7 +80,7 @@ const LivestockDetail = () => {
           {/* Details Section */}
           <div>
             <div className="flex items-start justify-between mb-4">
-              <h1 className="text-4xl font-bold text-[#3d5a3d]" data-testid="detail-title">{animal.name || animal.tag_number}</h1>
+              <h1 className="text-4xl font-bold text-[#0f5132]" data-testid="detail-title">{animal.name || animal.tag_number}</h1>
               {animal.nft_minted && (
                 <span className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-medium" data-testid="detail-nft-badge">
                   NFT Certified
@@ -92,7 +92,7 @@ const LivestockDetail = () => {
 
             {animal.price && (
               <div className="mb-8">
-                <p className="text-4xl font-bold text-[#3d5a3d]" data-testid="detail-price">${animal.price.toLocaleString()}</p>
+                <p className="text-4xl font-bold text-[#0f5132]" data-testid="detail-price">${animal.price.toLocaleString()}</p>
               </div>
             )}
 
@@ -155,14 +155,14 @@ const LivestockDetail = () => {
 
             {animal.description && (
               <div className="mb-8">
-                <h3 className="text-xl font-bold text-[#3d5a3d] mb-3" data-testid="detail-description-title">Description</h3>
+                <h3 className="text-xl font-bold text-[#0f5132] mb-3" data-testid="detail-description-title">Description</h3>
                 <p className="text-gray-700 leading-relaxed" data-testid="detail-description">{animal.description}</p>
               </div>
             )}
 
             {animal.health_records && (
               <div className="mb-8">
-                <h3 className="text-xl font-bold text-[#3d5a3d] mb-3" data-testid="detail-health-title">Health Records</h3>
+                <h3 className="text-xl font-bold text-[#0f5132] mb-3" data-testid="detail-health-title">Health Records</h3>
                 <p className="text-gray-700 leading-relaxed" data-testid="detail-health">{animal.health_records}</p>
               </div>
             )}
@@ -170,7 +170,7 @@ const LivestockDetail = () => {
             <div className="flex gap-4">
               <Link to={`/contact?animal=${animal.id}&type=buy`} className="flex-1">
                 <Button 
-                  className="w-full btn-hover bg-[#3d5a3d] hover:bg-[#2d4a2d] text-white font-semibold py-6 rounded-full"
+                  className="w-full btn-hover bg-[#0f5132] hover:bg-[#0a3c24] text-white font-semibold py-6 rounded-full"
                   data-testid="detail-inquire-btn"
                 >
                   Buy Now
@@ -179,7 +179,7 @@ const LivestockDetail = () => {
               <Link to={`/contact?animal=${animal.id}&type=offer`} className="flex-1">
                 <Button 
                   variant="outline"
-                  className="w-full btn-hover border-2 border-[#3d5a3d] text-[#3d5a3d] hover:bg-[#3d5a3d] hover:text-white font-semibold py-6 rounded-full"
+                  className="w-full btn-hover border-2 border-[#0f5132] text-[#0f5132] hover:bg-[#0f5132] hover:text-white font-semibold py-6 rounded-full"
                   data-testid="detail-offer-btn"
                 >
                   Submit Offer

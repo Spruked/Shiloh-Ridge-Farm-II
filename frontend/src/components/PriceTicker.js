@@ -23,7 +23,7 @@ const PriceTicker = () => {
   };
 
   return (
-    <div className="bg-[#3d5a3d] text-white py-3 overflow-hidden" data-testid="price-ticker">
+    <div className="bg-[#0f5132] text-white py-3 overflow-hidden" data-testid="price-ticker">
       <div className="ticker-animation flex gap-12 whitespace-nowrap">
         {[...Array(3)].map((_, index) => (
           <div key={index} className="flex gap-12 items-center">

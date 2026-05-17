@@ -27,7 +27,7 @@ const HomePage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#faf9f6]">
+    <div className="min-h-screen bg-[#f7f3e7]">
       <Navigation />
       <PriceTicker />
       
@@ -36,20 +36,20 @@ const HomePage = () => {
         <div 
           className="absolute inset-0 bg-cover bg-center"
           style={{
-            backgroundImage: 'url(/shilohsheep1920.WebP)',
+            backgroundImage: 'url(/Sheep+Grazing+Sunset.webp)',
             filter: 'brightness(0.6)'
           }}
         />
-        <div className="absolute inset-0 bg-linear-to-b from-transparent via-transparent to-[#faf9f6]"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#f7f3e7]"></div>
         
         <div className="relative z-10 text-center text-white px-6 max-w-5xl fade-in-up">
-          <img 
-            src="/ShilohRidgeFarmicon256.png" 
+          <img
+            src="/ShilohRidgeFarmicon256.png"
             alt="Shiloh Ridge Farm"
-            className="w-56 h-56 mx-auto mb-8 drop-shadow-2xl"
+            className="w-72 mx-auto mb-4 drop-shadow-2xl opacity-90 object-contain"
             data-testid="farm-logo"
           />
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold mb-6 leading-tight" data-testid="hero-title">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6 leading-tight" data-testid="hero-title">
             Shiloh Ridge Farm
           </h1>
           <p className="text-lg sm:text-xl mb-8 max-w-2xl mx-auto font-light" data-testid="hero-subtitle">
@@ -61,7 +61,7 @@ const HomePage = () => {
             <Link to="/livestock">
               <Button 
                 size="lg" 
-                className="btn-hover bg-[#3d5a3d] hover:bg-[#2d4a2d] text-white font-semibold px-8 py-6 text-lg rounded-full"
+                className="btn-hover bg-[#0f5132] hover:bg-[#0a3c24] text-white font-semibold px-8 py-6 text-lg rounded-full"
                 data-testid="view-livestock-btn"
               >
                 View Livestock
@@ -71,7 +71,7 @@ const HomePage = () => {
               <Button 
                 size="lg" 
                 variant="outline" 
-                className="btn-hover border-2 border-white text-white hover:bg-white hover:text-[#3d5a3d] font-semibold px-8 py-6 text-lg rounded-full"
+                className="btn-hover border-2 border-white text-white hover:bg-white hover:text-[#0f5132] font-semibold px-8 py-6 text-lg rounded-full"
                 data-testid="contact-us-btn"
               >
                 Contact Us
@@ -85,30 +85,30 @@ const HomePage = () => {
       <section className="py-20 px-6 max-w-7xl mx-auto" data-testid="features-section">
         <div className="grid md:grid-cols-3 gap-8">
           <div className="card-hover bg-white rounded-2xl p-8 shadow-lg" data-testid="feature-card-sheep">
-            <div className="w-16 h-16 bg-[#e8f4e8] rounded-full flex items-center justify-center mb-6">
-              <span className="text-3xl">🐑</span>
+            <div className="w-16 h-16 bg-[#e7eddc] rounded-full flex items-center justify-center mb-6">
+              <span className="text-lg font-bold text-[#0f5132]">S</span>
             </div>
-            <h3 className="text-2xl font-bold mb-4 text-[#3d5a3d]">Katahdin Sheep</h3>
+            <h3 className="text-2xl font-bold mb-4 text-[#0f5132]">Katahdin Sheep</h3>
             <p className="text-gray-700 leading-relaxed">
               Premium quality Katahdin sheep with complete registration and bloodline documentation. Perfect for meat production and show.
             </p>
           </div>
           
           <div className="card-hover bg-white rounded-2xl p-8 shadow-lg" data-testid="feature-card-hogs">
-            <div className="w-16 h-16 bg-[#e8f4e8] rounded-full flex items-center justify-center mb-6">
-              <span className="text-3xl">🐖</span>
+            <div className="w-16 h-16 bg-[#e7eddc] rounded-full flex items-center justify-center mb-6">
+              <span className="text-lg font-bold text-[#0f5132]">H</span>
             </div>
-            <h3 className="text-2xl font-bold mb-4 text-[#3d5a3d]">Live Hogs</h3>
+            <h3 className="text-2xl font-bold mb-4 text-[#0f5132]">Live Hogs</h3>
             <p className="text-gray-700 leading-relaxed">
               Healthy, well-maintained hogs raised with care. Full health records and breeding information available.
             </p>
           </div>
           
           <div className="card-hover bg-white rounded-2xl p-8 shadow-lg" data-testid="feature-card-cattle">
-            <div className="w-16 h-16 bg-[#e8f4e8] rounded-full flex items-center justify-center mb-6">
-              <span className="text-3xl">🐄</span>
+            <div className="w-16 h-16 bg-[#e7eddc] rounded-full flex items-center justify-center mb-6">
+              <span className="text-lg font-bold text-[#0f5132]">C</span>
             </div>
-            <h3 className="text-2xl font-bold mb-4 text-[#3d5a3d]">Select Cattle</h3>
+            <h3 className="text-2xl font-bold mb-4 text-[#0f5132]">Select Cattle</h3>
             <p className="text-gray-700 leading-relaxed">
               Small selection of quality cattle, carefully chosen and maintained to meet the highest standards.
             </p>
@@ -120,7 +120,7 @@ const HomePage = () => {
       {featuredLivestock.length > 0 && (
         <section className="py-20 px-6 bg-white" data-testid="featured-livestock-section">
           <div className="max-w-7xl mx-auto">
-            <h2 className="text-4xl sm:text-5xl font-bold text-center mb-4 text-[#3d5a3d]" data-testid="featured-title">
+            <h2 className="text-4xl sm:text-5xl font-bold text-center mb-4 text-[#0f5132]" data-testid="featured-title">
               Featured Livestock
             </h2>
             <p className="text-center text-gray-600 mb-12 text-lg">Available for purchase</p>
@@ -128,19 +128,19 @@ const HomePage = () => {
             <div className="grid md:grid-cols-3 gap-8">
               {featuredLivestock.map((animal) => (
                 <Link to={`/livestock/${animal.id}`} key={animal.id}>
-                  <div className="card-hover bg-[#faf9f6] rounded-2xl overflow-hidden shadow-lg" data-testid={`featured-animal-${animal.id}`}>
-                    <div className="h-64 bg-[#e8f4e8] flex items-center justify-center">
+                  <div className="card-hover bg-[#f7f3e7] rounded-2xl overflow-hidden shadow-lg" data-testid={`featured-animal-${animal.id}`}>
+                    <div className="h-64 bg-[#e7eddc] flex items-center justify-center">
                       {resolveMediaUrl(animal.photos?.[0]) ? (
                         <img src={resolveMediaUrl(animal.photos?.[0])} alt={animal.name} className="w-full h-full object-cover" />
                       ) : (
-                        <span className="text-6xl">🐑</span>
+                        <span className="text-sm font-semibold text-[#0f5132] uppercase tracking-widest">{animal.animal_type || 'Animal'}</span>
                       )}
                     </div>
                     <div className="p-6">
-                      <h3 className="text-2xl font-bold mb-2 text-[#3d5a3d]">{animal.name || animal.tag_number}</h3>
+                      <h3 className="text-2xl font-bold mb-2 text-[#0f5132]">{animal.name || animal.tag_number}</h3>
                       <p className="text-gray-600 mb-2 capitalize">{animal.animal_type}</p>
                       {animal.price && (
-                        <p className="text-2xl font-bold text-[#3d5a3d]">${animal.price.toLocaleString()}</p>
+                        <p className="text-2xl font-bold text-[#0f5132]">${animal.price.toLocaleString()}</p>
                       )}
                     </div>
                   </div>
@@ -152,7 +152,7 @@ const HomePage = () => {
               <Link to="/livestock">
                 <Button 
                   size="lg" 
-                  className="btn-hover bg-[#3d5a3d] hover:bg-[#2d4a2d] text-white font-semibold px-8 py-4 rounded-full"
+                  className="btn-hover bg-[#0f5132] hover:bg-[#0a3c24] text-white font-semibold px-8 py-4 rounded-full"
                   data-testid="view-all-livestock-btn"
                 >
                   View All Livestock
@@ -163,8 +163,109 @@ const HomePage = () => {
         </section>
       )}
 
+      {/* Why Create an Account Section */}
+      <section className="py-20 px-6 bg-[#f7f3e7]" data-testid="signup-benefits-section">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-14">
+            <span className="inline-block bg-[#e7eddc] text-[#0f5132] text-sm font-semibold px-4 py-1 rounded-full mb-4 tracking-wide uppercase">
+              Free to Join
+            </span>
+            <h2 className="text-4xl sm:text-5xl font-bold text-[#0f5132] mb-4">
+              Why Create an Account?
+            </h2>
+            <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+              Join the Shiloh Ridge Farm family and get exclusive access to member benefits, early availability, and direct farm updates.
+            </p>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8 mb-14">
+            <div className="card-hover bg-white rounded-2xl p-8 shadow-lg border border-[#e7eddc]">
+              <div className="w-14 h-14 bg-[#e7eddc] rounded-full flex items-center justify-center mb-5">
+                <span className="text-sm font-bold text-[#0f5132]">%</span>
+              </div>
+              <h3 className="text-xl font-bold text-[#0f5132] mb-3">Member Discounts</h3>
+              <p className="text-gray-600 leading-relaxed">
+                Registered customers receive exclusive pricing on livestock, custom cuts, and seasonal products not available to the general public.
+              </p>
+            </div>
+
+            <div className="card-hover bg-white rounded-2xl p-8 shadow-lg border border-[#e7eddc]">
+              <div className="w-14 h-14 bg-[#e7eddc] rounded-full flex items-center justify-center mb-5">
+                <span className="text-sm font-bold text-[#0f5132]">1st</span>
+              </div>
+              <h3 className="text-xl font-bold text-[#0f5132] mb-3">First Access to New Animals</h3>
+              <p className="text-gray-600 leading-relaxed">
+                Be the first to know when new livestock becomes available. Members get notified before listings go public — so the best animals don't pass you by.
+              </p>
+            </div>
+
+            <div className="card-hover bg-white rounded-2xl p-8 shadow-lg border border-[#e7eddc]">
+              <div className="w-14 h-14 bg-[#e7eddc] rounded-full flex items-center justify-center mb-5">
+                <span className="text-sm font-bold text-[#0f5132]">NL</span>
+              </div>
+              <h3 className="text-xl font-bold text-[#0f5132] mb-3">Farm Newsletter</h3>
+              <p className="text-gray-600 leading-relaxed">
+                Get seasonal farm updates, breeding news, pasture rotations, and upcoming auction dates delivered straight to your inbox.
+              </p>
+            </div>
+
+            <div className="card-hover bg-white rounded-2xl p-8 shadow-lg border border-[#e7eddc]">
+              <div className="w-14 h-14 bg-[#e7eddc] rounded-full flex items-center justify-center mb-5">
+                <span className="text-sm font-bold text-[#0f5132]">INV</span>
+              </div>
+              <h3 className="text-xl font-bold text-[#0f5132] mb-3">Order History & Invoices</h3>
+              <p className="text-gray-600 leading-relaxed">
+                Track all your purchases in one place. Download invoices, review past orders, and manage your account without picking up the phone.
+              </p>
+            </div>
+
+            <div className="card-hover bg-white rounded-2xl p-8 shadow-lg border border-[#e7eddc]">
+              <div className="w-14 h-14 bg-[#e7eddc] rounded-full flex items-center justify-center mb-5">
+                <span className="text-sm font-bold text-[#0f5132]">RFS</span>
+              </div>
+              <h3 className="text-xl font-bold text-[#0f5132] mb-3">Reserve Freezer Space</h3>
+              <p className="text-gray-600 leading-relaxed">
+                Members can reserve custom butcher orders and freezer-ready packages before processing dates fill up. Never miss a season again.
+              </p>
+            </div>
+
+            <div className="card-hover bg-white rounded-2xl p-8 shadow-lg border border-[#e7eddc]">
+              <div className="w-14 h-14 bg-[#e7eddc] rounded-full flex items-center justify-center mb-5">
+                <span className="text-sm font-bold text-[#0f5132]">DFR</span>
+              </div>
+              <h3 className="text-xl font-bold text-[#0f5132] mb-3">Direct Farm Relationship</h3>
+              <p className="text-gray-600 leading-relaxed">
+                Know exactly where your food comes from. Registered customers can request bloodline documentation, health records, and farm visit scheduling.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <Link to="/account/register">
+              <Button
+                size="lg"
+                className="btn-hover bg-[#0f5132] hover:bg-[#0a3c24] text-white font-semibold px-10 py-4 rounded-full text-lg"
+                data-testid="signup-cta-btn"
+              >
+                Create Free Account
+              </Button>
+            </Link>
+            <Link to="/account/login">
+              <Button
+                size="lg"
+                variant="outline"
+                className="btn-hover border-2 border-[#0f5132] text-[#0f5132] hover:bg-[#e7eddc] font-semibold px-10 py-4 rounded-full text-lg"
+                data-testid="login-cta-btn"
+              >
+                Sign In
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
-      <section className="py-20 px-6 bg-gradient-to-br from-[#3d5a3d] to-[#2d4a2d] text-white" data-testid="cta-section">
+      <section className="py-20 px-6 bg-gradient-to-br from-[#0f5132] to-[#0a3c24] text-white" data-testid="cta-section">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-4xl sm:text-5xl font-bold mb-6" data-testid="cta-title">
             Ready to Expand Your Herd?
@@ -175,7 +276,7 @@ const HomePage = () => {
           <Link to="/contact">
             <Button 
               size="lg" 
-              className="btn-hover bg-white text-[#3d5a3d] hover:bg-[#e8f4e8] font-semibold px-8 py-4 rounded-full"
+              className="btn-hover bg-white text-[#0f5132] hover:bg-[#e7eddc] font-semibold px-8 py-4 rounded-full"
               data-testid="cta-contact-btn"
             >
               Get in Touch

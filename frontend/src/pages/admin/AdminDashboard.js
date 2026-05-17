@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import {
+  BarChart3,
   BookOpen,
   Boxes,
   ClipboardList,
@@ -13,6 +14,7 @@ import {
   Settings,
   ShieldCheck,
   Sparkles,
+  TrendingUp,
   Users,
 } from "lucide-react";
 
@@ -32,6 +34,12 @@ const adminSections = [
         description: "Review customer orders, update status, and keep fulfillment moving.",
         icon: ClipboardList,
         href: "/admin/orders",
+      },
+      {
+        title: "Analytics",
+        description: "See revenue, expenses, inventory, livestock, products, customers, and owner attention signals.",
+        icon: BarChart3,
+        href: "/admin/analytics",
       },
       {
         title: "Products",
@@ -57,6 +65,12 @@ const adminSections = [
         icon: DollarSign,
         href: "/admin/accounting",
       },
+      {
+        title: "Farm Pricing",
+        description: "Track market price, farm cost, markup, and margin for every animal type and sale method.",
+        icon: TrendingUp,
+        href: "/admin/farm-pricing",
+      },
     ],
   },
   {
@@ -80,6 +94,12 @@ const adminSections = [
         description: "Review incoming inquiries and keep track of responses.",
         icon: Mail,
         href: "/admin/contacts",
+      },
+      {
+        title: "Customers",
+        description: "View and manage registered customer accounts and profiles.",
+        icon: Users,
+        href: "/admin/customers",
       },
       {
         title: "Settings",
@@ -123,7 +143,7 @@ const adminSections = [
 
 const AdminDashboard = ({ onLogout }) => {
   return (
-    <div className="min-h-screen bg-[#f7f4ef] px-6 py-8">
+    <div className="min-h-screen bg-[#f3efdf] px-6 py-8">
       <div className="mx-auto max-w-6xl space-y-8">
         <div className="flex flex-col gap-4 rounded-3xl bg-white p-6 shadow-lg md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-4">
@@ -135,7 +155,7 @@ const AdminDashboard = ({ onLogout }) => {
             />
             <div>
               <h1
-                className="text-3xl font-bold text-[#3d5a3d]"
+                className="text-3xl font-bold text-[#0f5132]"
                 data-testid="admin-header-title"
               >
                 Farm Admin
@@ -167,10 +187,10 @@ const AdminDashboard = ({ onLogout }) => {
         <Card className="border-stone-200 shadow-md">
           <CardContent className="grid gap-4 p-6 md:grid-cols-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#7b4b2a]">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#b6863a]">
                 Owner Friendly
               </p>
-              <h2 className="mt-2 text-xl font-semibold text-[#3d5a3d]">
+              <h2 className="mt-2 text-xl font-semibold text-[#0f5132]">
                 Keep the main work one click away
               </h2>
             </div>
@@ -186,7 +206,7 @@ const AdminDashboard = ({ onLogout }) => {
         {adminSections.map((section) => (
           <section key={section.title} className="space-y-4">
             <div>
-              <h2 className="text-2xl font-bold text-[#5f3216]">{section.title}</h2>
+              <h2 className="text-2xl font-bold text-[#8f6428]">{section.title}</h2>
               <p className="text-sm text-stone-600">{section.description}</p>
             </div>
 
@@ -196,15 +216,15 @@ const AdminDashboard = ({ onLogout }) => {
                 return (
                   <Card key={card.href} className="border-stone-200 shadow-md">
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-[#3d5a3d]">
-                        <Icon className="h-5 w-5 text-[#7b4b2a]" />
+                      <CardTitle className="flex items-center gap-2 text-[#0f5132]">
+                        <Icon className="h-5 w-5 text-[#b6863a]" />
                         {card.title}
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4 text-sm text-stone-600">
                       <p>{card.description}</p>
                       <Link to={card.href}>
-                        <Button className="w-full bg-[#3d5a3d] hover:bg-[#2d4a2d]">
+                        <Button className="w-full bg-[#0f5132] hover:bg-[#0a3c24]">
                           Open
                         </Button>
                       </Link>

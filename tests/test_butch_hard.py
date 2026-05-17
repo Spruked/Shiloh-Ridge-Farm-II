@@ -226,6 +226,26 @@ class TestIntentRecognition:
         for message in messages:
             assert butch._classify_intent(message) == "pricing_inquiry"
 
+    def test_when_without_order_context_stays_out_of_order_status(self, temp_vault):
+        butch = ButchSKG(storage_path=temp_vault)
+        assert butch._classify_intent("When should I grill lamb chops?") == "cooking_advice"
+
+    def test_order_status_requires_order_context(self, temp_vault):
+        butch = ButchSKG(storage_path=temp_vault)
+        assert butch._classify_intent("When is my order ready for pickup?") == "order_status"
+
+    def test_recommendation_uses_live_message_context(self, temp_vault):
+        butch = ButchSKG(storage_path=temp_vault)
+        profile = butch._get_or_create_profile("grill_customer", {"name": "Grill Test"})
+        text = butch._generate_response(
+            intent="recommendation",
+            entities={"cuts": [], "quantities": [], "preferences": []},
+            profile=profile,
+            context={},
+            message="What do you recommend for the grill?",
+        )
+        assert "grill" in text.lower() or "grilling" in text.lower()
+
     def test_entity_extraction(self, temp_vault):
         butch = ButchSKG(storage_path=temp_vault)
         entities = butch._extract_entities("I want rib chops and some ground lamb for burgers")

@@ -1,12 +1,46 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import axios from "axios";
 import { Button } from "../../components/ui/buttons";
 import { Badge } from "../../components/ui/badge";
 import { toast } from "sonner";
 import { AlertCircle, CheckCircle, Clock } from "lucide-react";
 import { getApiBaseUrl } from "../../lib/backend";
+import { resolveMediaUrl } from "../../lib/media";
 
 const API = getApiBaseUrl();
+const FALLBACK_CERT_LOGO = "/ShilohRidgeFarmicon256.png";
+
+const escapeHtml = (value) => String(value ?? "N/A")
+  .replaceAll("&", "&amp;")
+  .replaceAll("<", "&lt;")
+  .replaceAll(">", "&gt;")
+  .replaceAll('"', "&quot;")
+  .replaceAll("'", "&#39;");
+
+const titleCase = (value) => {
+  if (!value || typeof value !== "string") return "N/A";
+  return value.charAt(0).toUpperCase() + value.slice(1);
+};
+
+const formatDisplayDate = (value) => {
+  if (!value) return "N/A";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return String(value);
+  return parsed.toLocaleDateString();
+};
+
+const toAbsoluteUrl = (source) => {
+  if (!source) return null;
+  try {
+    return new URL(source, window.location.origin).toString();
+  } catch (_error) {
+    return source;
+  }
+};
+
+const getCertificatePhotoUrl = (animal) => toAbsoluteUrl(resolveMediaUrl(animal?.photos?.[0]));
+const getCertificateLogoUrl = () => toAbsoluteUrl(FALLBACK_CERT_LOGO);
 
 const NFTManagement = () => {
   const [livestock, setLivestock] = useState([]);
@@ -37,187 +71,415 @@ const NFTManagement = () => {
   };
 
   const printNFTCertificate = (animal, nftRecord) => {
-    const printWindow = window.open('', '_blank');
+    const mintedImageUrl = resolveMediaUrl(nftRecord?.image_uri);
+    if (mintedImageUrl) {
+      const printWindow = window.open("", "_blank");
+      if (!printWindow) {
+        toast.error("Popup blocked. Please allow popups to print the NFT image.");
+        return;
+      }
+      const imageTitle = escapeHtml(animal?.name || animal?.tag_number || "NFT Certificate");
+      const printable = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="UTF-8" />
+            <title>${imageTitle}</title>
+            <style>
+              body { margin: 0; padding: 20px; background: #f3efe3; display: flex; justify-content: center; }
+              .frame { background: #fff; border: 2px solid #0f5132; border-radius: 12px; padding: 14px; box-shadow: 0 10px 24px rgba(0,0,0,0.15); }
+              img { max-width: min(95vw, 1100px); max-height: 90vh; display: block; }
+              @media print {
+                body { background: #fff; padding: 0; }
+                .frame { border: 0; box-shadow: none; padding: 0; }
+                img { max-width: 100%; max-height: none; }
+              }
+            </style>
+          </head>
+          <body>
+            <div class="frame">
+              <img id="nftImage" src="${mintedImageUrl}" alt="${imageTitle}" />
+            </div>
+            <script>
+              const img = document.getElementById("nftImage");
+              const printNow = () => setTimeout(() => window.print(), 120);
+              if (img.complete) { printNow(); }
+              else {
+                img.addEventListener("load", printNow, { once: true });
+                img.addEventListener("error", printNow, { once: true });
+              }
+            </script>
+          </body>
+        </html>
+      `;
+      printWindow.document.open();
+      printWindow.document.write(printable);
+      printWindow.document.close();
+      return;
+    }
+
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      toast.error("Popup blocked. Please allow popups to print the certificate.");
+      return;
+    }
+
+    const logoUrl = getCertificateLogoUrl();
+    const photoUrl = getCertificatePhotoUrl(animal);
+    const animalTitle = escapeHtml(animal?.name || animal?.tag_number || "Livestock Record");
+    const mintedAt = formatDisplayDate(nftRecord?.created_at);
+
     const certificateHTML = `
       <!DOCTYPE html>
       <html>
         <head>
-          <title>NFT Certificate - ${animal?.name || animal?.tag_number}</title>
+          <meta charset="UTF-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <title>NFT Certificate - ${animalTitle}</title>
           <style>
+            :root {
+              --forest: #0f5132;
+              --forest-dark: #08311f;
+              --gold: #b6863a;
+              --paper: #f8f4e8;
+              --ink: #1f2a1f;
+            }
             body {
-              font-family: 'Inter', sans-serif;
+              font-family: "Georgia", "Times New Roman", serif;
               margin: 0;
-              padding: 20px;
-              background: #faf9f6;
+              padding: 24px;
+              background:
+                radial-gradient(circle at 15% 5%, rgba(182, 134, 58, 0.18), transparent 28%),
+                radial-gradient(circle at 85% 95%, rgba(15, 81, 50, 0.14), transparent 30%),
+                var(--paper);
+              color: var(--ink);
             }
             .certificate {
-              max-width: 800px;
+              position: relative;
+              max-width: 920px;
               margin: 0 auto;
               background: white;
-              border: 2px solid #3d5a3d;
-              border-radius: 10px;
-              padding: 40px;
-              box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+              border: 2px solid var(--forest);
+              border-radius: 14px;
+              padding: 34px 36px;
+              box-shadow:
+                0 24px 52px rgba(4, 18, 12, 0.12),
+                0 0 0 10px rgba(182, 134, 58, 0.08);
+              overflow: hidden;
             }
             .header {
               text-align: center;
-              border-bottom: 2px solid #3d5a3d;
-              padding-bottom: 20px;
-              margin-bottom: 30px;
+              border-bottom: 3px double var(--forest);
+              padding-bottom: 18px;
+              margin-bottom: 24px;
             }
             .logo {
-              width: 80px;
-              height: 80px;
-              margin: 0 auto 20px;
+              width: 86px;
+              height: 86px;
+              margin: 0 auto 14px;
               display: block;
             }
             .title {
-              font-size: 32px;
-              font-weight: bold;
-              color: #3d5a3d;
+              font-size: 34px;
+              letter-spacing: 0.03em;
+              color: var(--forest);
               margin: 0;
             }
             .subtitle {
-              font-size: 18px;
-              color: #666;
+              font-family: "Segoe UI", Tahoma, sans-serif;
+              font-size: 14px;
+              letter-spacing: 0.16em;
+              text-transform: uppercase;
+              color: #465649;
               margin: 10px 0 0 0;
             }
-            .nft-image {
-              width: 200px;
-              height: 200px;
+            .hero {
+              display: grid;
+              grid-template-columns: 240px 1fr;
+              gap: 24px;
+              align-items: center;
+              margin: 8px 0 10px 0;
+            }
+            .nft-image,
+            .image-fallback {
+              width: 230px;
+              height: 230px;
               object-fit: cover;
-              border-radius: 10px;
-              border: 2px solid #3d5a3d;
-              margin: 20px auto;
-              display: block;
+              border-radius: 12px;
+              border: 2px solid var(--forest);
+              background: #eef3ee;
+            }
+            .image-fallback {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              text-align: center;
+              font-family: "Segoe UI", Tahoma, sans-serif;
+              font-size: 13px;
+              color: #55685b;
+              padding: 10px;
+              box-sizing: border-box;
+            }
+            .hero-meta {
+              font-family: "Segoe UI", Tahoma, sans-serif;
+            }
+            .hero-chip {
+              display: inline-block;
+              padding: 5px 10px;
+              border: 1px solid var(--gold);
+              border-radius: 999px;
+              font-size: 11px;
+              font-weight: 600;
+              letter-spacing: 0.06em;
+              text-transform: uppercase;
+              color: var(--forest-dark);
+              background: rgba(182, 134, 58, 0.14);
+              margin-bottom: 10px;
+            }
+            .hero-name {
+              font-size: 30px;
+              font-weight: 700;
+              color: var(--forest);
+              margin: 0 0 6px 0;
+            }
+            .hero-id {
+              font-size: 15px;
+              color: #4a554e;
+              margin: 0;
             }
             .info-grid {
               display: grid;
-              grid-template-columns: 1fr 1fr;
-              gap: 20px;
-              margin: 30px 0;
+              grid-template-columns: repeat(2, minmax(0, 1fr));
+              gap: 14px 18px;
+              margin: 24px 0;
             }
             .info-item {
-              margin-bottom: 15px;
+              background: #fbfaf6;
+              border: 1px solid #e8e2d3;
+              border-radius: 10px;
+              padding: 10px 12px;
             }
             .info-label {
-              font-weight: bold;
-              color: #3d5a3d;
-              margin-bottom: 5px;
+              font-family: "Segoe UI", Tahoma, sans-serif;
+              font-size: 11px;
+              font-weight: 700;
+              letter-spacing: 0.08em;
+              text-transform: uppercase;
+              color: #5c6b61;
+              margin-bottom: 4px;
             }
             .info-value {
-              color: #333;
+              font-family: "Segoe UI", Tahoma, sans-serif;
+              color: #1f2822;
+              font-size: 15px;
+              word-break: break-word;
             }
             .nft-details {
-              background: #f8f9fa;
-              padding: 20px;
-              border-radius: 8px;
-              margin: 30px 0;
+              background: linear-gradient(135deg, #f8f6f0, #f0f6f2);
+              border: 1px solid #d7dfd8;
+              padding: 16px;
+              border-radius: 12px;
+              margin: 26px 0 18px;
+            }
+            .nft-title {
+              margin: 0 0 12px;
+              color: var(--forest);
+              font-size: 18px;
+            }
+            .description {
+              margin-top: 18px;
+              padding: 12px;
+              border: 1px dashed #b7c1b9;
+              border-radius: 10px;
+              background: #fcfdf9;
+              font-family: "Segoe UI", Tahoma, sans-serif;
+            }
+            .watermark {
+              position: absolute;
+              right: -22px;
+              bottom: -8px;
+              font-family: "Segoe UI", Tahoma, sans-serif;
+              font-size: 72px;
+              font-weight: 800;
+              letter-spacing: 0.08em;
+              color: rgba(15, 81, 50, 0.05);
+              pointer-events: none;
+              user-select: none;
             }
             .footer {
               text-align: center;
-              margin-top: 40px;
-              padding-top: 20px;
-              border-top: 1px solid #ddd;
+              margin-top: 26px;
+              padding-top: 16px;
+              border-top: 1px solid #d9dfda;
+              font-family: "Segoe UI", Tahoma, sans-serif;
               font-size: 12px;
-              color: #666;
+              color: #4f5c54;
             }
             @media print {
-              body { background: white; }
-              .certificate { box-shadow: none; border: 1px solid #000; }
+              body { background: #fff; padding: 8px; }
+              .certificate {
+                box-shadow: none;
+                border-width: 1px;
+                break-inside: avoid;
+              }
+            }
+            @media (max-width: 720px) {
+              .hero {
+                grid-template-columns: 1fr;
+              }
+              .nft-image,
+              .image-fallback {
+                width: 100%;
+                max-width: 280px;
+                margin: 0 auto;
+              }
+              .info-grid {
+                grid-template-columns: 1fr;
+              }
             }
           </style>
         </head>
         <body>
           <div class="certificate">
             <div class="header">
-              <img src="/ShilohRidgeFarmicon256.png" alt="Shiloh Ridge Farm" class="logo">
+              <img src="${logoUrl}" alt="Shiloh Ridge Farm" class="logo">
               <h1 class="title">NFT Certificate of Ownership</h1>
-              <p class="subtitle">Digital Livestock Registration</p>
+              <p class="subtitle">Digital Livestock Registration · Verified Record</p>
             </div>
 
-            ${animal?.photos && animal.photos.length > 0 ? 
-              `<img src="${animal.photos[0]}" alt="${animal?.name || animal?.tag_number}" class="nft-image">` :
-              '<div style="width: 200px; height: 200px; background: #f0f0f0; border: 2px solid #3d5a3d; border-radius: 10px; margin: 20px auto; display: flex; align-items: center; justify-content: center; color: #666;">No Image Available</div>'
-            }
+            <section class="hero">
+              ${photoUrl
+                ? `<img src="${photoUrl}" alt="${animalTitle}" class="nft-image" />`
+                : '<div class="image-fallback">No image available for this livestock record.</div>'
+              }
+              <div class="hero-meta">
+                <span class="hero-chip">Minted Ownership Asset</span>
+                <h2 class="hero-name">${animalTitle}</h2>
+                <p class="hero-id">Tag: ${escapeHtml(animal?.tag_number || "N/A")} · Registration: ${escapeHtml(animal?.registration_number || "N/A")}</p>
+              </div>
+            </section>
 
             <div class="info-grid">
               <div class="info-item">
-                <div class="info-label">Tag Number:</div>
-                <div class="info-value">${animal?.tag_number || 'N/A'}</div>
+                <div class="info-label">Animal Type</div>
+                <div class="info-value">${escapeHtml(titleCase(animal?.animal_type))}</div>
               </div>
               <div class="info-item">
-                <div class="info-label">Name:</div>
-                <div class="info-value">${animal?.name || 'N/A'}</div>
+                <div class="info-label">Date of Birth</div>
+                <div class="info-value">${escapeHtml(formatDisplayDate(animal?.date_of_birth))}</div>
               </div>
               <div class="info-item">
-                <div class="info-label">Animal Type:</div>
-                <div class="info-value">${animal?.animal_type ? animal.animal_type.charAt(0).toUpperCase() + animal.animal_type.slice(1) : 'N/A'}</div>
+                <div class="info-label">Bloodline</div>
+                <div class="info-value">${escapeHtml(animal?.bloodline)}</div>
               </div>
               <div class="info-item">
-                <div class="info-label">Registration Number:</div>
-                <div class="info-value">${animal?.registration_number || 'N/A'}</div>
+                <div class="info-label">Weight</div>
+                <div class="info-value">${escapeHtml(animal?.weight ? `${animal.weight} lbs` : "N/A")}</div>
               </div>
               <div class="info-item">
-                <div class="info-label">Date of Birth:</div>
-                <div class="info-value">${animal?.date_of_birth || 'N/A'}</div>
+                <div class="info-label">Color</div>
+                <div class="info-value">${escapeHtml(animal?.color)}</div>
               </div>
               <div class="info-item">
-                <div class="info-label">Bloodline:</div>
-                <div class="info-value">${animal?.bloodline || 'N/A'}</div>
-              </div>
-              <div class="info-item">
-                <div class="info-label">Weight:</div>
-                <div class="info-value">${animal?.weight ? `${animal.weight} lbs` : 'N/A'}</div>
-              </div>
-              <div class="info-item">
-                <div class="info-label">Color:</div>
-                <div class="info-value">${animal?.color || 'N/A'}</div>
+                <div class="info-label">Record ID</div>
+                <div class="info-value">${escapeHtml(animal?.id || nftRecord?.livestock_id || "N/A")}</div>
               </div>
             </div>
 
             <div class="nft-details">
-              <h3 style="color: #3d5a3d; margin-bottom: 15px;">NFT Information</h3>
+              <h3 class="nft-title">NFT Details</h3>
               <div class="info-grid">
                 <div class="info-item">
-                  <div class="info-label">Token ID:</div>
-                  <div class="info-value">${nftRecord?.token_id || 'Pending'}</div>
+                  <div class="info-label">Token ID</div>
+                  <div class="info-value">${escapeHtml(nftRecord?.token_id || "Pending")}</div>
                 </div>
                 <div class="info-item">
-                  <div class="info-label">Mint Date:</div>
-                  <div class="info-value">${new Date(nftRecord?.created_at).toLocaleDateString()}</div>
+                  <div class="info-label">Mint Date</div>
+                  <div class="info-value">${escapeHtml(mintedAt)}</div>
                 </div>
                 <div class="info-item">
-                  <div class="info-label">Status:</div>
-                  <div class="info-value">${nftRecord?.status ? nftRecord.status.charAt(0).toUpperCase() + nftRecord.status.slice(1) : 'Unknown'}</div>
+                  <div class="info-label">Status</div>
+                  <div class="info-value">${escapeHtml(titleCase(nftRecord?.status || "Unknown"))}</div>
                 </div>
                 <div class="info-item">
-                  <div class="info-label">Network:</div>
+                  <div class="info-label">Network</div>
                   <div class="info-value">Polygon (Matic)</div>
                 </div>
               </div>
             </div>
 
             ${animal?.description ? `
-              <div class="info-item" style="margin-top: 20px;">
-                <div class="info-label">Description:</div>
-                <div class="info-value">${animal.description}</div>
+              <div class="description">
+                <div class="info-label">Description</div>
+                <div class="info-value">${escapeHtml(animal.description)}</div>
               </div>
-            ` : ''}
+            ` : ""}
 
             <div class="footer">
-              <p>This NFT represents ownership of the registered livestock listed above.</p>
-              <p>Certificate generated on ${new Date().toLocaleDateString()} by Shiloh Ridge Farm</p>
+              <p>This NFT certifies the livestock ownership record shown above.</p>
+              <p>Generated on ${escapeHtml(formatDisplayDate(new Date().toISOString()))} by Shiloh Ridge Farm</p>
               <p>Shiloh Ridge Farm Livestock NFT System</p>
             </div>
+            <div class="watermark">CERTIFIED</div>
           </div>
+          <script>
+            (function waitForCertificateImagesThenPrint() {
+              const images = Array.from(document.images || []);
+              let completeCount = 0;
+              let printed = false;
+
+              function tryPrint() {
+                if (printed) return;
+                if (completeCount >= images.length) {
+                  printed = true;
+                  setTimeout(function () {
+                    window.focus();
+                    window.print();
+                  }, 180);
+                }
+              }
+
+              if (!images.length) {
+                printed = true;
+                setTimeout(function () {
+                  window.focus();
+                  window.print();
+                }, 120);
+                return;
+              }
+
+              images.forEach(function (img) {
+                if (img.complete) {
+                  completeCount += 1;
+                  tryPrint();
+                  return;
+                }
+                img.addEventListener("load", function () {
+                  completeCount += 1;
+                  tryPrint();
+                }, { once: true });
+                img.addEventListener("error", function () {
+                  completeCount += 1;
+                  tryPrint();
+                }, { once: true });
+              });
+
+              setTimeout(function () {
+                if (!printed) {
+                  printed = true;
+                  window.focus();
+                  window.print();
+                }
+              }, 2000);
+            }());
+          </script>
         </body>
       </html>
     `;
 
+    printWindow.document.open();
     printWindow.document.write(certificateHTML);
     printWindow.document.close();
-    printWindow.print();
   };
 
   const handleMintNFT = async (livestockId) => {
@@ -245,6 +507,9 @@ const NFTManagement = () => {
 
   return (
     <div className="space-y-8" data-testid="nft-management">
+      <div className="flex justify-end">
+        <Link to="/admin/dashboard"><Button variant="outline">Back to Dashboard</Button></Link>
+      </div>
       {/* Info Banner */}
       <div className="bg-purple-50 border border-purple-200 rounded-2xl p-6" data-testid="nft-info-banner">
         <h3 className="text-xl font-bold text-purple-900 mb-2 flex items-center gap-2">
@@ -259,7 +524,7 @@ const NFTManagement = () => {
 
         {/* NFT Benefits Section */}
         <div className="bg-white rounded-lg p-6 mb-4">
-          <h4 className="text-lg font-semibold text-purple-900 mb-3">🚀 How NFTs Transform the Livestock Market</h4>
+          <h4 className="text-lg font-semibold text-purple-900 mb-3">How NFTs Transform the Livestock Market</h4>
           <div className="grid md:grid-cols-2 gap-6">
             <div>
               <h5 className="font-semibold text-purple-800 mb-2">Market Advantages</h5>
@@ -288,7 +553,7 @@ const NFTManagement = () => {
 
         {/* NFT Definition */}
         <div className="bg-gradient-to-r from-purple-100 to-blue-100 rounded-lg p-6 mb-4">
-          <h4 className="text-lg font-semibold text-purple-900 mb-3">🎯 What is a Minted NFT Certificate?</h4>
+          <h4 className="text-lg font-semibold text-purple-900 mb-3">What is a Minted NFT Certificate?</h4>
           <div className="space-y-3 text-sm text-gray-700">
             <p>
               <strong>Definition:</strong> A minted NFT certificate is a unique, immutable digital asset on the Polygon blockchain
@@ -298,7 +563,7 @@ const NFTManagement = () => {
               <h5 className="font-semibold text-purple-800 mb-2">When Finished & Minted, Your NFT Contains:</h5>
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <h6 className="font-medium text-purple-700 mb-1">📋 Animal Identity</h6>
+                  <h6 className="font-medium text-purple-700 mb-1">Animal Identity</h6>
                   <ul className="text-xs space-y-1">
                     <li>• Unique tag number and registration</li>
                     <li>• Name, breed, and physical description</li>
@@ -307,7 +572,7 @@ const NFTManagement = () => {
                   </ul>
                 </div>
                 <div>
-                  <h6 className="font-medium text-purple-700 mb-1">🧬 Genetic & Health Data</h6>
+                  <h6 className="font-medium text-purple-700 mb-1">Genetic &amp; Health Data</h6>
                   <ul className="text-xs space-y-1">
                     <li>• Complete bloodline and pedigree</li>
                     <li>• Parentage verification (sire/dam)</li>
@@ -316,7 +581,7 @@ const NFTManagement = () => {
                   </ul>
                 </div>
                 <div>
-                  <h6 className="font-medium text-purple-700 mb-1">⚖️ Legal & Commercial</h6>
+                  <h6 className="font-medium text-purple-700 mb-1">Legal &amp; Commercial</h6>
                   <ul className="text-xs space-y-1">
                     <li>• Ownership transfer records</li>
                     <li>• Bill of sale documentation</li>
@@ -325,7 +590,7 @@ const NFTManagement = () => {
                   </ul>
                 </div>
                 <div>
-                  <h6 className="font-medium text-purple-700 mb-1">🔗 Blockchain Benefits</h6>
+                  <h6 className="font-medium text-purple-700 mb-1">Blockchain Benefits</h6>
                   <ul className="text-xs space-y-1">
                     <li>• Tamper-proof digital certificate</li>
                     <li>• Globally verifiable authenticity</li>
@@ -373,28 +638,29 @@ const NFTManagement = () => {
       {/* NFT Records */}
       {nftRecords.length > 0 && (
         <div className="bg-white rounded-2xl shadow-lg p-8" data-testid="nft-records-section">
-          <h2 className="text-3xl font-bold text-[#3d5a3d] mb-6">Minted NFTs</h2>
+          <h2 className="text-3xl font-bold text-[#0f5132] mb-6">Minted NFTs</h2>
           <div className="overflow-x-auto">
             <table className="w-full" data-testid="nft-records-table">
-              <thead className="bg-[#e8f4e8]">
+              <thead className="bg-[#e7eddc]">
                 <tr>
-                  <th className="px-4 py-3 text-left font-semibold text-[#3d5a3d]">Image</th>
-                  <th className="px-4 py-3 text-left font-semibold text-[#3d5a3d]">Livestock ID</th>
-                  <th className="px-4 py-3 text-left font-semibold text-[#3d5a3d]">Status</th>
-                  <th className="px-4 py-3 text-left font-semibold text-[#3d5a3d]">Token ID</th>
-                  <th className="px-4 py-3 text-left font-semibold text-[#3d5a3d]">Date</th>
-                  <th className="px-4 py-3 text-left font-semibold text-[#3d5a3d]">Actions</th>
+                  <th className="px-4 py-3 text-left font-semibold text-[#0f5132]">Image</th>
+                  <th className="px-4 py-3 text-left font-semibold text-[#0f5132]">Livestock ID</th>
+                  <th className="px-4 py-3 text-left font-semibold text-[#0f5132]">Status</th>
+                  <th className="px-4 py-3 text-left font-semibold text-[#0f5132]">Token ID</th>
+                  <th className="px-4 py-3 text-left font-semibold text-[#0f5132]">Date</th>
+                  <th className="px-4 py-3 text-left font-semibold text-[#0f5132]">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {nftRecords.map((record) => {
                   const animal = livestock.find(l => l.id === record.livestock_id);
+                  const nftPreviewImage = resolveMediaUrl(record.image_uri) || resolveMediaUrl(animal?.photos?.[0]) || animal?.photos?.[0] || null;
                   return (
                     <tr key={record.id} className="border-b border-gray-200 hover:bg-gray-50" data-testid={`nft-record-${record.id}`}>
                       <td className="px-4 py-3">
-                        {animal?.photos && animal.photos.length > 0 ? (
+                        {nftPreviewImage ? (
                           <img
-                            src={animal.photos[0]}
+                            src={nftPreviewImage}
                             alt={animal?.name || animal?.tag_number}
                             className="w-16 h-16 object-cover rounded-lg border border-gray-200"
                           />
@@ -435,17 +701,17 @@ const NFTManagement = () => {
 
       {/* Available Livestock for Minting */}
       <div className="bg-white rounded-2xl shadow-lg p-8" data-testid="available-livestock-section">
-        <h2 className="text-3xl font-bold text-[#3d5a3d] mb-6">Available Livestock for NFT Minting</h2>
+        <h2 className="text-3xl font-bold text-[#0f5132] mb-6">Available Livestock for NFT Minting</h2>
         <div className="overflow-x-auto">
           <table className="w-full" data-testid="available-livestock-table">
-            <thead className="bg-[#e8f4e8]">
+            <thead className="bg-[#e7eddc]">
               <tr>
-                <th className="px-4 py-3 text-left font-semibold text-[#3d5a3d]">Tag</th>
-                <th className="px-4 py-3 text-left font-semibold text-[#3d5a3d]">Name</th>
-                <th className="px-4 py-3 text-left font-semibold text-[#3d5a3d]">Type</th>
-                <th className="px-4 py-3 text-left font-semibold text-[#3d5a3d]">Registration #</th>
-                <th className="px-4 py-3 text-left font-semibold text-[#3d5a3d]">NFT Status</th>
-                <th className="px-4 py-3 text-left font-semibold text-[#3d5a3d]">Action</th>
+                <th className="px-4 py-3 text-left font-semibold text-[#0f5132]">Tag</th>
+                <th className="px-4 py-3 text-left font-semibold text-[#0f5132]">Name</th>
+                <th className="px-4 py-3 text-left font-semibold text-[#0f5132]">Type</th>
+                <th className="px-4 py-3 text-left font-semibold text-[#0f5132]">Registration #</th>
+                <th className="px-4 py-3 text-left font-semibold text-[#0f5132]">NFT Status</th>
+                <th className="px-4 py-3 text-left font-semibold text-[#0f5132]">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -485,7 +751,7 @@ const NFTManagement = () => {
 
       {/* Smart Contract Info */}
       <div className="bg-white rounded-2xl shadow-lg p-8" data-testid="smart-contract-info">
-        <h2 className="text-2xl font-bold text-[#3d5a3d] mb-4">Smart Contract Details</h2>
+        <h2 className="text-2xl font-bold text-[#0f5132] mb-4">Smart Contract Details</h2>
         <div className="space-y-3 text-gray-700">
           <p><strong>Network:</strong> Polygon (Matic)</p>
           <p><strong>Contract Type:</strong> ERC-721 with Updatable Metadata</p>

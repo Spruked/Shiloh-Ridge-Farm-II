@@ -131,24 +131,24 @@ function CustomerDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#faf9f6]">
+    <div className="min-h-screen bg-[#f7f3e7]">
       <Navigation />
       <PriceTicker />
       <section className="mx-auto max-w-6xl px-6 py-16">
         <div className="mb-8 flex flex-col gap-4 rounded-3xl bg-white p-6 shadow-lg md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-4">
-            <div className="h-20 w-20 overflow-hidden rounded-full bg-[#e8f4e8]">
+            <div className="h-20 w-20 overflow-hidden rounded-full bg-[#e7eddc]">
               {profile?.profile_image_url ? (
                 <img src={profile.profile_image_url} alt={profile.full_name} className="h-full w-full object-cover" />
               ) : (
-                <div className="flex h-full w-full items-center justify-center text-2xl font-bold text-[#3d5a3d]">
+                <div className="flex h-full w-full items-center justify-center text-2xl font-bold text-[#0f5132]">
                   {(profile?.full_name || "S").charAt(0).toUpperCase()}
                 </div>
               )}
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#7b4b2a]">Customer Dashboard</p>
-              <h1 className="text-3xl font-bold text-[#3d5a3d]">{profile?.full_name}</h1>
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#b6863a]">Customer Dashboard</p>
+              <h1 className="text-3xl font-bold text-[#0f5132]">{profile?.full_name}</h1>
               <p className="text-sm text-stone-600">{profile?.email}</p>
             </div>
           </div>
@@ -166,7 +166,7 @@ function CustomerDashboardPage() {
         <div className="grid gap-6 lg:grid-cols-[1fr,1fr]">
           <Card className="border-stone-200 shadow-md">
             <CardHeader>
-              <CardTitle className="text-[#3d5a3d]">Profile</CardTitle>
+              <CardTitle className="text-[#0f5132]">Profile</CardTitle>
               <CardDescription>Keep your farm contact details current so Dominic can serve you quickly.</CardDescription>
             </CardHeader>
             <CardContent>
@@ -176,13 +176,13 @@ function CustomerDashboardPage() {
                 <Textarea rows={3} value={form.address} onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))} placeholder="Address" />
                 <Textarea rows={3} value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Customer notes or preferences" />
                 <label className="block rounded-2xl border border-dashed border-stone-300 p-4 text-sm text-stone-600">
-                  <span className="mb-2 inline-flex items-center gap-2 font-medium text-[#3d5a3d]">
+                  <span className="mb-2 inline-flex items-center gap-2 font-medium text-[#0f5132]">
                     <UploadCloud className="h-4 w-4" />
                     Upload profile photo
                   </span>
                   <input type="file" accept="image/*" className="mt-2 block w-full" onChange={handlePhotoUpload} />
                 </label>
-                <Button type="submit" disabled={saving} className="w-full bg-[#3d5a3d] hover:bg-[#2d4a2d]">
+                <Button type="submit" disabled={saving} className="w-full bg-[#0f5132] hover:bg-[#0a3c24]">
                   {saving ? "Saving..." : "Save Profile"}
                 </Button>
               </form>
@@ -192,7 +192,7 @@ function CustomerDashboardPage() {
           <div className="space-y-6">
             <Card className="border-stone-200 shadow-md">
               <CardHeader>
-                <CardTitle className="text-[#3d5a3d]">Active orders</CardTitle>
+                <CardTitle className="text-[#0f5132]">Active orders</CardTitle>
                 <CardDescription>Orders still moving through the farm workflow.</CardDescription>
               </CardHeader>
               <CardContent>
@@ -214,7 +214,7 @@ function CustomerDashboardPage() {
 
             <Card className="border-stone-200 shadow-md">
               <CardHeader>
-                <CardTitle className="text-[#3d5a3d]">Past orders</CardTitle>
+                <CardTitle className="text-[#0f5132]">Past orders</CardTitle>
                 <CardDescription>Finished or cancelled orders stay here for your records.</CardDescription>
               </CardHeader>
               <CardContent>
@@ -243,10 +243,10 @@ function OrderCard({ order, onOpenInvoice }) {
     <div className="rounded-2xl bg-stone-50 p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="font-semibold text-[#3d5a3d]">Order #{order.id.slice(-8)}</p>
+          <p className="font-semibold text-[#0f5132]">Order #{order.id.slice(-8)}</p>
           <p className="text-sm text-stone-600">{new Date(order.created_at).toLocaleString()}</p>
         </div>
-        <Badge className="bg-[#e8f4e8] text-[#3d5a3d]">{order.status}</Badge>
+        <Badge className="bg-[#e7eddc] text-[#0f5132]">{order.status}</Badge>
       </div>
       <div className="mt-3 text-sm text-stone-600">
         {order.order_items?.map((item, index) => (
@@ -256,7 +256,7 @@ function OrderCard({ order, onOpenInvoice }) {
         ))}
       </div>
       <div className="mt-3 flex items-center justify-between">
-        <span className="font-semibold text-[#5f3216]">${Number(order.total_amount || 0).toFixed(2)}</span>
+        <span className="font-semibold text-[#8f6428]">${Number(order.total_amount || 0).toFixed(2)}</span>
         <Button variant="outline" size="sm" className="gap-2" onClick={() => onOpenInvoice(order.id)}>
           <Download className="h-4 w-4" />
           Invoice

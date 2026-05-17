@@ -28,12 +28,12 @@ const KatahdinPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#faf9f6]">
+    <div className="min-h-screen bg-[#f7f3e7]">
       <Navigation />
       <PriceTicker />
 
       <section className="py-20 px-6 max-w-6xl mx-auto">
-        <h1 className="text-4xl sm:text-5xl font-bold text-center mb-4 text-[#3d5a3d]">
+        <h1 className="text-4xl sm:text-5xl font-bold text-center mb-4 text-[#0f5132]">
           Katahdins
         </h1>
         <p className="text-center text-gray-600 mb-12 text-lg max-w-4xl mx-auto">
@@ -42,7 +42,7 @@ const KatahdinPage = () => {
 
         {/* Table of Contents */}
         <div className="bg-white rounded-2xl p-6 mb-12 shadow-lg">
-          <h2 className="text-2xl font-bold text-[#3d5a3d] mb-6">Table of Contents</h2>
+          <h2 className="text-2xl font-bold text-[#0f5132] mb-6">Table of Contents</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {sections.map((section) => (
               <button
@@ -50,7 +50,7 @@ const KatahdinPage = () => {
                 onClick={() => scrollToSection(section.id)}
                 className={`text-left p-3 rounded-lg transition-colors ${
                   activeSection === section.id
-                    ? 'bg-[#e8f4e8] text-[#3d5a3d] font-semibold'
+                    ? 'bg-[#e7eddc] text-[#0f5132] font-semibold'
                     : 'hover:bg-gray-50 text-gray-700'
                 }`}
               >
@@ -66,7 +66,7 @@ const KatahdinPage = () => {
           <div id="introduction" className="bg-white rounded-2xl p-8 shadow-lg">
             <div className="grid md:grid-cols-2 gap-8 items-center">
               <div>
-                <h2 className="text-3xl font-bold text-[#3d5a3d] mb-6">Introduction</h2>
+                <h2 className="text-3xl font-bold text-[#0f5132] mb-6">Introduction</h2>
                 <div className="prose prose-lg max-w-none">
                   <p className="mb-4">
                     Hair sheep have quietly been gaining ground in the American sheep-industry landscape. Among them, the Katahdin stands out as a breed of intelligent design, excellent functionality and broad applicability. At Shiloh Ridge Farm, we believe understanding the culture of Katahdin sheep—and how they integrate into today's sheep market—sets us apart.
@@ -77,19 +77,19 @@ const KatahdinPage = () => {
                 </div>
               </div>
               <div className="text-center">
-                <img 
-                  src="/katahdin-sheep-grazing_orig.jpg" 
-                  alt="Katahdin sheep grazing in pasture" 
+                <img
+                  src="/katahdin-sheep-grazing_orig.jpg"
+                  alt="Katahdin sheep portrait — Shiloh Ridge Farm"
                   className="rounded-lg shadow-lg max-w-full h-auto"
                 />
-                <p className="text-sm text-gray-500 mt-2">Katahdin sheep thriving in pasture-based systems</p>
+                <p className="text-sm text-gray-500 mt-2">A Katahdin from our herd — alert, healthy, dual-tagged</p>
               </div>
             </div>
           </div>
 
           {/* Origins & Breed Culture */}
           <div id="origins" className="bg-white rounded-2xl p-8 shadow-lg">
-            <h2 className="text-3xl font-bold text-[#3d5a3d] mb-6">Origins & Breed Culture</h2>
+            <h2 className="text-3xl font-bold text-[#0f5132] mb-6">Origins & Breed Culture</h2>
             <div className="prose prose-lg max-w-none">
               <p className="mb-4">
                 The Katahdin sheep originated in the United States, named for Mount Katahdin in Maine. According to breed history, the founder crossed African hair sheep from the Virgin Islands with meat-type English breeds to develop a hair-sheep that could thrive in diverse U.S. environments.
@@ -104,7 +104,7 @@ const KatahdinPage = () => {
           <div id="traits" className="bg-white rounded-2xl p-8 shadow-lg">
             <div className="grid md:grid-cols-2 gap-8 items-start">
               <div>
-                <h2 className="text-3xl font-bold text-[#3d5a3d] mb-6">Key Traits & Why They Matter</h2>
+                <h2 className="text-3xl font-bold text-[#0f5132] mb-6">Key Traits & Why They Matter</h2>
                 <div className="prose prose-lg max-w-none">
                   <p className="mb-4">Here are the traits that put Katahdins ahead in many operations:</p>
                   <ul className="list-disc pl-6 mb-4 space-y-2">
@@ -117,26 +117,26 @@ const KatahdinPage = () => {
                 </div>
               </div>
               <div className="text-center">
-                <img 
-                  src="/flockofdominicskatahdins.jpeg" 
-                  alt="Flock of Katahdin sheep" 
+                <img
+                  src="/flockofdominicskatahdins.jpeg"
+                  alt="Shiloh Ridge Farm ram — 2026"
                   className="rounded-lg shadow-lg max-w-full h-auto"
                 />
-                <p className="text-sm text-gray-500 mt-2">Healthy Katahdin flock showing breed characteristics</p>
+                <p className="text-sm text-gray-500 mt-2">2026 herd sire — our flock at its best</p>
               </div>
             </div>
           </div>
 
           {/* Registries & Genetic Improvement */}
           <div id="registries" className="bg-white rounded-2xl p-8 shadow-lg">
-            <h2 className="text-3xl font-bold text-[#3d5a3d] mb-6">The Role of Registries & Genetic Improvement</h2>
+            <h2 className="text-3xl font-bold text-[#0f5132] mb-6">The Role of Registries & Genetic Improvement</h2>
             <div className="prose prose-lg max-w-none">
               <p className="mb-4">
                 A breed is only as strong as its data and structure behind it—and this is where the national registries and genetic programs come to the fore.
               </p>
 
-              <div className="bg-[#e8f4e8] p-6 rounded-lg mb-6">
-                <h3 className="text-xl font-semibold text-[#3d5a3d] mb-3">KHSI (Katahdin Hair Sheep International)</h3>
+              <div className="bg-[#e7eddc] p-6 rounded-lg mb-6">
+                <h3 className="text-xl font-semibold text-[#0f5132] mb-3">KHSI (Katahdin Hair Sheep International)</h3>
                 <p className="mb-3">
                   The primary breed association and registry for Katahdins in the U.S. The registry is accessible online via the "Digital Katahdin" system, allowing breeders to register stock, search databases and manage records.
                 </p>
@@ -144,14 +144,14 @@ const KatahdinPage = () => {
                   href="https://katahdins.org"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[#3d5a3d] hover:underline font-medium"
+                  className="text-[#0f5132] hover:underline font-medium"
                 >
                   Visit KHSI Website →
                 </a>
               </div>
 
-              <div className="bg-[#e8f4e8] p-6 rounded-lg mb-6">
-                <h3 className="text-xl font-semibold text-[#3d5a3d] mb-3">NSIP (National Sheep Improvement Program)</h3>
+              <div className="bg-[#e7eddc] p-6 rounded-lg mb-6">
+                <h3 className="text-xl font-semibold text-[#0f5132] mb-3">NSIP (National Sheep Improvement Program)</h3>
                 <p className="mb-3">
                   This program is critical for progressive sheep breeders. Simply put: it collects performance data, computes Estimated Breeding Values (EBVs) for key traits (birth weight, weaning weight, lambs born/weaned, fecal egg counts for parasites, etc), and gives commercial and purebred producers tools to select better stock rather than relying solely on 'looks'.
                 </p>
@@ -162,7 +162,7 @@ const KatahdinPage = () => {
                   href="https://nsip.org"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[#3d5a3d] hover:underline font-medium"
+                  className="text-[#0f5132] hover:underline font-medium"
                 >
                   Visit NSIP Website →
                 </a>
@@ -176,7 +176,7 @@ const KatahdinPage = () => {
 
           {/* Practical Considerations */}
           <div id="regional" className="bg-white rounded-2xl p-8 shadow-lg">
-            <h2 className="text-3xl font-bold text-[#3d5a3d] mb-6">Practical Considerations for our Region (IA/MO/KS/NE)</h2>
+            <h2 className="text-3xl font-bold text-[#0f5132] mb-6">Practical Considerations for our Region (IA/MO/KS/NE)</h2>
             <div className="prose prose-lg max-w-none">
               <p className="mb-4">
                 We're based in the Midwest heartland, and while the Katahdin breed has roots in the East and South, they fit well here—with some specifics:
@@ -191,7 +191,7 @@ const KatahdinPage = () => {
 
           {/* Regional Markets */}
           <div id="markets" className="bg-white rounded-2xl p-8 shadow-lg">
-            <h2 className="text-3xl font-bold text-[#3d5a3d] mb-6">Regional Auction / Market Links & Opportunities</h2>
+            <h2 className="text-3xl font-bold text-[#0f5132] mb-6">Regional Auction / Market Links & Opportunities</h2>
             <div className="prose prose-lg max-w-none">
               <p className="mb-4">
                 Here are useful links and resources for livestock/small ruminant auctions in our states—great for buying, selling, building your network:
@@ -199,32 +199,32 @@ const KatahdinPage = () => {
 
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="bg-[#f8f9fa] p-4 rounded-lg">
-                  <h3 className="font-semibold text-[#3d5a3d] mb-2">Iowa</h3>
+                  <h3 className="font-semibold text-[#0f5132] mb-2">Iowa</h3>
                   <ul className="space-y-1 text-sm">
-                    <li>• <a href="https://iowaagriculture.gov" target="_blank" rel="noopener noreferrer" className="text-[#3d5a3d] hover:underline">Iowa Department of Agriculture</a></li>
-                    <li>• <a href="https://kalonasalesbarn.com" target="_blank" rel="noopener noreferrer" className="text-[#3d5a3d] hover:underline">Kalona Sales Barn Inc.</a></li>
+                    <li>• <a href="https://iowaagriculture.gov" target="_blank" rel="noopener noreferrer" className="text-[#0f5132] hover:underline">Iowa Department of Agriculture</a></li>
+                    <li>• <a href="https://kalonasalesbarn.com" target="_blank" rel="noopener noreferrer" className="text-[#0f5132] hover:underline">Kalona Sales Barn Inc.</a></li>
                   </ul>
                 </div>
 
                 <div className="bg-[#f8f9fa] p-4 rounded-lg">
-                  <h3 className="font-semibold text-[#3d5a3d] mb-2">Kansas</h3>
+                  <h3 className="font-semibold text-[#0f5132] mb-2">Kansas</h3>
                   <ul className="space-y-1 text-sm">
-                    <li>• <a href="https://colbylivestockauction.com" target="_blank" rel="noopener noreferrer" className="text-[#3d5a3d] hover:underline">Colby Livestock Auction</a></li>
+                    <li>• <a href="https://colbylivestockauction.com" target="_blank" rel="noopener noreferrer" className="text-[#0f5132] hover:underline">Colby Livestock Auction</a></li>
                     <li>• JCCC Livestock Sales (Clay Center/Junction City)</li>
                   </ul>
                 </div>
 
                 <div className="bg-[#f8f9fa] p-4 rounded-lg">
-                  <h3 className="font-semibold text-[#3d5a3d] mb-2">Nebraska</h3>
+                  <h3 className="font-semibold text-[#0f5132] mb-2">Nebraska</h3>
                   <ul className="space-y-1 text-sm">
-                    <li>• <a href="https://wahoosalesbarn.com" target="_blank" rel="noopener noreferrer" className="text-[#3d5a3d] hover:underline">Wahoo Livestock Sales</a></li>
+                    <li>• <a href="https://wahoosalesbarn.com" target="_blank" rel="noopener noreferrer" className="text-[#0f5132] hover:underline">Wahoo Livestock Sales</a></li>
                   </ul>
                 </div>
 
                 <div className="bg-[#f8f9fa] p-4 rounded-lg">
-                  <h3 className="font-semibold text-[#3d5a3d] mb-2">National Resources</h3>
+                  <h3 className="font-semibold text-[#0f5132] mb-2">National Resources</h3>
                   <ul className="space-y-1 text-sm">
-                    <li>• <a href="https://nsip.org" target="_blank" rel="noopener noreferrer" className="text-[#3d5a3d] hover:underline">NSIP Sales & Events</a></li>
+                    <li>• <a href="https://nsip.org" target="_blank" rel="noopener noreferrer" className="text-[#0f5132] hover:underline">NSIP Sales & Events</a></li>
                   </ul>
                 </div>
               </div>
@@ -233,7 +233,7 @@ const KatahdinPage = () => {
 
           {/* Future Outlook */}
           <div id="future" className="bg-white rounded-2xl p-8 shadow-lg">
-            <h2 className="text-3xl font-bold text-[#3d5a3d] mb-6">The Future & Speculation on Sheep (and Katahdins)</h2>
+            <h2 className="text-3xl font-bold text-[#0f5132] mb-6">The Future & Speculation on Sheep (and Katahdins)</h2>
             <div className="prose prose-lg max-w-none">
               <p className="mb-4">
                 I'm going to be blunt: the sheep business is not runaway growth like cattle or hogs right now—but that's precisely why being smart, lean and differentiated matters. Here's what I see coming—and how Katahdins play into it:
@@ -250,7 +250,7 @@ const KatahdinPage = () => {
 
           {/* Our Strategy */}
           <div id="strategy" className="bg-white rounded-2xl p-8 shadow-lg">
-            <h2 className="text-3xl font-bold text-[#3d5a3d] mb-6">What We're Doing at Shiloh Ridge Farm</h2>
+            <h2 className="text-3xl font-bold text-[#0f5132] mb-6">What We're Doing at Shiloh Ridge Farm</h2>
             <div className="prose prose-lg max-w-none">
               <p className="mb-4">In line with the above, here's our strategy:</p>
               <ul className="list-disc pl-6 mb-4 space-y-2">
@@ -265,7 +265,7 @@ const KatahdinPage = () => {
 
           {/* Conclusion */}
           <div id="conclusion" className="bg-white rounded-2xl p-8 shadow-lg">
-            <h2 className="text-3xl font-bold text-[#3d5a3d] mb-6">Conclusion</h2>
+            <h2 className="text-3xl font-bold text-[#0f5132] mb-6">Conclusion</h2>
             <div className="prose prose-lg max-w-none">
               <p className="mb-4">
                 If you combine an intelligent breed (like the Katahdin), sound management, genetic data and a clear market niche, you have a recipe for sheep-flock success in today's landscape. The old "just raise sheep and hope for lambs" approach won't cut it anymore.
@@ -281,23 +281,23 @@ const KatahdinPage = () => {
 
           {/* Useful Links */}
           <div id="links" className="bg-white rounded-2xl p-8 shadow-lg">
-            <h2 className="text-3xl font-bold text-[#3d5a3d] mb-6">Useful Links</h2>
+            <h2 className="text-3xl font-bold text-[#0f5132] mb-6">Useful Links</h2>
             <div className="grid md:grid-cols-2 gap-6">
               <div>
-                <h3 className="text-xl font-semibold text-[#3d5a3d] mb-4">Breed Resources</h3>
+                <h3 className="text-xl font-semibold text-[#0f5132] mb-4">Breed Resources</h3>
                 <ul className="space-y-3">
                   <li>
-                    <a href="https://katahdins.org" target="_blank" rel="noopener noreferrer" className="text-[#3d5a3d] hover:underline font-medium">
+                    <a href="https://katahdins.org" target="_blank" rel="noopener noreferrer" className="text-[#0f5132] hover:underline font-medium">
                       KHSI Registry: Register sheep
                     </a>
                   </li>
                   <li>
-                    <a href="https://katahdins.org" target="_blank" rel="noopener noreferrer" className="text-[#3d5a3d] hover:underline font-medium">
+                    <a href="https://katahdins.org" target="_blank" rel="noopener noreferrer" className="text-[#0f5132] hover:underline font-medium">
                       KHSI Online Database
                     </a>
                   </li>
                   <li>
-                    <a href="https://nsip.org" target="_blank" rel="noopener noreferrer" className="text-[#3d5a3d] hover:underline font-medium">
+                    <a href="https://nsip.org" target="_blank" rel="noopener noreferrer" className="text-[#0f5132] hover:underline font-medium">
                       NSIP (National Sheep Improvement Program)
                     </a>
                   </li>
@@ -305,25 +305,25 @@ const KatahdinPage = () => {
               </div>
 
               <div>
-                <h3 className="text-xl font-semibold text-[#3d5a3d] mb-4">Regional Auctions</h3>
+                <h3 className="text-xl font-semibold text-[#0f5132] mb-4">Regional Auctions</h3>
                 <ul className="space-y-3">
                   <li>
-                    <a href="https://iowaagriculture.gov" target="_blank" rel="noopener noreferrer" className="text-[#3d5a3d] hover:underline font-medium">
+                    <a href="https://iowaagriculture.gov" target="_blank" rel="noopener noreferrer" className="text-[#0f5132] hover:underline font-medium">
                       Iowa Livestock Auctions
                     </a>
                   </li>
                   <li>
-                    <a href="https://kalonasalesbarn.com" target="_blank" rel="noopener noreferrer" className="text-[#3d5a3d] hover:underline font-medium">
+                    <a href="https://kalonasalesbarn.com" target="_blank" rel="noopener noreferrer" className="text-[#0f5132] hover:underline font-medium">
                       Kalona Sales Barn (Iowa)
                     </a>
                   </li>
                   <li>
-                    <a href="https://colbylivestockauction.com" target="_blank" rel="noopener noreferrer" className="text-[#3d5a3d] hover:underline font-medium">
+                    <a href="https://colbylivestockauction.com" target="_blank" rel="noopener noreferrer" className="text-[#0f5132] hover:underline font-medium">
                       Colby Livestock Auction (Kansas)
                     </a>
                   </li>
                   <li>
-                    <a href="https://wahoosalesbarn.com" target="_blank" rel="noopener noreferrer" className="text-[#3d5a3d] hover:underline font-medium">
+                    <a href="https://wahoosalesbarn.com" target="_blank" rel="noopener noreferrer" className="text-[#0f5132] hover:underline font-medium">
                       Wahoo Livestock Sales (Nebraska)
                     </a>
                   </li>

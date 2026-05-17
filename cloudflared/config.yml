@@ -1,0 +1,27 @@
+tunnel: 911f1d54-b575-4c79-aeec-b62ee5b1050a
+credentials-file: /home/bryan/.cloudflared/911f1d54-b575-4c79-aeec-b62ee5b1050a.json
+
+ingress:
+  # Farm frontend (React)
+  - hostname: shilohridgekatahdins.com
+    service: http://localhost:3100
+
+  # Farm API (FastAPI backend)
+  - hostname: api.shilohridgekatahdins.com
+    service: http://localhost:12000
+
+  # Butch assistant
+  - hostname: butch.shilohridgekatahdins.com
+    service: http://localhost:8001
+
+  # Voice TTS service
+  - hostname: voice.shilohridgekatahdins.com
+    service: http://localhost:8002
+
+  # Fallback
+  - service: http_status:404
+
+originRequest:
+  noTLSVerify: true
+  connectTimeout: 30s
+  tlsTimeout: 10s

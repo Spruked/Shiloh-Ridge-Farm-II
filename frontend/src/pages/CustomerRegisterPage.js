@@ -38,27 +38,27 @@ function CustomerRegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#faf9f6]">
+    <div className="min-h-screen bg-[#f7f3e7]">
       <Navigation />
       <PriceTicker />
       <section className="mx-auto max-w-5xl px-6 py-16">
         <div className="grid gap-8 lg:grid-cols-[1.1fr,0.9fr]">
           <div className="space-y-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#7b4b2a]">Customer Account</p>
-            <h1 className="text-5xl font-bold text-[#3d5a3d]">Create an account with Shiloh Ridge Farm</h1>
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#b6863a]">Customer Account</p>
+            <h1 className="text-5xl font-bold text-[#0f5132]">Create an account with Shiloh Ridge Farm</h1>
             <p className="max-w-xl text-lg text-stone-600">
               Save your order history, keep your contact information handy, upload a profile photo so Dominic can remember you more easily, and download invoices whenever you need them.
             </p>
             <img
-              src="/flockofdominicskatahdins.jpeg"
-              alt="Shiloh Ridge flock"
+              src="/katahdin-sheep-grazing_orig.jpg"
+              alt="Shiloh Ridge Farm Katahdin ewe"
               className="w-full rounded-3xl object-cover shadow-xl"
             />
           </div>
 
           <Card className="border-stone-200 shadow-xl">
             <CardHeader>
-              <CardTitle className="text-3xl text-[#3d5a3d]">Create your account</CardTitle>
+              <CardTitle className="text-3xl text-[#0f5132]">Create your account</CardTitle>
               <CardDescription>Simple, clean, and made for returning farm customers.</CardDescription>
             </CardHeader>
             <CardContent>
@@ -94,13 +94,13 @@ function CustomerRegisterPage() {
                   value={form.address}
                   onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))}
                 />
-                <Button type="submit" disabled={submitting} className="w-full bg-[#3d5a3d] hover:bg-[#2d4a2d]">
+                <Button type="submit" disabled={submitting} className="w-full bg-[#0f5132] hover:bg-[#0a3c24]">
                   {submitting ? "Creating account..." : "Create Account"}
                 </Button>
               </form>
               <p className="mt-4 text-sm text-stone-600">
                 Already have an account?{" "}
-                <Link to="/account/login" className="font-medium text-[#3d5a3d] hover:underline">
+                <Link to="/account/login" className="font-medium text-[#0f5132] hover:underline">
                   Sign in here
                 </Link>
               </p>

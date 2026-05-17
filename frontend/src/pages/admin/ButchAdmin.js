@@ -97,7 +97,7 @@ const ButchAdmin = () => {
       <div className="mx-auto max-w-5xl space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-[#5f3216]">Butch SKG Admin</h1>
+            <h1 className="text-3xl font-bold text-[#8f6428]">Butch SKG Admin</h1>
             <p className="mt-1 text-sm text-stone-600">Memory, promos, and voice health for the butcher assistant.</p>
           </div>
           <Link to="/admin/dashboard">
@@ -118,7 +118,7 @@ const ButchAdmin = () => {
           <Card className="lg:col-span-1">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Database className="h-5 w-5 text-[#7b4b2a]" />
+                <Database className="h-5 w-5 text-[#b6863a]" />
                 System Health
               </CardTitle>
             </CardHeader>
@@ -148,7 +148,7 @@ const ButchAdmin = () => {
           <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Ticket className="h-5 w-5 text-[#7b4b2a]" />
+                <Ticket className="h-5 w-5 text-[#b6863a]" />
                 Active Promotions
               </CardTitle>
             </CardHeader>
@@ -173,7 +173,7 @@ const ButchAdmin = () => {
                   />
                 </div>
                 <div className="flex items-end">
-                  <Button onClick={addPromo} className="w-full bg-[#7b4b2a] hover:bg-[#643a1f]">
+                  <Button onClick={addPromo} className="w-full bg-[#b6863a] hover:bg-[#7a5724]">
                     Activate
                   </Button>
                 </div>
@@ -188,7 +188,7 @@ const ButchAdmin = () => {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Search className="h-5 w-5 text-[#7b4b2a]" />
+              <Search className="h-5 w-5 text-[#b6863a]" />
               Customer Lookup
             </CardTitle>
           </CardHeader>
@@ -199,7 +199,7 @@ const ButchAdmin = () => {
                 value={customerLookup}
                 onChange={(event) => setCustomerLookup(event.target.value)}
               />
-              <Button onClick={lookupCustomer} className="bg-[#7b4b2a] hover:bg-[#643a1f]">
+              <Button onClick={lookupCustomer} className="bg-[#b6863a] hover:bg-[#7a5724]">
                 Lookup
               </Button>
             </div>
@@ -208,7 +208,7 @@ const ButchAdmin = () => {
               <div className="grid gap-4 lg:grid-cols-2">
                 <div className="rounded-xl border border-stone-200 bg-stone-50 p-4 text-sm text-stone-700">
                   <div className="mb-2 flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-[#7b4b2a]" />
+                    <Sparkles className="h-4 w-4 text-[#b6863a]" />
                     <span className="font-semibold">Profile</span>
                   </div>
                   <p><strong>Name:</strong> {customerData.profile.name || 'Unknown'}</p>

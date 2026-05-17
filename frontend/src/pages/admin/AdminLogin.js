@@ -26,6 +26,7 @@ const AdminLogin = ({ onLogin }) => {
     try {
       const response = await axios.post(`${API}/auth/login`, credentials);
       localStorage.setItem("admin_token", response.data.access_token);
+      localStorage.setItem("admin_username", (credentials.username || "").trim() || "Dominic");
       toast.success("Login successful!");
       onLogin();
       navigate("/admin/dashboard");
@@ -38,7 +39,7 @@ const AdminLogin = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#3d5a3d] to-[#2d4a2d] flex items-center justify-center px-6" data-testid="admin-login-page">
+    <div className="min-h-screen bg-gradient-to-br from-[#0f5132] to-[#0a3c24] flex items-center justify-center px-6" data-testid="admin-login-page">
       <div className="bg-white rounded-2xl shadow-2xl p-8 md:p-12 w-full max-w-md">
         <div className="text-center mb-8">
           <img 
@@ -47,7 +48,7 @@ const AdminLogin = ({ onLogin }) => {
             className="w-28 h-28 mx-auto mb-4"
             data-testid="admin-login-logo"
           />
-          <h1 className="text-3xl font-bold text-[#3d5a3d]" data-testid="admin-login-title">Admin Login</h1>
+          <h1 className="text-3xl font-bold text-[#0f5132]" data-testid="admin-login-title">Admin Login</h1>
         </div>
 
         <form onSubmit={handleSubmit} data-testid="admin-login-form">
@@ -80,7 +81,7 @@ const AdminLogin = ({ onLogin }) => {
           <Button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#3d5a3d] hover:bg-[#2d4a2d] text-white font-semibold py-6 rounded-full text-lg"
+            className="w-full bg-[#0f5132] hover:bg-[#0a3c24] text-white font-semibold py-6 rounded-full text-lg"
             data-testid="admin-login-submit-btn"
           >
             {loading ? "Logging in..." : "Login"}

@@ -6,6 +6,8 @@ import { Badge } from '../ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { getApiBaseUrl, getBackendBaseUrl } from '../../lib/backend';
 
+const API_BASE_URL = getApiBaseUrl();
+const BACKEND_BASE_URL = getBackendBaseUrl();
 
 const BUTCH_CUSTOMER_KEY = 'butch_customer_id';
 const BUTCH_CONTEXT_KEY = 'butch_customer_context';
@@ -21,7 +23,7 @@ const getStoredJson = (key) => {
   }
 };
 
-const ButchAssistant = ({ onProfileUpdate }) => {
+const ButchAssistant = ({ mode = 'butcher', onProfileUpdate }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
@@ -33,8 +35,8 @@ const ButchAssistant = ({ onProfileUpdate }) => {
   const [voiceMode, setVoiceMode] = useState('browser');
   const messagesEndRef = useRef(null);
 
-  const apiBaseUrl = getApiBaseUrl();
-  const backendBaseUrl = getBackendBaseUrl();
+  const apiBaseUrl = API_BASE_URL;
+  const backendBaseUrl = BACKEND_BASE_URL;
 
   const persistContext = (nextContext) => {
     const mergedProfile = {
@@ -80,6 +82,75 @@ const ButchAssistant = ({ onProfileUpdate }) => {
     }
   }, [currentAudio]);
 
+  // Listen for Shep→Butch handoff events
+  useEffect(() => {
+    const handleHandoff = async (event) => {
+      const handoffCtx = event.detail;
+      setIsOpen(true);
+      setIsTyping(true);
+
+      try {
+        const cid = localStorage.getItem(BUTCH_CUSTOMER_KEY) || '';
+        const ctx = getStoredJson(BUTCH_CONTEXT_KEY);
+
+        const response = await fetch(`${apiBaseUrl}/butch/handoff`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customer_id: cid,
+            customer_context: ctx,
+            handoff_context: handoffCtx,
+          }),
+        });
+
+        if (!response.ok) throw new Error('Handoff request failed');
+
+        const data = await response.json();
+
+        if (data.customer_id) {
+          localStorage.setItem(BUTCH_CUSTOMER_KEY, data.customer_id);
+          setCustomerId(data.customer_id);
+        }
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `${Date.now()}_butch`,
+            text: data.text,
+            sender: 'butch',
+            timestamp: new Date(),
+            audioUrl: data.audio_url,
+            suggestions: data.suggestions || [],
+            discounts: data.available_discounts || [],
+            useBrowserTts: data.use_browser_tts,
+            acpSettings: data.acp_settings || {},
+          },
+        ]);
+        setLoyaltyTier(data.loyalty_tier || 'new');
+      } catch (error) {
+        console.error('Butch handoff failed:', error);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `${Date.now()}_butch`,
+            text: "Got the handoff from Shep — what can I help you dig into on cuts or pricing?",
+            sender: 'butch',
+            timestamp: new Date(),
+            useBrowserTts: true,
+            acpSettings: { voice_speed: 1 },
+            suggestions: [],
+            discounts: [],
+          },
+        ]);
+      } finally {
+        setIsTyping(false);
+      }
+    };
+
+    window.addEventListener('shep-butch-handoff', handleHandoff);
+    return () => window.removeEventListener('shep-butch-handoff', handleHandoff);
+  }, [apiBaseUrl]);
+
   const speakWithBrowser = (text, acpSettings = {}) => {
     if (!window.speechSynthesis || !text) {
       return;
@@ -118,7 +189,14 @@ const ButchAssistant = ({ onProfileUpdate }) => {
   const buildRequestBody = (message) => ({
     message,
     customer_id: customerId,
-    customer_context: customerContext || {},
+    customer_context: {
+      ...(customerContext || {}),
+      assistant_role: mode === 'ranch' ? 'ranch_hand' : 'butcher',
+      page_mode: mode,
+      llm_model: 'qwen2.5:3b',
+      tts_engine: 'qwen3-tts',
+      cochlear_processor: 'CP 3.0',
+    },
   });
 
   const appendButchMessage = (data) => {
@@ -136,7 +214,7 @@ const ButchAssistant = ({ onProfileUpdate }) => {
       suggestions: data.suggestions || [],
       discounts: data.available_discounts || [],
       useBrowserTts: data.use_browser_tts,
-      acpSettings: data.acp_settings || data.aacp_settings || {},
+      acpSettings: data.acp_settings || {},
       voiceBackend: data.voice_backend,
     };
 
@@ -189,8 +267,9 @@ const ButchAssistant = ({ onProfileUpdate }) => {
         ...previous,
         {
           id: `${Date.now()}_error`,
-          text: "I'm having trouble reaching the butcher tools right now, but I can still help once the connection settles down.",
-          text: "I'm having trouble connecting to the butcher tools right now, but I can still help once the connection settles down.",
+          text: mode === 'ranch'
+            ? "I'm having trouble connecting to the ranch-hand tools right now, but I can still help once the connection settles down."
+            : "I'm having trouble connecting to the butcher tools right now, but I can still help once the connection settles down.",
           sender: 'butch',
           timestamp: new Date(),
           useBrowserTts: true,
@@ -203,7 +282,12 @@ const ButchAssistant = ({ onProfileUpdate }) => {
   };
 
   const generateGreeting = async () => {
-    await sendMessage("Hello, I'm looking at your lamb products.", true);
+    await sendMessage(
+      mode === 'ranch'
+        ? "Hello, I'm looking at livestock and want ranch-hand guidance."
+        : "Hello, I'm looking at your lamb products.",
+      true,
+    );
   };
 
   const getTierColor = (tier) => {
@@ -227,7 +311,7 @@ const ButchAssistant = ({ onProfileUpdate }) => {
               generateGreeting();
             }
           }}
-          className="flex items-center gap-2 rounded-full bg-[#7b4b2a] px-5 py-4 text-white shadow-xl transition-all hover:bg-[#643a1f]"
+          className="flex items-center gap-2 rounded-full bg-[#b6863a] px-5 py-4 text-white shadow-xl transition-all hover:bg-[#7a5724]"
         >
           <MessageCircle className="h-6 w-6" />
           <span className="font-semibold">Ask Butch</span>
@@ -241,16 +325,16 @@ const ButchAssistant = ({ onProfileUpdate }) => {
 
       {isOpen && (
         <Card className="flex h-[540px] w-[24rem] flex-col overflow-hidden border-stone-300 shadow-2xl">
-          <CardHeader className="flex flex-row items-start justify-between space-y-0 border-b border-stone-200 bg-gradient-to-r from-[#7b4b2a] to-[#5f3216] py-4 text-white">
+          <CardHeader className="flex flex-row items-start justify-between space-y-0 border-b border-stone-200 bg-gradient-to-r from-[#b6863a] to-[#8f6428] py-4 text-white">
             <div>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <span className="text-xl">🥩</span>
                 Butch
               </CardTitle>
               <div className="mt-1 flex items-center gap-2 text-xs text-amber-50">
                 <Badge className={`border ${getTierColor(loyaltyTier)}`}>
                   {loyaltyTier}
                 </Badge>
+                <span>{mode === 'ranch' ? 'Ranch hand' : 'Butcher'} · Qwen 3 TTS · CP 3.0</span>
                 <span>{voiceMode === 'browser' ? 'Browser voice fallback' : `Voice: ${voiceMode}`}</span>
               </div>
             </div>
@@ -303,10 +387,10 @@ const ButchAssistant = ({ onProfileUpdate }) => {
                 className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm ${
+                  className={`rounded-2xl px-4 py-3 text-sm ${
                     message.sender === 'user'
-                      ? 'rounded-br-md bg-[#7b4b2a] text-white'
-                      : 'rounded-bl-md bg-stone-100 text-stone-800'
+                      ? 'max-w-[80%] rounded-br-md bg-[#b6863a] text-white sm:max-w-[76%]'
+                      : 'max-w-[72%] rounded-bl-md bg-stone-100 text-stone-800 sm:max-w-[68%]'
                   }`}
                 >
                   <p className="whitespace-pre-line">{message.text}</p>
@@ -378,13 +462,13 @@ const ButchAssistant = ({ onProfileUpdate }) => {
                   }
                 }}
                 className="flex-1 rounded-md border border-stone-300 bg-white px-3 py-2 text-sm"
-                placeholder="Ask about cuts, prior orders, pricing, or cooking..."
+                placeholder={mode === 'ranch' ? 'Ask about tag, bloodline, breeding, or fit...' : 'Ask about cuts, prior orders, pricing, or cooking...'}
               />
               <Button
                 type="button"
                 onClick={() => sendMessage()}
                 disabled={isTyping || !inputText.trim()}
-                className="bg-[#7b4b2a] hover:bg-[#643a1f]"
+                className="bg-[#b6863a] hover:bg-[#7a5724]"
               >
                 <Send className="h-4 w-4" />
               </Button>

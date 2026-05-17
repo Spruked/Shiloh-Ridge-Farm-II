@@ -1,0 +1,37 @@
+Renova_te_ipsum/
+├── .vscode/
+├── README.md
+├── bayesian_engine.py
+├── core_4_minds/
+│   ├── __pycache__/
+│   ├── bspinoza/
+│   ├── hhume/
+│   ├── hlocke/
+│   ├── ikant/
+│   └── tribunal.py
+├── hlsf_geometry/
+│   └── engine.py
+├── interface/
+│   └── orb_window.py
+├── logic_seeds/
+│   ├── deductive_SKG/
+│   ├── deductive_validator/
+│   ├── inductive/
+│   ├── inductive_skg/
+│   ├── inductive_validator/
+│   ├── intuitive/
+│   ├── intuitive_skg/
+│   ├── intuitive_validator/
+│   └── validation_pipeline.py
+├── orb_controller.py
+├── requirements.txt
+├── results/
+│   ├── cognitive_test_results_20260131_074658.csv
+│   ├── cognitive_test_results_20260131_081251.csv
+│   └── cognitive_test_results_20260131_084824.csv
+├── vault_system/
+│   ├── apriori/
+│   ├── apriori_core.json
+│   ├── manager.py
+│   └── posteriori/
+└── vaults/

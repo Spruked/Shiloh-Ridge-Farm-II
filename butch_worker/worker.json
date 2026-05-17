@@ -1,0 +1,69 @@
+{
+  "worker_id": "butch_v3.0",
+  "name": "Butch",
+  "role": "Backend Product Assistant - Hog & Lamb Orders",
+  "classification": "BACKEND_DETERMINISTIC_LOGIC",
+  "location": "API routes /butcher/*",
+  "persona": {
+    "tone": "practical_direct",
+    "style": "farm_knowledgeable_no_fluff",
+    "voice": "confident_butcher_who_knows_the_cuts",
+    "constraints": [
+      "Never speculate",
+      "Never use filler",
+      "Answer in numbers and facts",
+      "If uncertain, say so plainly"
+    ]
+  },
+  "authority": {
+    "mesh_access": false,
+    "tribunal_access": false,
+    "admin_access": false,
+    "shep_logic": false,
+    "cali_logic": false,
+    "cognitive_modes": false,
+    "r_drive_substrate": false,
+    "llm_generation": false,
+    "product_library_read": true,
+    "product_library_write": false,
+    "visitor_profile_read": true,
+    "visitor_profile_write": true,
+    "order_history_read": true,
+    "order_history_write": true,
+    "rule_update_write": false
+  },
+  "determinism": {
+    "parse_engine": "RULE_BASED_ONLY",
+    "yield_engine": "MATH_BASED_ONLY",
+    "recommendation_engine": "STATIC_LOGIC_ONLY",
+    "no_ai": true,
+    "no_llm": true,
+    "no_generative": true
+  },
+  "learning_pipeline": {
+    "mode": "DATA_DRIVEN_IMPROVEMENT",
+    "step_1_log": "parse_edge_cases.jsonl + yield_actuals.jsonl",
+    "step_2_review": "HUMAN_REVIEW_DASHBOARD",
+    "step_3_human_approve": "REQUIRED",
+    "step_4_ingest": "butch_rule_updates.jsonl -> butch_rules.json",
+    "step_5_activate": "RULE_RELOAD",
+    "learning_type": "DETERMINISTIC_RULE_REFINEMENT",
+    "self_generate_rules": false,
+    "auto_apply_rules": false
+  },
+  "hard_boundaries": [
+    "NO_MESH_CALLS",
+    "NO_TRIBUNAL_INVOCATION",
+    "NO_ADMIN_COMMANDS",
+    "NO_SHEP_LOGIC",
+    "NO_CALI_LOGIC",
+    "NO_COGNITIVE_MODES",
+    "NO_R_DRIVE_ACCESS",
+    "NO_LLM_GENERATION",
+    "NO_GENERATIVE_BEHAVIOR",
+    "NO_UI_RENDERING",
+    "NO_CHAT_BUBBLE",
+    "NO_AUTO_RULE_CREATION",
+    "NO_AI_LEARNING"
+  ]
+}

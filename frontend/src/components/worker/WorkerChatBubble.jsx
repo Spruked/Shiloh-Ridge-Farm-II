@@ -1,11 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import {
-  Brain,
   ChevronRight,
-  Lightbulb,
   Loader2,
-  MessageCircle,
   Send,
   Sparkles,
   ThumbsDown,
@@ -13,6 +10,35 @@ import {
   X
 } from 'lucide-react';
 import { getApiBaseUrl } from '../../lib/backend';
+
+/* Simple sheep SVG — keeps the farm character without a dependency */
+const SheepAvatar = React.memo(function SheepAvatar({ size = 28, white = false }) { return (
+  <svg
+    viewBox="0 0 36 36"
+    width={size}
+    height={size}
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    {/* woolly body */}
+    <circle cx="11" cy="14" r="5" fill={white ? '#fff' : '#d1fae5'} opacity="0.85" />
+    <circle cx="25" cy="14" r="5" fill={white ? '#fff' : '#d1fae5'} opacity="0.85" />
+    <circle cx="18" cy="11" r="5" fill={white ? '#fff' : '#d1fae5'} opacity="0.85" />
+    <ellipse cx="18" cy="17" rx="8" ry="6" fill={white ? '#fff' : '#d1fae5'} />
+    {/* face */}
+    <ellipse cx="18" cy="20" rx="5" ry="4" fill={white ? '#f5f0eb' : '#a16207'} />
+    {/* eyes */}
+    <circle cx="16" cy="19" r="0.8" fill={white ? '#0f5132' : '#1a1a1a'} />
+    <circle cx="20" cy="19" r="0.8" fill={white ? '#0f5132' : '#1a1a1a'} />
+    {/* nose */}
+    <path d="M17 21.5 Q18 22.5 19 21.5" stroke={white ? '#0f5132' : '#78350f'} strokeWidth="0.8" strokeLinecap="round" fill="none" />
+    {/* legs */}
+    <line x1="13" y1="23" x2="12" y2="29" stroke={white ? '#f5f0eb' : '#a16207'} strokeWidth="2" strokeLinecap="round" />
+    <line x1="15" y1="24" x2="15" y2="30" stroke={white ? '#f5f0eb' : '#a16207'} strokeWidth="2" strokeLinecap="round" />
+    <line x1="21" y1="24" x2="21" y2="30" stroke={white ? '#f5f0eb' : '#a16207'} strokeWidth="2" strokeLinecap="round" />
+    <line x1="23" y1="23" x2="24" y2="29" stroke={white ? '#f5f0eb' : '#a16207'} strokeWidth="2" strokeLinecap="round" />
+  </svg>
+); });
 
 const WorkerChatBubble = ({ pageContext = 'general', userType = 'visitor' }) => {
   const apiBaseUrl = getApiBaseUrl();
@@ -25,6 +51,7 @@ const WorkerChatBubble = ({ pageContext = 'general', userType = 'visitor' }) => 
   const [suggestions, setSuggestions] = useState([]);
   const [isLearning, setIsLearning] = useState(false);
   const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
 
   useEffect(() => {
     const generatedSessionId = `worker_${Math.random().toString(36).slice(2, 11)}`;
@@ -34,9 +61,9 @@ const WorkerChatBubble = ({ pageContext = 'general', userType = 'visitor' }) => 
         role: 'assistant',
         content:
           userType === 'visitor'
-            ? 'Welcome to Shiloh Ridge Farm. I can help with livestock, products, and ordering questions.'
-            : 'Assistant ready. Ask me a question and I will try to help.'
-      }
+            ? "Hey there! I'm CALI — Shiloh Ridge Farm's assistant. Ask me anything about our livestock, products, or how to order."
+            : 'Assistant ready. Ask me a question and I will try to help.',
+      },
     ]);
   }, [userType]);
 
@@ -44,21 +71,22 @@ const WorkerChatBubble = ({ pageContext = 'general', userType = 'visitor' }) => 
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+  }, [isOpen]);
+
   const handleSend = async (overrideMessage = null) => {
     const messageToSend = (overrideMessage || inputMessage).trim();
-    if (!messageToSend || isLoading) {
-      return;
-    }
-
-    if (!overrideMessage) {
-      setInputMessage('');
-    }
+    if (!messageToSend || isLoading) return;
+    if (!overrideMessage) setInputMessage('');
 
     setIsLoading(true);
     setShowFeedback(null);
-    setMessages((previous) => [
-      ...previous,
-      { role: 'user', content: messageToSend, timestamp: new Date().toISOString() }
+    setMessages((prev) => [
+      ...prev,
+      { role: 'user', content: messageToSend, timestamp: new Date().toISOString() },
     ]);
 
     try {
@@ -67,7 +95,7 @@ const WorkerChatBubble = ({ pageContext = 'general', userType = 'visitor' }) => 
         order_text: messageToSend,
         session_id: sessionId,
         page_context: pageContext,
-        user_type: userType
+        user_type: userType,
       });
 
       const data = response.data;
@@ -76,29 +104,58 @@ const WorkerChatBubble = ({ pageContext = 'general', userType = 'visitor' }) => 
         setTimeout(() => setIsLearning(false), 2500);
       }
 
-      setMessages((previous) => [
-        ...previous,
+      setMessages((prev) => [
+        ...prev,
         {
           role: 'assistant',
           content: data.response,
           suggestions: data.suggestions || [],
-          learning_id: data.learning_id || null
-        }
+          learning_id: data.learning_id || null,
+        },
       ]);
       setSuggestions(data.suggestions || []);
-    } catch (error) {
-      console.error('Worker chat error:', error);
-      setMessages((previous) => [
-        ...previous,
+    } catch {
+      setMessages((prev) => [
+        ...prev,
         {
           role: 'assistant',
-          content: 'I am having trouble connecting right now. Please try again soon.',
-          isError: true
-        }
+          content: "I'm having trouble connecting right now. Please try again soon.",
+          isError: true,
+        },
       ]);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const detectAnimal = (text) => {
+    const t = (text || '').toLowerCase();
+    if (/hog|pork|pig|bacon|ham/.test(t)) return 'hog';
+    if (/lamb|sheep|rack|shank/.test(t)) return 'lamb';
+    return 'general';
+  };
+
+  const handleButchHandoff = () => {
+    const userMessages = messages.filter((m) => m.role === 'user');
+    const assistantMessages = messages.filter((m) => m.role === 'assistant');
+    const lastUserMsg = userMessages[userMessages.length - 1]?.content || '';
+    const lastShepMsg = assistantMessages[assistantMessages.length - 1]?.content || '';
+    const handoffContext = {
+      original_question: lastUserMsg,
+      shep_answer: lastShepMsg,
+      topic: 'butcher',
+      animal: detectAnimal(lastUserMsg),
+    };
+    localStorage.setItem('shep_butch_handoff', JSON.stringify(handoffContext));
+    window.dispatchEvent(new CustomEvent('shep-butch-handoff', { detail: handoffContext }));
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: 'assistant',
+        content: 'Connecting you with Butch now — he already knows what we were talking about.',
+        isHandoff: true,
+      },
+    ]);
   };
 
   const handleFeedback = async (helpful) => {
@@ -107,197 +164,213 @@ const WorkerChatBubble = ({ pageContext = 'general', userType = 'visitor' }) => 
         `${apiBaseUrl}/worker-chat/feedback?session_id=${encodeURIComponent(sessionId)}&helpful=${helpful}`
       );
       setShowFeedback(true);
-    } catch (error) {
-      console.error('Feedback error:', error);
+    } catch {
+      /* silent */
     }
   };
 
   return (
-    <div className="fixed bottom-10 right-14 z-50 font-sans">
-      {isLearning && (
-        <div className="absolute -top-12 right-0 flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-sm font-medium text-white shadow-lg">
-          <Sparkles className="h-4 w-4" />
-          Learning from this conversation...
-        </div>
-      )}
-
+    <>
+      {/* Overlay for mobile — tap outside to close */}
       {isOpen && (
         <div
-          className="mb-4 flex h-[715px] w-[31.2rem] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
-        >
-          <div className="flex items-center justify-between bg-gradient-to-r from-emerald-800 to-teal-700 p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20">
-                <Brain className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-white">Shep</h3>
-                <p className="flex items-center gap-1 text-xs text-emerald-100">
-                  <Lightbulb className="h-3 w-3" />
-                  Learning farm assistant
-                </p>
-              </div>
-            </div>
+          className="fixed inset-0 z-40 bg-black/30 sm:hidden"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
 
-            <button
-              onClick={() => setIsOpen(false)}
-              className="rounded p-1 text-white/80 transition-colors hover:bg-white/10 hover:text-white"
-            >
-              <X className="h-5 w-5" />
-            </button>
+      <div className="fixed bottom-5 right-4 z-50 font-sans sm:bottom-6 sm:right-6">
+        {/* Learning toast */}
+        {isLearning && (
+          <div className="absolute -top-10 right-0 flex items-center gap-1.5 rounded-full bg-amber-500 px-3 py-1.5 text-xs font-medium text-white shadow-lg whitespace-nowrap">
+            <Sparkles className="h-3 w-3" />
+            Learning…
           </div>
+        )}
 
-          <div className="flex-1 space-y-4 overflow-y-auto bg-slate-50 p-4">
-            {messages.map((message, index) => (
-              <div
-                key={`${message.role}-${index}`}
-                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                <div className={`flex max-w-[85%] gap-2 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                  <div
-                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
-                      message.role === 'user' ? 'bg-emerald-800' : 'bg-amber-500'
-                    }`}
-                  >
-                    {message.role === 'user' ? (
-                      <span className="text-xs font-bold text-white">You</span>
-                    ) : (
-                      <Brain className="h-4 w-4 text-white" />
-                    )}
-                  </div>
-                  <div
-                    className={`rounded-2xl px-4 py-3 ${
-                      message.role === 'user'
-                        ? 'rounded-br-md bg-emerald-600 text-white'
-                        : message.isError
-                          ? 'rounded-bl-md bg-red-100 text-red-800'
-                          : 'rounded-bl-md border border-slate-200 bg-white text-slate-800 shadow-sm'
-                    }`}
-                  >
-                    {message.role === 'assistant' && (
-                      <div className="mb-1 text-xs font-semibold text-slate-500">Shep</div>
-                    )}
-                    <p className="text-sm leading-relaxed">{message.content}</p>
-                    {message.learning_id && (
-                      <div className="mt-2 flex items-center gap-2 rounded bg-amber-50 px-2 py-1 text-xs text-amber-700">
-                        <Sparkles className="h-3 w-3" />
-                        Learning opportunity noted
-                      </div>
-                    )}
-                    {message.role === 'assistant' && !message.isError && index > 0 && (
-                      <div className="mt-3 flex items-center gap-2 border-t border-slate-200 pt-2">
-                        <span className="text-xs text-slate-500">Helpful?</span>
-                        {showFeedback ? (
-                          <span className="text-xs font-medium text-emerald-600">Thanks for the feedback.</span>
-                        ) : (
-                          <div className="flex gap-1">
-                            <button
-                              onClick={() => handleFeedback(true)}
-                              className="rounded p-1 transition-colors hover:bg-slate-100"
-                              title="Helpful"
-                            >
-                              <ThumbsUp className="h-3 w-3 text-slate-400 hover:text-emerald-500" />
-                            </button>
-                            <button
-                              onClick={() => handleFeedback(false)}
-                              className="rounded p-1 transition-colors hover:bg-slate-100"
-                              title="Not helpful"
-                            >
-                              <ThumbsDown className="h-3 w-3 text-slate-400 hover:text-red-500" />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
+        {/* Chat window */}
+        {isOpen && (
+          <div className="
+            mb-3
+            flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl
+            /* mobile: full width, anchored to bottom */
+            fixed bottom-20 left-3 right-3
+            h-[65vh] max-h-[520px]
+            /* sm+: floating window */
+            sm:static sm:left-auto sm:right-auto sm:bottom-auto
+            sm:w-[360px] sm:h-[500px] sm:max-h-none
+          ">
+            {/* Header */}
+            <div className="flex items-center justify-between bg-[#0f5132] px-4 py-3">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20">
+                  <SheepAvatar size={28} white />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-white leading-none">Shep Sheppard the Site Assistant</h3>
+                  <p className="text-xs text-green-200 mt-0.5">Shiloh Ridge Farm</p>
                 </div>
               </div>
-            ))}
+              <button
+                onClick={() => setIsOpen(false)}
+                className="rounded-full p-1.5 text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
 
-            {isLoading && (
-              <div className="flex justify-start">
-                <div className="flex gap-2">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500">
-                    <Brain className="h-4 w-4 text-white" />
-                  </div>
-                  <div className="rounded-2xl rounded-bl-md border border-slate-200 bg-white px-4 py-3 shadow-sm">
-                    <div className="flex items-center gap-2 text-slate-500">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span className="text-xs">Thinking...</span>
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto bg-stone-50 px-3 py-3 space-y-3">
+              {messages.map((message, index) => (
+                <div
+                  key={`${message.role}-${index}`}
+                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div className={`flex gap-2 max-w-[85%] ${message.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                    {/* Avatar */}
+                    <div
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full self-end ${
+                        message.role === 'user' ? 'bg-[#0f5132]' : 'bg-amber-100 border border-amber-200'
+                      }`}
+                    >
+                      {message.role === 'user' ? (
+                        <span className="text-[10px] font-bold text-white">You</span>
+                      ) : (
+                        <SheepAvatar size={20} />
+                      )}
+                    </div>
+
+                    {/* Bubble */}
+                    <div
+                      className={`rounded-2xl px-3 py-2 text-sm leading-relaxed ${
+                        message.role === 'user'
+                          ? 'rounded-br-sm bg-[#0f5132] text-white'
+                          : message.isError
+                            ? 'rounded-bl-sm bg-red-50 text-red-700 border border-red-100'
+                            : 'rounded-bl-sm bg-white text-slate-800 border border-stone-200 shadow-sm'
+                      }`}
+                    >
+                      {message.content}
+                      {message.learning_id && (
+                        <div className="mt-1.5 flex items-center gap-1 rounded bg-amber-50 px-2 py-1 text-xs text-amber-700">
+                          <Sparkles className="h-3 w-3" />
+                          Noted for learning
+                        </div>
+                      )}
+                      {message.role === 'assistant' && !message.isError && index > 0 && (
+                        <div className="mt-2 flex items-center gap-1.5 border-t border-stone-100 pt-1.5">
+                          <span className="text-xs text-slate-400">Helpful?</span>
+                          {showFeedback ? (
+                            <span className="text-xs text-green-600">Thanks!</span>
+                          ) : (
+                            <div className="flex gap-0.5">
+                              <button
+                                onClick={() => handleFeedback(true)}
+                                className="rounded p-0.5 hover:bg-slate-100 transition-colors"
+                              >
+                                <ThumbsUp className="h-3 w-3 text-slate-400 hover:text-green-500" />
+                              </button>
+                              <button
+                                onClick={() => handleFeedback(false)}
+                                className="rounded p-0.5 hover:bg-slate-100 transition-colors"
+                              >
+                                <ThumbsDown className="h-3 w-3 text-slate-400 hover:text-red-500" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
+                </div>
+              ))}
+
+              {isLoading && (
+                <div className="flex justify-start">
+                  <div className="flex gap-2">
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-100 border border-amber-200 self-end">
+                      <SheepAvatar size={20} />
+                    </div>
+                    <div className="rounded-2xl rounded-bl-sm border border-stone-200 bg-white px-3 py-2 shadow-sm">
+                      <div className="flex items-center gap-1.5 text-slate-400">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        <span className="text-xs">Thinking…</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Suggestions */}
+            {suggestions.length > 0 && (
+              <div className="border-t border-stone-200 bg-stone-50 px-3 py-2">
+                <div className="flex gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
+                  {suggestions.map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => (s === 'Bring in Butch' ? handleButchHandoff() : handleSend(s))}
+                      className="flex shrink-0 items-center gap-1 rounded-full border border-stone-300 bg-white px-2.5 py-1 text-xs text-slate-600 hover:border-[#0f5132] hover:text-[#0f5132] transition-colors"
+                    >
+                      {s}
+                      <ChevronRight className="h-2.5 w-2.5" />
+                    </button>
+                  ))}
                 </div>
               </div>
             )}
 
-            <div ref={messagesEndRef} />
-          </div>
-
-          {suggestions.length > 0 && (
-            <div className="border-t border-slate-200 bg-slate-100 px-4 py-2">
-              <div className="flex gap-2 overflow-x-auto pb-1">
-                {suggestions.map((suggestion) => (
-                  <button
-                    key={suggestion}
-                    onClick={() => handleSend(suggestion)}
-                    className="flex whitespace-nowrap items-center gap-1 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-700 transition-colors hover:border-emerald-500 hover:text-emerald-700"
-                  >
-                    {suggestion}
-                    <ChevronRight className="h-3 w-3" />
-                  </button>
-                ))}
+            {/* Input */}
+            <div className="border-t border-stone-200 bg-white px-3 py-2.5">
+              <div className="flex gap-2 items-center">
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') { e.preventDefault(); handleSend(); }
+                  }}
+                  placeholder="Ask Shep about the farm…"
+                  className="flex-1 rounded-full border border-stone-300 bg-stone-50 px-4 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0f5132]/40 focus:border-[#0f5132]"
+                />
+                <button
+                  onClick={() => handleSend()}
+                  disabled={isLoading || !inputMessage.trim()}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#0f5132] text-white shadow transition-colors hover:bg-[#0a3c24] disabled:bg-slate-300"
+                  aria-label="Send"
+                >
+                  <Send className="h-4 w-4" />
+                </button>
               </div>
             </div>
-          )}
-
-          <div className="border-t border-slate-200 bg-white p-4">
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={inputMessage}
-                onChange={(event) => setInputMessage(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    event.preventDefault();
-                    handleSend();
-                  }
-                }}
-                placeholder="Ask about the farm, products, or ordering..."
-                className="flex-1 rounded-full border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-700"
-              />
-              <button
-                onClick={() => handleSend()}
-                disabled={isLoading || !inputMessage.trim()}
-                className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-800 text-white shadow-md transition-colors hover:bg-emerald-900 disabled:bg-slate-300"
-              >
-                <Send className="h-6 w-6" />
-              </button>
-            </div>
-            <p className="mt-2 text-center text-xs text-slate-400">
-              I learn from repeated requests and help surface gaps for improvement.
-            </p>
-          </div>
-        </div>
-      )}
-
-      <button
-        onClick={() => setIsOpen((current) => !current)}
-        className={`flex h-20 w-20 items-center justify-center rounded-full shadow-2xl transition-all duration-300 ${
-          isOpen
-            ? 'rotate-90 scale-90 bg-slate-700 hover:bg-slate-800'
-            : 'bg-gradient-to-r from-emerald-800 to-teal-700 hover:scale-110 hover:from-emerald-900 hover:to-teal-800'
-        }`}
-      >
-        {isOpen ? (
-          <X className="h-8 w-8 text-white" />
-        ) : (
-          <div className="relative">
-            <MessageCircle className="h-8 w-8 text-white" />
-            <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-emerald-800 bg-amber-500" />
           </div>
         )}
-      </button>
-    </div>
+
+        {/* FAB trigger */}
+        <button
+          onClick={() => setIsOpen((o) => !o)}
+          className={`flex items-center justify-center rounded-full shadow-xl transition-all duration-200 ${
+            isOpen
+              ? 'h-12 w-12 bg-slate-600 hover:bg-slate-700 rotate-90'
+              : 'h-14 w-14 bg-[#0f5132] hover:bg-[#0a3c24] hover:scale-105'
+          }`}
+          aria-label={isOpen ? 'Close chat' : 'Chat with Shep'}
+        >
+          {isOpen ? (
+            <X className="h-5 w-5 text-white" />
+          ) : (
+            <div className="relative flex items-center justify-center">
+              <SheepAvatar size={30} white />
+              <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-[#0f5132] bg-amber-400" />
+            </div>
+          )}
+        </button>
+      </div>
+    </>
   );
 };
 

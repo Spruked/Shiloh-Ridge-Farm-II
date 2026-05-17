@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import axios from "axios";
 import { Button } from "../../components/ui/buttons";
 import { Badge } from "../../components/ui/badge";
@@ -50,18 +51,21 @@ const ContactManagement = () => {
 
   return (
     <div className="bg-white rounded-2xl shadow-lg p-8" data-testid="contact-management">
-      <h2 className="text-3xl font-bold text-[#3d5a3d] mb-6" data-testid="contact-management-title">Contact Submissions</h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-3xl font-bold text-[#0f5132]" data-testid="contact-management-title">Contact Submissions</h2>
+        <Link to="/admin/dashboard"><Button variant="outline">Back to Dashboard</Button></Link>
+      </div>
 
       <div className="overflow-x-auto">
         <table className="w-full" data-testid="contact-table">
-          <thead className="bg-[#e8f4e8]">
+          <thead className="bg-[#e7eddc]">
             <tr>
-              <th className="px-4 py-3 text-left font-semibold text-[#3d5a3d]">Date</th>
-              <th className="px-4 py-3 text-left font-semibold text-[#3d5a3d]">Name</th>
-              <th className="px-4 py-3 text-left font-semibold text-[#3d5a3d]">Email</th>
-              <th className="px-4 py-3 text-left font-semibold text-[#3d5a3d]">Type</th>
-              <th className="px-4 py-3 text-left font-semibold text-[#3d5a3d]">Status</th>
-              <th className="px-4 py-3 text-left font-semibold text-[#3d5a3d]">Actions</th>
+              <th className="px-4 py-3 text-left font-semibold text-[#0f5132]">Date</th>
+              <th className="px-4 py-3 text-left font-semibold text-[#0f5132]">Name</th>
+              <th className="px-4 py-3 text-left font-semibold text-[#0f5132]">Email</th>
+              <th className="px-4 py-3 text-left font-semibold text-[#0f5132]">Type</th>
+              <th className="px-4 py-3 text-left font-semibold text-[#0f5132]">Status</th>
+              <th className="px-4 py-3 text-left font-semibold text-[#0f5132]">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -136,7 +140,7 @@ const ContactManagement = () => {
                 </Button>
                 <Button 
                   onClick={() => handleStatusChange(selectedContact.id, "responded")} 
-                  className="bg-[#3d5a3d] hover:bg-[#2d4a2d]"
+                  className="bg-[#0f5132] hover:bg-[#0a3c24]"
                   data-testid="contact-mark-responded-btn"
                 >
                   Mark as Responded

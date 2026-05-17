@@ -24,13 +24,28 @@ def extract_anchored_fields(aligned_img: np.ndarray, text: str) -> Dict[str, Any
     only on whole-document regex scans.
     """
 
-    if cv2 is None or pytesseract is None or aligned_img is None:
-        return {}
+    # Always return the full lineage shell, even if OCR misses or dependencies
+    # are unavailable.
+    results: Dict[str, Any] = {
+        "sire": None,
+        "sire_id": None,
+        "sire_reg": None,
+        "dam": None,
+        "dam_id": None,
+        "dam_reg": None,
+        "dob": None,
+    }
 
-    if len(getattr(aligned_img, "shape", [])) == 2:
+    if aligned_img is None:
+        return results
+
+    shape = getattr(aligned_img, "shape", None)
+    if not shape or len(shape) < 2:
+        return results
+
+    working = aligned_img
+    if len(shape) == 2 and cv2 is not None:
         working = cv2.cvtColor(aligned_img, cv2.COLOR_GRAY2BGR)
-    else:
-        working = aligned_img
 
     height, width = working.shape[:2]
     regions = {
@@ -39,15 +54,20 @@ def extract_anchored_fields(aligned_img: np.ndarray, text: str) -> Dict[str, Any
         "dob": working[int(height * 0.25):int(height * 0.40), int(width * 0.2):int(width * 0.5)],
     }
 
-    results: Dict[str, Any] = {}
-
     for key, region in regions.items():
-        if region.size == 0:
+        if region.size == 0 or pytesseract is None:
             continue
 
-        gray = cv2.cvtColor(region, cv2.COLOR_BGR2GRAY)
-        gray = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY)[1]
-        region_text = pytesseract.image_to_string(gray, config="--psm 6")
+        ocr_input = region
+        if cv2 is not None:
+            if len(getattr(region, "shape", [])) == 3:
+                ocr_input = cv2.cvtColor(region, cv2.COLOR_BGR2GRAY)
+            ocr_input = cv2.threshold(ocr_input, 150, 255, cv2.THRESH_BINARY)[1]
+
+        try:
+            region_text = pytesseract.image_to_string(ocr_input, config="--psm 6")
+        except Exception:
+            region_text = ""
 
         if key == "dob":
             match = re.search(r"\d{1,2}[-/]\d{1,2}[-/]\d{2,4}", region_text)
@@ -57,6 +77,43 @@ def extract_anchored_fields(aligned_img: np.ndarray, text: str) -> Dict[str, Any
             match = re.search(r"([A-Z]{1,3}\s?\d{1,4})", region_text)
             if match:
                 results[key] = match.group(1)
+
+    # Fallback to full-document text for anything still missing.
+    if text:
+        if not results["dob"]:
+            dob_match = re.search(r"(\d{1,2}[-/]\d{1,2}[-/]\d{2,4})", text)
+            if dob_match:
+                results["dob"] = dob_match.group(1)
+
+        if not results["sire"]:
+            sire_match = re.search(r"Sire.*?([A-Za-z0-9][A-Za-z0-9\s-]{1,40})", text, re.IGNORECASE)
+            if sire_match:
+                results["sire"] = sire_match.group(1).strip()
+
+        if not results["dam"]:
+            dam_match = re.search(r"Dam.*?([A-Za-z0-9][A-Za-z0-9\s-]{1,40})", text, re.IGNORECASE)
+            if dam_match:
+                results["dam"] = dam_match.group(1).strip()
+
+        if not results["sire_reg"]:
+            sire_reg = re.search(r"Sire\s*KHSI\s*Reg#?\s*[:\-]?\s*([A-Za-z0-9-]+)", text, re.IGNORECASE)
+            if sire_reg:
+                results["sire_reg"] = sire_reg.group(1).strip()
+
+        if not results["dam_reg"]:
+            dam_reg = re.search(r"Dam\s*KHSI\s*Reg#?\s*[:\-]?\s*([A-Za-z0-9-]+)", text, re.IGNORECASE)
+            if dam_reg:
+                results["dam_reg"] = dam_reg.group(1).strip()
+
+        if not results["sire_id"]:
+            sire_id = re.search(r"Sire\s*ID\s*[:\-]?\s*([A-Za-z0-9-]+)", text, re.IGNORECASE)
+            if sire_id:
+                results["sire_id"] = sire_id.group(1).strip()
+
+        if not results["dam_id"]:
+            dam_id = re.search(r"Dam\s*ID\s*[:\-]?\s*([A-Za-z0-9-]+)", text, re.IGNORECASE)
+            if dam_id:
+                results["dam_id"] = dam_id.group(1).strip()
 
     return results
 

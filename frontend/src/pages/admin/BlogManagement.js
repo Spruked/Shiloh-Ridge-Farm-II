@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import axios from "axios";
 import { Button } from "../../components/ui/buttons";
 import { Input } from "../../components/ui/input";
@@ -152,7 +153,7 @@ const BlogManagement = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#3d5a3d]"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0f5132]"></div>
       </div>
     );
   }
@@ -160,14 +161,17 @@ const BlogManagement = () => {
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-[#3d5a3d]">Blog Management</h2>
-        <Button
-          onClick={handleSave}
-          disabled={saving}
-          className="bg-[#3d5a3d] hover:bg-[#2e472e] text-white"
-        >
-          {saving ? "Saving..." : "Save Changes"}
-        </Button>
+        <h2 className="text-2xl font-bold text-[#0f5132]">Blog Management</h2>
+        <div className="flex gap-2">
+          <Link to="/admin/dashboard"><Button variant="outline">Back to Dashboard</Button></Link>
+          <Button
+            onClick={handleSave}
+            disabled={saving}
+            className="bg-[#0f5132] hover:bg-[#1a3c22] text-white"
+          >
+            {saving ? "Saving..." : "Save Changes"}
+          </Button>
+        </div>
       </div>
 
       {/* Blog Title */}
@@ -185,10 +189,10 @@ const BlogManagement = () => {
       {/* Blog Posts */}
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <h3 className="text-xl font-semibold text-[#3d5a3d]">Blog Posts</h3>
+          <h3 className="text-xl font-semibold text-[#0f5132]">Blog Posts</h3>
           <Button
             onClick={addNewPost}
-            className="bg-[#3d5a3d] hover:bg-[#2e472e] text-white"
+            className="bg-[#0f5132] hover:bg-[#1a3c22] text-white"
           >
             Add New Post
           </Button>
