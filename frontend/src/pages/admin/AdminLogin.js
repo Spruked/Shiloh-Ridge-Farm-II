@@ -53,10 +53,11 @@ const AdminLogin = ({ onLogin }) => {
 
         <form onSubmit={handleSubmit} data-testid="admin-login-form">
           <div className="mb-6">
-            <Label htmlFor="username" className="text-gray-700 font-medium mb-2 block">Username</Label>
+            <Label htmlFor="username" className="text-gray-700 font-medium mb-2 block">Admin email or username</Label>
             <Input
               id="username"
               type="text"
+              autoComplete="username"
               value={credentials.username}
               onChange={(e) => setCredentials({ ...credentials, username: e.target.value })}
               required
@@ -70,6 +71,7 @@ const AdminLogin = ({ onLogin }) => {
             <Input
               id="password"
               type="password"
+              autoComplete="current-password"
               value={credentials.password}
               onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
               required

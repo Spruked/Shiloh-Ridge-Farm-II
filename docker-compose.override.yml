@@ -1,0 +1,14 @@
+services:
+  backend:
+    environment:
+      FAST_WHISPER_URL: http://host.docker.internal:9000/stt
+      QWEN_TTS_URL: http://host.docker.internal:9880/speak
+      CALI_KOKORO_VOICE: am_adam
+      SHEP_PREFER_KOKORO: "1"
+      OLLAMA_MODEL: qwen2.5:3b
+      OLLAMA_TIMEOUT_SEC: "60"
+      OLLAMA_NUM_CTX: "2048"
+      CP3_BASE_URL: http://host.docker.internal:17000
+      SHEP_ENABLE_SERVER_TTS: "1"
+      SHEP_TTS_TOTAL_TIMEOUT_SEC: "40"
+      QWEN_TTS_PRIMARY_TIMEOUT_SEC: "35"

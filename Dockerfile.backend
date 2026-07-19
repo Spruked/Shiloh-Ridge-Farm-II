@@ -7,6 +7,8 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     gcc \
     curl \
+    tesseract-ocr \
+    tesseract-ocr-eng \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install Python dependencies
@@ -15,12 +17,17 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy backend code
 COPY backend/ .
+COPY crawl_16.json /app/crawl_16.json
+
+# Copy local Renova cognitive assets used by Shep
+COPY Renova_te_ipsum /app/Renova_te_ipsum
+COPY vault_system /app/vault_system
 
 # Copy assets directory
 COPY assets /assets
 
 # Create documents directory
-RUN mkdir -p documents
+RUN mkdir -p documents /app/vault_system/substrate/derived/manifests /app/vault_system/substrate/derived/indexes /app/vault_system/substrate/derived/ocr /app/vault_system/substrate/derived/escalations
 
 # Make init script executable
 RUN chmod +x init_documents.py

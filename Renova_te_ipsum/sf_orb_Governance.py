@@ -22,7 +22,7 @@ import json
 import logging
 import uuid
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field, asdict, replace
 from datetime import datetime, timezone
 from enum import Enum, auto
 from typing import Any, Dict, List, Optional, Tuple, Callable, Union
@@ -211,20 +211,16 @@ class SFOrbDecisionEnvelope:
 
     def with_state(self, **kwargs) -> SFOrbDecisionEnvelope:
         """Create new envelope with updated state. Original remains immutable."""
-        current = asdict(self)
-        current.update(kwargs)
-        for key in ['harmonized_output', 'coherence_map']:
-            if key in current and current[key] is not None:
-                current[key] = copy.deepcopy(current[key])
-        if 'normalized_view' in kwargs:
-            current['normalized_view'] = kwargs['normalized_view']
-        if 'lens_verdicts' in kwargs:
-            current['lens_verdicts'] = tuple(kwargs['lens_verdicts'])
-        if 'tension_vectors' in kwargs:
-            current['tension_vectors'] = tuple(kwargs['tension_vectors'])
-        if 'observer_annotations' in kwargs:
-            current['observer_annotations'] = tuple(kwargs['observer_annotations'])
-        return SFOrbDecisionEnvelope(**current)
+        updated = dict(kwargs)
+        if "harmonized_output" in updated and updated["harmonized_output"] is not None:
+            updated["harmonized_output"] = copy.deepcopy(updated["harmonized_output"])
+        if "lens_verdicts" in updated:
+            updated["lens_verdicts"] = tuple(updated["lens_verdicts"])
+        if "tension_vectors" in updated:
+            updated["tension_vectors"] = tuple(updated["tension_vectors"])
+        if "observer_annotations" in updated:
+            updated["observer_annotations"] = tuple(updated["observer_annotations"])
+        return replace(self, **updated)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -541,48 +537,39 @@ class CALIArticulator:
 
         if envelope.cognitive_state:
             cs = envelope.cognitive_state
-            parts.append(f"
---- SF-ORB Cognitive State ---")
+            parts.append("\n--- SF-ORB Cognitive State ---")
             parts.append(f"  Mode: {cs.mode.value}")
             parts.append(f"  Bayesian Confidence: {cs.bayesian_confidence:.2f}")
             parts.append(f"  Guard: {cs.guard_dominance:.2f} | Habit: {cs.habit_signal:.2f} | Intuition: {cs.intuition_signal:.2f}")
             parts.append(f"  HLSF Density: {cs.hlsf_density:.2f}")
 
-        parts.append("
---- Epistemic Lens Summary ---")
+        parts.append("\n--- Epistemic Lens Summary ---")
         for v in envelope.lens_verdicts:
             parts.append(f"  {v.lens.upper()}: confidence={v.confidence:.2f} | {v.reasoning_trace[:80]}...")
 
         if envelope.tension_vectors:
-            parts.append("
---- Structured Tensions ---")
+            parts.append("\n--- Structured Tensions ---")
             for t in envelope.tension_vectors:
                 parts.append(f"  {t.source_lens_a} ↔ {t.source_lens_b}: {t.tension_score:.2f} ({t.disagreement_domain})")
 
         if envelope.harmonized_output:
             h = envelope.harmonized_output
-            parts.append(f"
---- Harmonized Synthesis ---")
+            parts.append("\n--- Harmonized Synthesis ---")
             parts.append(f"  Confidence: {h.get('harmonized_confidence', 'N/A')}")
             parts.append(f"  Empirical Grounding: {h.get('empirical_grounding', 'N/A')}")
             parts.append(f"  Attenuation: {'ACTIVE' if h.get('attenuation_applied') else 'none'}")
 
         if envelope.alert_level == AlertLevel.CRITICAL:
-            parts.append("
-⚠️  CALI ADVISORY: CRITICAL ALERT — Lens monoculture detected.")
+            parts.append("\n⚠️  CALI ADVISORY: CRITICAL ALERT — Lens monoculture detected.")
         elif envelope.alert_level == AlertLevel.CAUTION:
-            parts.append("
-⚠️  CALI ADVISORY: CAUTION — Emerging correlation between lenses.")
+            parts.append("\n⚠️  CALI ADVISORY: CAUTION — Emerging correlation between lenses.")
 
         if envelope.article_viii_override_id:
-            parts.append(f"
-🚨 CONSTITUTIONAL OVERRIDE: Article VIII invoked [{envelope.article_viii_override_id}]")
+            parts.append(f"\n🚨 CONSTITUTIONAL OVERRIDE: Article VIII invoked [{envelope.article_viii_override_id}]")
             parts.append(f"   Justification: {envelope.override_justification or 'None provided'}")
 
-        parts.append("
-=== END CALI SF-ORB ARTICULATION ===")
-        return "
-".join(parts)
+        parts.append("\n=== END CALI SF-ORB ARTICULATION ===")
+        return "\n".join(parts)
 
     def detect_anomaly(self, envelope: SFOrbDecisionEnvelope) -> List[str]:
         anomalies = []
@@ -835,6 +822,13 @@ class SFOrbClient:
 
         try:
             thought = controller.cognitively_emerge(stimulus)
+            if isinstance(thought, dict):
+                return {
+                    **thought,
+                    "thought": thought,
+                    "mode": thought.get("cognitive_mode", "guard"),
+                    "controller": "SF_ORB_Controller"
+                }
             return {
                 "thought": str(thought),
                 "mode": getattr(thought, 'mode', 'guard'),
@@ -1162,8 +1156,7 @@ if __name__ == "__main__":
     )
 
     # Test 1: Cursor movement stimulus
-    print("
---- TEST 1: Cursor Movement Stimulus ---")
+    print("\n--- TEST 1: Cursor Movement Stimulus ---")
     stimulus1 = {
         "type": "cursor_movement",
         "coordinates": [960, 540],
@@ -1187,8 +1180,7 @@ if __name__ == "__main__":
     print(f"SF-ORB Response: {env1.sf_orb_response}")
 
     # Test 2: Tribunal query
-    print("
---- TEST 2: Tribunal Query ---")
+    print("\n--- TEST 2: Tribunal Query ---")
     env2 = wrapper.process(
         operation=SFOrbOperation.TRIBUNAL_QUERY,
         raw_input="Analyze cognitive field density for intuition jump eligibility.",
@@ -1198,8 +1190,7 @@ if __name__ == "__main__":
     print(f"CALI: {env2.cali_articulation[:200]}...")
 
     # Test 3: Article VIII override
-    print("
---- TEST 3: Emergency Override ---")
+    print("\n--- TEST 3: Emergency Override ---")
     env3 = wrapper.process(
         operation=SFOrbOperation.VAULT_WRITE,
         raw_input="Emergency override: Write critical apriori seed to vault.",
@@ -1211,18 +1202,15 @@ if __name__ == "__main__":
     print(f"Override ID: {env3.article_viii_override_id}")
 
     # Compliance report
-    print("
---- COMPLIANCE REPORT ---")
+    print("\n--- COMPLIANCE REPORT ---")
     report = wrapper.get_compliance_report()
     print(json.dumps(report, indent=2))
 
     # DDR Trend
-    print("
---- DDR TREND ---")
+    print("\n--- DDR TREND ---")
     trend = wrapper.get_ddr_trend()
     print(json.dumps(trend, indent=2))
 
-    print("
-" + "=" * 70)
+    print("\n" + "=" * 70)
     print("SF-ORB governance pipeline complete. All envelopes immutable and auditable.")
     print("=" * 70)

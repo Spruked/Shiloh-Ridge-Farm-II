@@ -48,6 +48,10 @@ export function resolveMediaUrl(source) {
     return `${backendBaseUrl}/images/${encodePathSegments(filename)}`;
   }
 
+  if (trimmed.startsWith("frontend/public/")) {
+    return `/${encodePathSegments(trimmed.slice("frontend/public/".length))}`;
+  }
+
   if (trimmed.startsWith("/")) {
     return trimmed;
   }

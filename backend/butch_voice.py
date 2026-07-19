@@ -1,9 +1,13 @@
+import base64
 import contextlib
+import json
 import os
 import shlex
 import shutil
 import subprocess
 import tempfile
+import urllib.request
+import uuid
 import wave
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
@@ -12,6 +16,44 @@ import numpy as np
 
 
 ROOT_DIR = Path(__file__).parent
+
+
+def _windows_host_from_wsl() -> str:
+    if os.name == "nt":
+        return "127.0.0.1"
+    try:
+        resolv = Path("/etc/resolv.conf").read_text(encoding="utf-8", errors="ignore")
+        for line in resolv.splitlines():
+            parts = line.strip().split()
+            if len(parts) == 2 and parts[0] == "nameserver":
+                return parts[1]
+    except Exception:
+        pass
+    return "127.0.0.1"
+
+
+def _default_qwen_tts_url() -> str:
+    return "http://127.0.0.1:9880/speak"
+
+
+def _service_url_candidates(url: str) -> list[str]:
+    candidates = [url]
+    host = _windows_host_from_wsl()
+    for local in ("127.0.0.1", "localhost"):
+        if local in url and host not in ("127.0.0.1", "localhost"):
+            candidates.append(url.replace(local, host, 1))
+            candidates.append(url.replace(local, "host.docker.internal", 1))
+    seen = set()
+    return [candidate for candidate in candidates if candidate and not (candidate in seen or seen.add(candidate))]
+
+
+def _local_read_path(path_value: str) -> Path:
+    raw = str(path_value or "").strip()
+    if os.name != "nt" and len(raw) > 2 and raw[1] == ":":
+        drive = raw[0].lower()
+        rest = raw[2:].replace("\\", "/").lstrip("/")
+        return Path(f"/mnt/{drive}/{rest}")
+    return Path(raw)
 
 
 class ButchVoiceSystem:
@@ -28,16 +70,26 @@ class ButchVoiceSystem:
         self.sample_rate = 24000
         self.audio_cache = ROOT_DIR / "butch_audio_cache"
         self.audio_cache.mkdir(parents=True, exist_ok=True)
-        self.voice_name = os.environ.get("BUTCH_KOKORO_VOICE", "af_bella")
+        self.voice_name = os.environ.get("BUTCH_KOKORO_VOICE", "am_adam")
         self.language = os.environ.get("BUTCH_KOKORO_LANG", "en-us")
         self.default_speed = float(os.environ.get("BUTCH_KOKORO_SPEED", "1.0"))
         self.model_path = os.environ.get("KOKORO_MODEL_PATH")
         self.voices_path = os.environ.get("KOKORO_VOICES_PATH")
         self.wsl_kokoro_bin = os.environ.get("KOKORO_WSL_BIN", "~/.venv/bin/kokoro-tts")
-        self._python_backend = self._init_python_backend()
+        raw_qwen_tts_url = os.environ.get("BUTCH_QWEN_TTS_URL", os.environ.get("QWEN_TTS_URL", ""))
+        if ":8000" in raw_qwen_tts_url and "/api/kokoro/tts" in raw_qwen_tts_url:
+            raw_qwen_tts_url = ""
+        self.qwen_tts_url = raw_qwen_tts_url or _default_qwen_tts_url()
+        self.qwen_speaker = os.environ.get("BUTCH_QWEN_TTS_SPEAKER", "butch_male")
+        self.qwen_tts_timeout = int(os.environ.get("BUTCH_QWEN_TTS_TIMEOUT_SEC", os.environ.get("QWEN_TTS_TIMEOUT_SEC", "220")))
+        self.qwen_primary_timeout = int(os.environ.get("BUTCH_QWEN_TTS_PRIMARY_TIMEOUT_SEC", os.environ.get("QWEN_TTS_PRIMARY_TIMEOUT_SEC", "8")))
+        self.kokoro_tts_timeout = int(os.environ.get("BUTCH_KOKORO_TTS_TIMEOUT_SEC", os.environ.get("KOKORO_TTS_TIMEOUT_SEC", "45")))
+        self.enable_python_backend = os.environ.get("BUTCH_ENABLE_LOCAL_KOKORO", "").strip().lower() in ("1", "true", "yes", "on")
+        self._python_backend = self._init_python_backend() if self.enable_python_backend else None
         self._cli_path = self._detect_local_cli()
         self._wsl_enabled = self._detect_wsl_cli()
         self.has_kokoro = bool(self._python_backend or self._cli_path or self._wsl_enabled)
+        self.has_voice = bool(self.qwen_tts_url or self.has_kokoro)
 
     def _init_python_backend(self):
         try:
@@ -78,15 +130,20 @@ class ButchVoiceSystem:
 
     def describe_backend(self) -> Dict[str, Any]:
         return {
+            "qwen_tts_url": self.qwen_tts_url,
+            "qwen_primary": bool(self.qwen_tts_url),
+            "kokoro_fallback": self.has_kokoro,
             "python_backend": self._python_backend is not None,
             "local_cli": self._cli_path,
             "wsl_bridge": self._wsl_enabled,
             "voice": self.voice_name,
+            "gender": "male",
+            "voice_role": "butch",
             "language": self.language,
         }
 
     async def synthesize(self, text: str, customer_id: str, acp_settings: Dict[str, Any]) -> Dict[str, Any]:
-        if not self.has_kokoro:
+        if not self.has_voice:
             return {
                 "text": text,
                 "duration": 0,
@@ -95,7 +152,7 @@ class ButchVoiceSystem:
                 "settings_hash": hash(str(acp_settings)),
                 "backend_used": None,
                 "available": False,
-                "use_browser_tts": True,
+                "use_browser_tts": False,
             }
 
         if not text.strip():
@@ -107,7 +164,7 @@ class ButchVoiceSystem:
                 "settings_hash": hash(str(acp_settings)),
                 "backend_used": None,
                 "available": False,
-                "use_browser_tts": True,
+                "use_browser_tts": False,
             }
 
         try:
@@ -121,7 +178,7 @@ class ButchVoiceSystem:
                     "settings_hash": hash(str(acp_settings)),
                     "backend_used": None,
                     "available": False,
-                    "use_browser_tts": True,
+                    "use_browser_tts": False,
                 }
 
             processed_audio, sample_rate = self._load_and_process(audio_path, acp_settings)
@@ -148,11 +205,15 @@ class ButchVoiceSystem:
                 "settings_hash": hash(str(acp_settings)),
                 "backend_used": None,
                 "available": False,
-                "use_browser_tts": True,
+                "use_browser_tts": False,
                 "error": str(error),
             }
 
     def _generate_audio(self, text: str, acp_settings: Dict[str, Any]) -> Tuple[Optional[Path], Optional[str]]:
+        qwen_audio = self._generate_with_qwen_bridge(text, acp_settings)
+        if qwen_audio:
+            return qwen_audio, "qwen-tts"
+
         if self._python_backend is not None:
             audio_path = self._generate_with_python(text, acp_settings)
             if audio_path:
@@ -169,6 +230,69 @@ class ButchVoiceSystem:
                 return audio_path, "wsl-cli"
 
         return None, None
+
+    def _generate_with_qwen_bridge(self, text: str, acp_settings: Dict[str, Any]) -> Optional[Path]:
+        if not self.qwen_tts_url:
+            return None
+        output_path = self._make_temp_path(".wav")
+        qwen_instruct = (
+            "A grounded, friendly middle-aged butcher voice "
+            "with a clear, practical, conversational tone."
+        )
+        payload = {
+            "text": text,
+            "instruct": qwen_instruct,
+            "output_path": f"/tmp/shiloh_butch_{uuid.uuid4().hex}.wav",
+        }
+        kokoro_payload = {
+            "text": text,
+            "speaker": self.qwen_speaker,
+            "voice": self.voice_name,
+            "format": "wav",
+            "sample_rate": self.sample_rate,
+            "speed": acp_settings.get("voice_speed", self.default_speed),
+        }
+        try:
+            data = None
+            for url in _service_url_candidates(self.qwen_tts_url):
+                try:
+                    request_payload = payload if url.rstrip("/").endswith("/generate") else kokoro_payload
+                    request = urllib.request.Request(
+                        url,
+                        data=json.dumps(request_payload).encode("utf-8"),
+                        headers={"Content-Type": "application/json"},
+                        method="POST",
+                    )
+                    timeout = self.qwen_primary_timeout if url.rstrip("/").endswith("/generate") else self.kokoro_tts_timeout
+                    with urllib.request.urlopen(request, timeout=timeout) as response:
+                        data = json.loads(response.read().decode("utf-8", errors="replace") or "{}")
+                    break
+                except Exception:
+                    data = None
+            if data is None:
+                raise RuntimeError("Qwen TTS bridge unavailable")
+
+            audio_b64 = data.get("audio_wav_base64") or data.get("audio_base64")
+            if audio_b64:
+                output_path.write_bytes(base64.b64decode(audio_b64))
+                return output_path
+
+            audio_path = (
+                data.get("audio_path")
+                or data.get("path")
+                or data.get("audio_file")
+                or data.get("output_path")
+            )
+            if audio_path:
+                source = _local_read_path(str(audio_path))
+                if source.exists():
+                    output_path.write_bytes(source.read_bytes())
+                    return output_path
+        except Exception:
+            with contextlib.suppress(FileNotFoundError):
+                output_path.unlink()
+            return None
+        return None
 
     def _generate_with_python(self, text: str, acp_settings: Dict[str, Any]) -> Optional[Path]:
         if self._python_backend is None:

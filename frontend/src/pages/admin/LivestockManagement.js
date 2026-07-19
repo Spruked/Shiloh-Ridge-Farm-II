@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Printer, FileText } from "lucide-react";
 import SkeletonLoader from "../../components/ui/SkeletonLoader";
 import { getApiBaseUrl } from "../../lib/backend";
+import { resolveMediaUrl } from "../../lib/media";
 
 const API = getApiBaseUrl();
 
@@ -720,7 +721,7 @@ const LivestockManagement = () => {
                         {formData.photos.map((photo, index) => (
                           <div key={index} className="relative">
                             <img
-                              src={photo}
+                              src={resolveMediaUrl(photo)}
                               alt={`Photo ${index + 1}`}
                               className="w-full h-20 object-cover rounded-md border"
                             />
@@ -774,7 +775,7 @@ const LivestockManagement = () => {
                     {animal.photos && animal.photos.length > 0 ? (
                       <div className="flex gap-2 overflow-x-auto max-w-[180px]">
                         {animal.photos.map((photo, idx) => (
-                          <img key={idx} src={photo} alt={animal.name || animal.tag_number} className="w-16 h-16 object-cover rounded-lg border border-gray-200 cursor-pointer hover:scale-105 transition-transform" />
+                          <img key={idx} src={resolveMediaUrl(photo)} alt={animal.name || animal.tag_number} className="w-16 h-16 object-cover rounded-lg border border-gray-200 cursor-pointer hover:scale-105 transition-transform" />
                         ))}
                       </div>
                     ) : (

@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Brain, MessageSquare, Database, Settings, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react';
+import { Brain, MessageSquare, Database, Settings, TrendingUp, AlertCircle, CheckCircle, ShieldAlert } from 'lucide-react';
 import axios from 'axios';
+import { adminAuthHeader, getApiBaseUrl } from '../../lib/backend';
+
+const API = getApiBaseUrl();
 
 const OrbAdminPanel = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -10,15 +13,22 @@ const OrbAdminPanel = () => {
   const [loading, setLoading] = useState(true);
   const [selectedQuery, setSelectedQuery] = useState(null);
   const [teachingResponse, setTeachingResponse] = useState('');
+  const [escalations, setEscalations] = useState([]);
 
   useEffect(() => { fetchDashboardData(); }, []);
 
   const fetchDashboardData = async () => {
     try {
-      const response = await axios.get('/api/orb/admin/dashboard');
+      const response = await axios.get(`${API}/orb/admin/dashboard`, { headers: adminAuthHeader() });
       setDashboardData(response.data);
       setScripts(response.data.scripts);
       setPendingLearning(response.data.pending_learning);
+      try {
+        const escalationResponse = await axios.get(`${API}/orb/substrate/escalations`, { headers: adminAuthHeader() });
+        setEscalations(escalationResponse.data.escalations || []);
+      } catch (_error) {
+        setEscalations([]);
+      }
       setLoading(false);
     } catch (error) {
       console.error('Failed to fetch dashboard:', error);
@@ -26,9 +36,16 @@ const OrbAdminPanel = () => {
     }
   };
 
+  const resolveEscalation = async (escalationId) => {
+    const resolution = window.prompt('Record the human resolution:');
+    if (!resolution?.trim()) return;
+    await axios.post(`${API}/orb/substrate/escalations/${escalationId}/resolve`, { resolution }, { headers: adminAuthHeader() });
+    fetchDashboardData();
+  };
+
   const handleScriptUpdate = async (section, key, value) => {
     try {
-      await axios.post('/api/orb/admin/scripts/update', { section, key, value });
+      await axios.post(`${API}/orb/admin/scripts/update`, { section, key, value }, { headers: adminAuthHeader() });
       fetchDashboardData();
     } catch (error) { alert('Failed to update script'); }
   };
@@ -36,7 +53,7 @@ const OrbAdminPanel = () => {
   const handleApproveLearning = async () => {
     if (!selectedQuery || !teachingResponse.trim()) return;
     try {
-      await axios.post('/api/orb/admin/learning/approve', { query_hash: selectedQuery.hash, response: teachingResponse });
+      await axios.post(`${API}/orb/admin/learning/approve`, { query_hash: selectedQuery.hash, response: teachingResponse }, { headers: adminAuthHeader() });
       setSelectedQuery(null); setTeachingResponse(''); fetchDashboardData();
     } catch (error) { alert('Failed to approve learning'); }
   };
@@ -51,10 +68,11 @@ const OrbAdminPanel = () => {
       </div>
 
       <div className="flex gap-4 mb-6 border-b border-slate-200 dark:border-slate-700">
-        {[{ id: 'dashboard', label: 'Dashboard', icon: TrendingUp },{ id: 'scripts', label: 'Scripts', icon: MessageSquare },{ id: 'learning', label: 'Learning Queue', icon: Database },{ id: 'settings', label: 'Settings', icon: Settings }].map(tab => (
+        {[{ id: 'dashboard', label: 'Dashboard', icon: TrendingUp },{ id: 'scripts', label: 'Scripts', icon: MessageSquare },{ id: 'learning', label: 'Learning Queue', icon: Database },{ id: 'escalations', label: 'Human Review', icon: ShieldAlert },{ id: 'settings', label: 'Settings', icon: Settings }].map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors ${ activeTab === tab.id ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-slate-600 hover:text-slate-800' }`}>
             <tab.icon className="w-4 h-4" />{tab.label}
             {tab.id === 'learning' && pendingLearning.length > 0 && <span className="bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">{pendingLearning.length}</span>}
+            {tab.id === 'escalations' && escalations.length > 0 && <span className="bg-red-600 text-white text-xs px-2 py-0.5 rounded-full">{escalations.length}</span>}
           </button>
         ))}
       </div>
@@ -163,6 +181,23 @@ const OrbAdminPanel = () => {
             <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900 rounded-lg"><div><h4 className="font-medium">Save Unanswered Queries</h4><p className="text-sm text-slate-600">Store questions the Orb couldn't answer</p></div><div className="text-emerald-600 text-sm font-medium">Enabled</div></div>
             <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900 rounded-lg"><div><h4 className="font-medium">Confidence Threshold</h4><p className="text-sm text-slate-600">Minimum confidence to auto-respond</p></div><div className="text-slate-800 dark:text-slate-200 font-medium">60%</div></div>
           </div>
+        </div>
+      )}
+
+      {activeTab === 'escalations' && (
+        <div className="space-y-4">
+          {escalations.map((item) => (
+            <article key={item.escalation_id} className="rounded-xl border border-amber-200 bg-white p-5 dark:bg-slate-800">
+              <div className="flex items-start justify-between gap-4">
+                <div><h3 className="font-semibold">{item.escalation_id}</h3><p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{item.user_request}</p></div>
+                <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800">{item.priority}</span>
+              </div>
+              <p className="mt-3 text-sm"><strong>Reason:</strong> {item.reason}</p>
+              <p className="mt-1 text-xs text-slate-500">Evidence pointers: {(item.evidence || []).length}</p>
+              <button type="button" onClick={() => resolveEscalation(item.escalation_id)} className="mt-4 rounded-full bg-emerald-700 px-4 py-2 text-sm font-medium text-white">Record resolution</button>
+            </article>
+          ))}
+          {escalations.length === 0 && <p className="rounded-xl border p-8 text-center text-slate-500">No open human reviews.</p>}
         </div>
       )}
     </div>

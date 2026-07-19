@@ -6,6 +6,7 @@ import {
   Mail,
   MessageSquare,
   Send,
+  ArrowRightLeft,
   UserRound
 } from 'lucide-react';
 import { getApiBaseUrl } from '../../lib/backend';
@@ -61,6 +62,22 @@ const OrderParserChat = ({ onOrderParsed }) => {
     'How do I place an order?'
   ]);
 
+  const handoffToShep = async (message) => {
+    try {
+      const response = await axios.post(`${apiBaseUrl}/butch/handoff-to-shep`, {
+        session_id: sessionId || getStoredSessionId(),
+        original_question: message.originalQuestion || 'Continue helping me from the Products page.',
+        butch_answer: message.content,
+        evidence: message.evidence || []
+      });
+      window.dispatchEvent(new CustomEvent(response.data.event_name || 'butch-shep-handoff', {
+        detail: response.data.context
+      }));
+    } catch (error) {
+      console.error('Butch to Shep handoff failed:', error);
+    }
+  };
+
   useEffect(() => {
     setSessionId(getStoredSessionId());
   }, []);
@@ -101,7 +118,9 @@ const OrderParserChat = ({ onOrderParsed }) => {
           content: parsed.reply,
           parsed: parsed.parsed_successfully,
           recalledOrders: parsed.recalled_orders || [],
-          estimate: parsed.estimate_summary || null
+          estimate: parsed.estimate_summary || null,
+          evidence: parsed.evidence || [],
+          originalQuestion: messageText
         }
       ]);
 
@@ -208,6 +227,17 @@ const OrderParserChat = ({ onOrderParsed }) => {
                     </div>
                   ))}
                 </div>
+              )}
+
+              {message.role === 'assistant' && index > 0 && !message.isError && (
+                <button
+                  type="button"
+                  onClick={() => handoffToShep(message)}
+                  className="mt-2 inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-white px-2.5 py-1 text-xs font-medium text-emerald-800 hover:bg-emerald-50"
+                >
+                  <ArrowRightLeft className="h-3.5 w-3.5" />
+                  Hand off to Shep
+                </button>
               )}
             </div>
           </div>

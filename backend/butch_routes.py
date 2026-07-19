@@ -8,6 +8,8 @@ from pydantic import BaseModel, Field
 from auth import verify_token
 from butch_core import CustomerProfile, butch_skg
 from butch_voice import butch_voice
+from butch_grounding import butch_evidence
+from substrate_service import publish_orb_artifact
 
 
 router = APIRouter(prefix="/butch", tags=["Butch SKG"])
@@ -31,6 +33,9 @@ class ChatResponse(BaseModel):
     use_browser_tts: bool = False
     acp_settings: Dict[str, Any] = Field(default_factory=dict)
     aacp_settings: Dict[str, Any] = Field(default_factory=dict)
+    evidence: List[Dict[str, Any]] = Field(default_factory=list)
+    grounding_warnings: List[str] = Field(default_factory=list)
+    mesh_artifact_id: Optional[str] = None
 
 
 class AdminPromoRequest(BaseModel):
@@ -49,6 +54,13 @@ class HandoffRequest(BaseModel):
     customer_id: str
     customer_context: Dict[str, Any] = Field(default_factory=dict)
     handoff_context: Dict[str, Any] = Field(default_factory=dict)
+
+
+class ShepHandoffRequest(BaseModel):
+    session_id: str
+    original_question: str
+    butch_answer: str
+    evidence: List[Dict[str, Any]] = Field(default_factory=list)
 
 
 def _serialize_profile(profile: CustomerProfile) -> Dict[str, Any]:
@@ -102,6 +114,12 @@ async def chat_with_butch(request: ChatRequest):
         resolved_customer_id,
         result["acp_settings"],
     )
+    evidence = butch_evidence()
+    artifact = publish_orb_artifact(
+        "butch_interaction",
+        {"schema": "orb.mesh.butch_learning.v1", "question": request.message, "answer": result["text"], "evidence": evidence, "contains_customer_record": False},
+        source_orb="butch", tags=["shiloh-ridge", "butch", "butcher-knowledge"],
+    )
     return ChatResponse(
         text=result["text"],
         audio_url=audio_result.get("audio_url"),
@@ -111,9 +129,12 @@ async def chat_with_butch(request: ChatRequest):
         customer_id=resolved_customer_id,
         voice_available=audio_result.get("available", False),
         voice_backend=audio_result.get("backend_used"),
-        use_browser_tts=audio_result.get("use_browser_tts", True),
+        use_browser_tts=False,
         acp_settings=result["acp_settings"],
         aacp_settings=result["acp_settings"],
+        evidence=evidence,
+        grounding_warnings=[] if evidence else ["Shiloh crawl and butcher knowledge sources are unavailable."],
+        mesh_artifact_id=artifact.get("artifact_id"),
     )
 
 
@@ -170,10 +191,30 @@ async def handoff_from_shep(request: HandoffRequest):
         customer_id=resolved_customer_id,
         voice_available=audio_result.get("available", False),
         voice_backend=audio_result.get("backend_used"),
-        use_browser_tts=audio_result.get("use_browser_tts", True),
+        use_browser_tts=False,
         acp_settings=result["acp_settings"],
         aacp_settings=result["acp_settings"],
     )
+
+
+@router.post("/handoff-to-shep")
+async def handoff_to_shep(request: ShepHandoffRequest):
+    context = {
+        "schema": "orb.mesh.handoff.v1",
+        "from": "butch",
+        "to": "shep",
+        "session_id": request.session_id,
+        "original_question": request.original_question,
+        "butch_answer": request.butch_answer,
+        "evidence": request.evidence,
+        "instruction": "Continue without making the visitor repeat the question.",
+        "contains_customer_record": False,
+    }
+    artifact = publish_orb_artifact(
+        "handoff", context, source_orb="butch", target_orb="shep",
+        tags=["shiloh-ridge", "butch-to-shep", "conversation-handoff"], confidence=0.9,
+    )
+    return {"status": "ready", "event_name": "butch-shep-handoff", "context": context, "mesh_artifact_id": artifact.get("artifact_id")}
 
 
 @router.get("/customer/{customer_id}")

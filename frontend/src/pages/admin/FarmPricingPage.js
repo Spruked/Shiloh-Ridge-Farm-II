@@ -83,9 +83,17 @@ export default function FarmPricingPage() {
     setLoading(true);
     try {
       const res = await fetch(`${API}/admin/farm-pricing`, { headers: adminAuthHeader() });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.detail || "Unable to load farm pricing");
+      }
       const data = await res.json();
       setRecords(Array.isArray(data) ? data : []);
-    } catch { setRecords([]); }
+      setError("");
+    } catch (loadError) {
+      setRecords([]);
+      setError(loadError.message);
+    }
     setLoading(false);
   }
 

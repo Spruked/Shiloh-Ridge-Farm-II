@@ -1,0 +1,35 @@
+DOCTRINE v1.0 Governance Baseline
+Canonical Version: DOCTRINE_v1.0+B+C+D
+Ratified: 2026-03-05
+Status: SEALED / IMMUTABLE
+
+Architecture:
+RAW REALITY -> Kant -> Locke -> Hume -> Spinoza -> Harmonizer -> CALI -> DecisionEnvelope -> Executive -> World
+
+Governance requirements:
+1. Raw Input Contract preserved.
+2. Lens independence profiles remain independent.
+3. DecisionEnvelope integrity maintained.
+4. No outcome metrics in epistemic layers.
+5. Observer and Infrastructure Auditor signals are available.
+6. Doctrine deviations require explicit Article VIII override IDs.
+
+Doctrine Drift Indicator:
+DDR = observed_tension / expected_tension_under_independence
+
+Thresholds:
+- DDR > 0.8 = Healthy
+- 0.5 < DDR <= 0.8 = Caution
+- DDR <= 0.5 = Critical
+
+Article VIII:
+Any doctrine deviation must include explicit override ID and justification.
+
+Philosophical mapping:
+- Kant(Q): categorization
+- Locke(K): evidence
+- Hume(G): skepticism
+- Spinoza(V): unity
+- Harmonizer: structured tension
+- CALI: articulation
+- Observer: self-examination

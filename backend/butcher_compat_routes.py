@@ -1,3 +1,4 @@
+import csv
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -5,6 +6,9 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+
+from butch_grounding import butch_evidence
+from substrate_service import publish_orb_artifact
 
 
 CURRENT_DIR = Path(__file__).resolve().parent
@@ -98,12 +102,33 @@ except ModuleNotFoundError:
 
     class ButchKnowledgeEngine:
         def __init__(self, _root: Path):
-            pass
+            self.rows: List[Dict[str, str]] = []
+            for path in (
+                CURRENT_DIR.parent / "assets" / "butch_product_knowledge.csv",
+                CURRENT_DIR / "assets" / "butch_product_knowledge.csv",
+            ):
+                if path.exists():
+                    with open(path, "r", encoding="utf-8") as handle:
+                        self.rows = list(csv.DictReader(handle))
+                    break
 
         def match(self, text: str) -> Optional[str]:
             lower = text.lower()
+            matches = []
+            for row in self.rows:
+                triggers = [trigger.strip().lower() for trigger in (row.get("triggers") or "").split("|")]
+                matched = [trigger for trigger in triggers if trigger and trigger in lower]
+                query_words = set(lower.split())
+                overlap = max((len(query_words & set(trigger.split())) for trigger in triggers), default=0)
+                if matched or overlap >= 2:
+                    exact_score = max((len(trigger) for trigger in matched), default=0)
+                    matches.append((overlap * 20 + exact_score, row.get("response") or None))
+            if matches:
+                return max(matches, key=lambda item: item[0])[1]
             if "freezer" in lower:
                 return "Plan roughly 1 cubic foot of freezer space for every 25 to 30 pounds of packaged meat."
+            if "hanging weight" in lower or "carcass weight" in lower:
+                return "Hanging weight is the carcass weight after slaughter, before cutting and trimming."
             if "cut" in lower or "yield" in lower:
                 return "I can help estimate cuts and yield for whole or half hog and lamb orders."
             return None
@@ -394,7 +419,12 @@ async def parse_order(request: ParseRequest):
             "total_estimated": yield_estimate.get("total_estimated"),
         }
 
-    if parsed_successfully and yield_estimate:
+    knowledge_answer = _knowledge().match(raw_text)
+    evidence = butch_evidence()
+
+    if knowledge_answer:
+        reply = knowledge_answer
+    elif parsed_successfully and yield_estimate:
         reply = (
             f"Got it. I read this as a {parsed.get('order_size')} {parsed.get('meat_type')}. "
             f"Estimated total is about ${float(yield_estimate.get('total_estimated', 0)):.2f}."
@@ -419,6 +449,21 @@ async def parse_order(request: ParseRequest):
             "What freezer space do I need?",
         ]
 
+    learning = publish_orb_artifact(
+        "butch_interaction",
+        {
+            "schema": "orb.mesh.butch_learning.v1",
+            "question": raw_text,
+            "answer": reply,
+            "evidence": evidence,
+            "page_context": request.page_context,
+            "contains_customer_record": False,
+        },
+        source_orb="butch",
+        tags=["shiloh-ridge", "butch", "butcher-knowledge"],
+        confidence=max([pointer.get("confidence", 0.65) for pointer in evidence] or [0.65]),
+    )
+
     return {
         "reply": reply,
         "parsed_successfully": parsed_successfully,
@@ -433,6 +478,9 @@ async def parse_order(request: ParseRequest):
             "phone": request.visitor_phone,
         },
         "parse_result": parsed,
+        "evidence": evidence,
+        "grounding_warnings": [] if evidence else ["Shiloh crawl and butcher knowledge sources are unavailable."],
+        "mesh_artifact_id": learning.get("artifact_id"),
     }
 
 

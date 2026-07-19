@@ -60,7 +60,7 @@ _lock = asyncio.Lock()
 
 class KokoroTTSRequest(BaseModel):
     text: str = Field(..., min_length=1, max_length=600)
-    voice: str = Field(default="af_bella")
+    voice: str = Field(default="am_adam")
     speed: float = Field(default=1.0, ge=0.5, le=2.0)
 
 
@@ -446,20 +446,20 @@ async def benchmark_whisper_kokoro(payload: WhisperKokoroBenchmarkRequest):
 
         ks = time.perf_counter()
         cold_pipe = _ensure_kokoro_pipeline(force_reload=True)
-        segs = [np.asarray(a, dtype=np.float32) for _, _, a in cold_pipe(payload.kokoro_text, voice="af_bella", speed=1.0)]
+        segs = [np.asarray(a, dtype=np.float32) for _, _, a in cold_pipe(payload.kokoro_text, voice="am_adam", speed=1.0)]
         if not segs:
             raise HTTPException(status_code=500, detail="Kokoro cold run produced no audio")
         kokoro_cold = time.perf_counter() - ks
 
         warm_pipe = _ensure_kokoro_pipeline()
         ks2 = time.perf_counter()
-        _ = [a for _, _, a in warm_pipe(payload.kokoro_text, voice="af_bella", speed=1.0)]
+        _ = [a for _, _, a in warm_pipe(payload.kokoro_text, voice="am_adam", speed=1.0)]
         kokoro_warm = time.perf_counter() - ks2
 
         kokoro_runs = []
         for _ in range(payload.kokoro_iterations):
             s = time.perf_counter()
-            _ = [a for _, _, a in warm_pipe(payload.kokoro_text, voice="af_bella", speed=1.0)]
+            _ = [a for _, _, a in warm_pipe(payload.kokoro_text, voice="am_adam", speed=1.0)]
             kokoro_runs.append(time.perf_counter() - s)
 
         mem = {

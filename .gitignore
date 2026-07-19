@@ -1,0 +1,73 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+
+# Python environments and caches
+.venv/
+.venv-test/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Frontend build output and caches
+frontend/build/
+frontend/.cache/
+.cache/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local/editor files
+.DS_Store
+.vscode/
+.idea/
+
+# Temporary backup from flattening the project root
+_root-layer-backup-*/
+
+# Local exports can contain customer, accounting, or admin data
+shilohdownload.csv
+shilohdownload.pdf
+auditshiloghdownload.csv
+*admin-export*.csv
+*admin-export*.pdf
+
+# Canonical vault: keep code, policy, manifests, and approved small crawl
+# evidence in Git; keep private, generated, and large runtime records local.
+vault_system/audit/
+vault_system/backups/
+vault_system/butch/
+vault_system/documents/
+vault_system/imports/
+vault_system/nft/
+vault_system/posteriori/
+vault_system/shep/
+vault_system/worker_chat/
+vault_system/validators/**/*.jsonl
+vault_system/substrate/derived/
+vault_system/substrate/intake/
+vault_system/farm_orb/orb_weaver/
+vault_system/farm_orb/orb_weaver_r_drive_snapshot/
+vault_system/farm_orb/pointer_plot_map.json
+vault_system/**/local_index/
+vault_system/**/*.sqlite
+vault_system/**/*.sqlite3
+vault_system/**/*.archive.gz
+vault_system/**/*.tar.gz
+
+# A repository may have exactly one vault system: vault_system/ at root.
+**/vault/
+**/vaults/
+**/vault_system/
+!vault_system/
