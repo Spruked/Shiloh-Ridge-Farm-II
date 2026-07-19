@@ -1,0 +1,72 @@
+Renova_te_ipsum/
+├── README.md
+├── RTI_tree.txt
+├── bayesian_engine.py
+├── orb_controller.py
+├── requirements.txt
+├── sf_orb_Governance.py
+├── sf_orb_governance_wrapper.py
+├── tree.txt
+├── core_4_minds/
+│   ├── tribunal.py
+│   ├── bspinoza/
+│   │   └── spinoza_monism_skg.json
+│   ├── hhume/
+│   │   └── hume_skepticism_skg.json
+│   ├── hlocke/
+│   │   └── locke_empiricism_skg.json
+│   └── ikant/
+│       └── kant_critical_skg.json
+├── hlsf_geometry/
+│   └── engine.py
+├── logic_seeds/
+│   ├── validation_pipeline.py
+│   ├── deductive_SKG/
+│   │   ├── worker.json
+│   │   ├── job/
+│   │   │   └── execute.py
+│   │   ├── jobs/
+│   │   │   └── execute.py
+│   │   └── logic/
+│   │       ├── cognitive_state.py
+│   │       └── deductive_logic.py
+│   ├── deductive_validator/
+│   │   ├── worker.json
+│   │   ├── job/
+│   │   │   └── validate.py
+│   │   ├── logic/
+│   │   │   ├── deductive_validation.py
+│   │   │   └── validation_state.py
+│   │   └── vault/
+│   │       └── observation_log.jsonl
+│   ├── inductive/
+│   │   ├── cursor_habit.json
+│   │   └── moral_habit.json
+│   ├── inductive_skg/
+│   │   └── logic/
+│   │       ├── cognitive_stat.py
+│   │       ├── cognitive_state.py
+│   │       └── inductive_logic.py
+│   ├── inductive_validator/
+│   │   ├── worker.json
+│   │   └── logic/
+│   │       ├── inductive_validation.py
+│   │       └── validation_state.py
+│   ├── intuitive/
+│   │   └── pattern_recognition.json
+│   ├── intuitive_skg/
+│   │   └── logic/
+│   │       ├── cognitive_state.py
+│   │       └── intuitive_logic.py
+│   └── intuitive_validator/
+│       ├── worker.json
+│       └── logic/
+│           ├── intuitive_validation.py
+│           └── validation_state.py
+└── vault_system/
+    ├── manager.py
+    ├── apriori_core.json
+    ├── apriori/
+    │   └── apriori_core.json
+    └── posteriori/
+        └── *.json learned posteriori records
