@@ -1,0 +1,341 @@
+/
+├── bin -> usr/bin
+├── boot
+├── dev
+│   ├── block
+│   ├── bsg
+│   ├── char
+│   ├── disk
+│   ├── fd -> /proc/self/fd
+│   ├── hugepages
+│   ├── mapper
+│   ├── mqueue
+│   ├── net
+│   ├── pts
+│   ├── shm
+│   ├── snd
+│   ├── vfio
+│   └── virtio-ports
+├── etc
+│   ├── OpenCL
+│   ├── PackageKit
+│   ├── X11
+│   ├── alternatives
+│   ├── apache2
+│   ├── apparmor
+│   ├── apparmor.d
+│   ├── apport
+│   ├── apt
+│   ├── bash_completion.d
+│   ├── binfmt.d
+│   ├── byobu
+│   ├── ca-certificates
+│   ├── chrony
+│   ├── cloud
+│   ├── console-setup
+│   ├── containerd
+│   ├── credstore
+│   ├── credstore.encrypted
+│   ├── cron.d
+│   ├── cron.daily
+│   ├── cron.hourly
+│   ├── cron.monthly
+│   ├── cron.weekly
+│   ├── cron.yearly
+│   ├── cuda-gdb
+│   ├── dbus-1
+│   ├── dconf
+│   ├── debuginfod
+│   ├── default
+│   ├── depmod.d
+│   ├── dhcp
+│   ├── docker
+│   ├── dpkg
+│   ├── environment.d
+│   ├── fonts
+│   ├── glvnd
+│   ├── gnutls
+│   ├── groff
+│   ├── gss
+│   ├── gtk-3.0
+│   ├── init.d
+│   ├── kernel
+│   ├── landscape
+│   ├── ld.so.conf.d
+│   ├── ldap
+│   ├── libibverbs.d
+│   ├── libnl-3
+│   ├── lighttpd
+│   ├── logcheck
+│   ├── logrotate.d
+│   ├── modprobe.d
+│   ├── modules-load.d
+│   ├── netplan
+│   ├── network
+│   ├── networkd-dispatcher
+│   ├── newt
+│   ├── nvidia-container-runtime
+│   ├── nvidia-container-toolkit
+│   ├── openal
+│   ├── opt
+│   ├── pam.d
+│   ├── perl
+│   ├── pm
+│   ├── polkit-1
+│   ├── ppp
+│   ├── profile.d
+│   ├── pulse
+│   ├── python3
+│   ├── python3.12
+│   ├── python3.14
+│   ├── rc0.d
+│   ├── rc1.d
+│   ├── rc2.d
+│   ├── rc3.d
+│   ├── rc4.d
+│   ├── rc5.d
+│   ├── rc6.d
+│   ├── rcS.d
+│   ├── rsyslog.d
+│   ├── security
+│   ├── selinux
+│   ├── sensors.d
+│   ├── sgml
+│   ├── skel
+│   ├── ssh
+│   ├── ssl
+│   ├── sudoers.d
+│   ├── supercat
+│   ├── sysctl.d
+│   ├── systemd
+│   ├── terminfo
+│   ├── tmpfiles.d
+│   ├── ubuntu-advantage
+│   ├── udev
+│   ├── update-manager
+│   ├── update-motd.d
+│   ├── vim
+│   ├── vulkan
+│   ├── xdg
+│   └── xml
+├── home
+│   └── bryan
+├── lib -> usr/lib
+├── lib64 -> usr/lib64
+├── lost+found
+├── media
+├── mnt
+│   ├── c
+│   ├── e
+│   ├── f
+│   ├── g
+│   ├── q
+│   ├── r
+│   ├── recovery
+│   ├── s
+│   ├── t
+│   ├── wsl
+│   ├── wslg
+│   └── z
+├── opt
+│   └── containerd
+├── proc
+│   ├── 1
+│   ├── 100
+│   ├── 10000
+│   ├── 10024
+│   ├── 10055
+│   ├── 10102
+│   ├── 10121
+│   ├── 10178
+│   ├── 10185
+│   ├── 10374
+│   ├── 10501
+│   ├── 10619
+│   ├── 1101
+│   ├── 1102
+│   ├── 1108
+│   ├── 1111
+│   ├── 1121
+│   ├── 1132
+│   ├── 1280
+│   ├── 1289
+│   ├── 1290
+│   ├── 13
+│   ├── 1303
+│   ├── 1304
+│   ├── 1310
+│   ├── 1384
+│   ├── 1391
+│   ├── 1412
+│   ├── 1418
+│   ├── 1464
+│   ├── 1469
+│   ├── 1487
+│   ├── 1521
+│   ├── 1531
+│   ├── 155
+│   ├── 156
+│   ├── 157
+│   ├── 1621
+│   ├── 1622
+│   ├── 1623
+│   ├── 166
+│   ├── 16750
+│   ├── 169
+│   ├── 179
+│   ├── 1991
+│   ├── 1992
+│   ├── 1993
+│   ├── 1994
+│   ├── 2
+│   ├── 206
+│   ├── 2115
+│   ├── 21195
+│   ├── 2124
+│   ├── 2125
+│   ├── 2126
+│   ├── 216
+│   ├── 2463
+│   ├── 2464
+│   ├── 2465
+│   ├── 24843
+│   ├── 24844
+│   ├── 24847
+│   ├── 24853
+│   ├── 24855
+│   ├── 24856
+│   ├── 256
+│   ├── 264
+│   ├── 272
+│   ├── 286
+│   ├── 295
+│   ├── 304
+│   ├── 392
+│   ├── 393
+│   ├── 395
+│   ├── 396
+│   ├── 56
+│   ├── 613
+│   ├── 6556
+│   ├── 656
+│   ├── 683
+│   ├── 7263
+│   ├── 7264
+│   ├── 7266
+│   ├── 731
+│   ├── 732
+│   ├── 733
+│   ├── 734
+│   ├── 735
+│   ├── 7748
+│   ├── 93
+│   ├── 9956
+│   ├── 9957
+│   ├── 9958
+│   ├── 9959
+│   ├── 9965
+│   ├── 9969
+│   ├── 9985
+│   ├── 9986
+│   ├── 9987
+│   ├── 9998
+│   ├── 9999
+│   ├── acpi
+│   ├── bus
+│   ├── driver
+│   ├── dynamic_debug
+│   ├── fs
+│   ├── irq
+│   ├── mpt
+│   ├── net -> self/net
+│   ├── pressure
+│   ├── scsi
+│   ├── self -> 24856
+│   ├── sys
+│   ├── sysvipc
+│   ├── thread-self -> 24856/task/24856
+│   └── tty
+├── root
+├── run
+│   ├── WSL
+│   ├── chrony
+│   ├── cloud-init
+│   ├── console-setup
+│   ├── containerd
+│   ├── credentials
+│   ├── dbus
+│   ├── docker
+│   ├── lock
+│   ├── log
+│   ├── mount
+│   ├── polkit
+│   ├── screen
+│   ├── sendsigs.omit.d
+│   ├── setrans
+│   ├── shm
+│   ├── sshd
+│   ├── sudo
+│   ├── sudo-rs
+│   ├── systemd
+│   ├── tmpfiles.d
+│   ├── udev
+│   ├── user
+│   └── uuidd
+├── sbin -> usr/sbin
+├── snap
+│   └── bin
+├── srv
+├── sys
+│   ├── block
+│   ├── bus
+│   ├── class
+│   ├── dev
+│   ├── devices
+│   ├── firmware
+│   ├── fs
+│   ├── hypervisor
+│   ├── kernel
+│   ├── module
+│   └── power
+├── tmp
+│   ├── codex-ipc
+│   ├── mcp-lWyenm
+│   ├── pyright-10619-VKpU1VgASRuP
+│   ├── python-languageserver-cancellation
+│   ├── snap-private-tmp
+│   ├── systemd-private-8d6d875f348449d5b9ed141ea3a4572f-chrony.service-PzFzGo
+│   ├── systemd-private-8d6d875f348449d5b9ed141ea3a4572f-systemd-logind.service-Er3vdx
+│   └── systemd-private-8d6d875f348449d5b9ed141ea3a4572f-wsl-pro.service-wjUpMX
+├── usr
+│   ├── bin
+│   ├── games
+│   ├── include
+│   ├── lib
+│   ├── lib64
+│   ├── libexec
+│   ├── local
+│   ├── sbin
+│   ├── share
+│   └── src
+├── var
+│   ├── backups
+│   ├── cache
+│   ├── crash
+│   ├── lib
+│   ├── local
+│   ├── lock -> /run/lock
+│   ├── log
+│   ├── mail
+│   ├── opt
+│   ├── run -> /run
+│   ├── snap
+│   ├── spool
+│   └── tmp
+├── wslCFnCND
+├── wslCiddOD
+├── wslGBKlOA
+├── wslKLMkOD
+└── wsloGhIOD
+
+339 directories

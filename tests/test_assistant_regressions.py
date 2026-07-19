@@ -10,6 +10,7 @@ sys.path.insert(0, os.path.abspath("backend"))
 
 import butcher_compat_routes  # noqa: E402
 import worker_chat_routes  # noqa: E402
+import admin_orb_routes  # noqa: E402
 
 
 FORBIDDEN_TERMS = [
@@ -260,3 +261,57 @@ def test_knowledge_csv_row_counts_and_validators():
         check=False,
     )
     assert butch_validation.returncode == 0, butch_validation.stdout + butch_validation.stderr
+
+
+def test_site_orb_uses_llm_when_renova_diagnostics_are_incomplete(monkeypatch):
+    def fake_call_ollama(prompt: str, system: str = ""):
+        assert "Visitor request: are you online" in prompt
+        assert "site doctrine" in system
+        return {
+            "status": "success",
+            "response": "Shep is online through Ollama.",
+            "response_text": "Shep is online through Ollama.",
+            "intent": {"type": "site_chat"},
+            "metadata": {"model": "qwen2.5:1.5b"},
+        }
+
+    monkeypatch.setattr(
+        admin_orb_routes,
+        "_derive_cognitive_mode",
+        lambda _stimulus: {"cognitive_mode": "GUARD", "dominant_mind": "kant", "epistemic_shadows": {}},
+    )
+    monkeypatch.setattr(
+        admin_orb_routes,
+        "_cognitive_layer_ready",
+        lambda _preflight: (False, ["Required tribunal lens JSON artifacts are missing"]),
+    )
+    monkeypatch.setattr(
+        admin_orb_routes,
+        "build_shep_governance_prompt",
+        lambda _context: ("site doctrine", {"version": "test", "hash": "hash", "path": "path", "status": "ok", "ratified": "today"}),
+    )
+    monkeypatch.setattr(admin_orb_routes, "_call_ollama", fake_call_ollama)
+    monkeypatch.setattr(admin_orb_routes, "_call_qwen_tts", lambda *_args, **_kwargs: {})
+
+    request = admin_orb_routes.AdminOrbChatRequest(
+        message="are you online",
+        page_context="home",
+        context={"route_path": "/"},
+    )
+    response = _run(admin_orb_routes.chat_with_shep_site_orb(request))
+
+    assert response["status"] == "success"
+    assert response["response_text"] == "Shep is online through Ollama."
+    assert response["metadata"]["llm_mode"] == "ollama"
+    assert response["metadata"]["doctrine_enforced"] is True
+
+
+def test_tts_candidates_include_wsl_bridge_ports(monkeypatch):
+    monkeypatch.setattr(admin_orb_routes, "_windows_host_from_wsl", lambda: "172.22.64.1")
+
+    candidates = admin_orb_routes._tts_url_candidates("http://127.0.0.1:12000/api/kokoro/tts")
+
+    assert "http://127.0.0.1:12000/api/kokoro/tts" in candidates
+    assert "http://172.22.64.1:12000/api/kokoro/tts" in candidates
+    assert "http://127.0.0.1:8000/api/kokoro/tts" in candidates
+    assert "http://172.22.64.1:8000/api/kokoro/tts" in candidates

@@ -1,0 +1,26 @@
+.
+├── Renova_te_ipsum
+├── butch_audio_cache
+├── butch_the_butcher
+├── butch_vault
+├── butch_worker
+├── documents
+├── governance
+├── mongo_data
+│   ├── diagnostic.data
+│   └── journal
+├── orb_assistant
+│   ├── logs
+│   ├── scripts
+│   └── vaults
+│       └── farm_orb
+├── routes
+├── shep_worker
+├── static
+├── tts
+├── vaults
+├── vision
+└── worker_chat
+    └── vaults
+
+24 directories
