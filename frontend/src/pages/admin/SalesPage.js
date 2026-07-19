@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Plus, Edit, DollarSign, FileText, Search, User, Package, Download, Printer } from "lucide-react";
 import SkeletonLoader from "../../components/ui/SkeletonLoader";
 import { getApiBaseUrl } from "../../lib/backend";
+import { DEFAULT_PAYMENT_METHOD, PAYMENT_METHODS } from "../../config/paymentMethods";
 
 const API = getApiBaseUrl();
 
@@ -42,7 +43,7 @@ const SalesPage = () => {
     sale_type: "market",
     tax_amount: 0,
     discount_amount: 0,
-    payment_method: "cash",
+    payment_method: DEFAULT_PAYMENT_METHOD,
     payment_status: "pending",
     due_date: "",
     notes: "",
@@ -259,7 +260,7 @@ const SalesPage = () => {
       sale_type: "market",
       tax_amount: 0,
       discount_amount: 0,
-      payment_method: "cash",
+      payment_method: DEFAULT_PAYMENT_METHOD,
       payment_status: "pending",
       due_date: "",
       notes: "",
@@ -510,11 +511,9 @@ const SalesPage = () => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="cash">Cash</SelectItem>
-                        <SelectItem value="check">Check</SelectItem>
-                        <SelectItem value="online">Online</SelectItem>
-                        <SelectItem value="crypto">Crypto</SelectItem>
-                        <SelectItem value="nft">NFT</SelectItem>
+                        {PAYMENT_METHODS.map((method) => (
+                          <SelectItem key={method.value} value={method.value}>{method.label}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>

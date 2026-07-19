@@ -7,8 +7,8 @@ const Footer = () => {
         <div className="grid md:grid-cols-3 gap-8">
           <div>
             <h3 className="text-2xl font-bold mb-4" data-testid="footer-brand">Shiloh Ridge Farm</h3>
-            <p className="text-gray-300 leading-relaxed">
-              Family-owned farm specializing in premium Katahdin sheep, heritage livestock, and sustainable agriculture. Committed to integrity and honest farming practices.
+            <p className="text-gray-300 leading-relaxed font-semibold">
+              Family farm specializing in registered Katahdin hair sheep. We also offer Berk cross pork and cage-free eggs. We&apos;re always open to new customers, so give us a try.
             </p>
           </div>
           
@@ -46,6 +46,7 @@ const Footer = () => {
               <div className="pt-2">
                 <p><strong>Email:</strong> <a href="mailto:dominichanway@gmail.com" className="text-blue-300 hover:text-blue-200">dominichanway@gmail.com</a></p>
                 <p><strong>Phone:</strong> <a href="tel:+1-660-254-6226" className="text-blue-300 hover:text-blue-200">(660) 254-6226</a></p>
+                <p><strong>Facebook:</strong> <a href="https://www.facebook.com/shilohridgefarm2010" target="_blank" rel="noopener noreferrer" className="text-blue-300 hover:text-blue-200">Shiloh Ridge Farm</a></p>
               </div>
             </div>
           </div>
