@@ -1,0 +1,19 @@
+[Unit]
+Description=Shiloh faster-whisper STT service
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=bryan
+Group=bryan
+WorkingDirectory=/home/bryan/faster_whisper_server
+Environment=HOME=/home/bryan
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/bryan/py312/bin/python /home/bryan/faster_whisper_server/server.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

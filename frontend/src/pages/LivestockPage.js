@@ -73,19 +73,6 @@ const LivestockPage = () => {
   const getAnimalPhotos = (animal) =>
     (animal?.photos || []).map((photo) => resolveMediaUrl(photo)).filter(Boolean);
 
-  const primeButchForLivestock = () => {
-    const handoffContext = {
-      source: "livestock_page",
-      role: "ranch_hand",
-      message: "Visitor is browsing livestock and wants ranch-hand guidance on tags, bloodlines, breeding fit, animal condition, or next questions for Dominic.",
-      llm_model: "qwen2.5:3b",
-      tts_engine: "qwen3-tts",
-      cochlear_processor: "CP 3.0",
-    };
-    localStorage.setItem("shep_butch_handoff", JSON.stringify(handoffContext));
-    window.dispatchEvent(new CustomEvent("shep-butch-handoff", { detail: handoffContext }));
-  };
-
   return (
     <div className="min-h-screen bg-[#f7f3e7]">
       <Navigation />
@@ -96,7 +83,7 @@ const LivestockPage = () => {
           <img
             src="/flockofdominicskatahdins.jpeg"
             alt="Shiloh Ridge Farm flock"
-            className="w-full object-cover"
+            className="w-full h-full object-cover"
             style={{ maxHeight: "320px", objectFit: "cover", objectPosition: "center 60%" }}
           />
         </div>
@@ -130,34 +117,6 @@ const LivestockPage = () => {
           </Select>
         </div>
 
-        <section className="mb-12 rounded-2xl border border-[#b6863a]/35 bg-white p-6 shadow-sm">
-          <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#b6863a]">
-                Butch Ranch Hand
-              </p>
-              <h2 className="mt-2 text-2xl font-bold text-[#0f5132]">
-                Talk through the animal before you call.
-              </h2>
-              <p className="mt-3 max-w-3xl text-sm leading-6 text-gray-600">
-                Butch can help frame tag questions, bloodline context, breeding or finishing fit, and what to ask Dominic next. He still handles the butcher side on products, but here he works as the ranch hand.
-              </p>
-              <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-[#21432f]">
-                <span className="rounded-full border border-[#0f5132]/20 bg-[#f7f3e7] px-3 py-1">Qwen 2.5 3B</span>
-                <span className="rounded-full border border-[#0f5132]/20 bg-[#f7f3e7] px-3 py-1">Qwen 3 TTS voice</span>
-                <span className="rounded-full border border-[#0f5132]/20 bg-[#f7f3e7] px-3 py-1">CP 3.0 ears</span>
-              </div>
-            </div>
-            <Button
-              type="button"
-              onClick={primeButchForLivestock}
-              className="bg-[#b6863a] px-5 py-3 hover:bg-[#7a5724]"
-            >
-              Ask Butch
-            </Button>
-          </div>
-        </section>
-
         {/* Livestock Grid */}
         {loading ? (
           <SkeletonLoader count={6} />
@@ -172,11 +131,12 @@ const LivestockPage = () => {
                 <Link to={`/livestock/${animal.id}`}>
                   <div className="h-64 bg-[#e7eddc] flex items-center justify-center relative">
                     {getAnimalPhotos(animal).length > 0 ? (
-                      <div className="flex gap-2 overflow-x-auto max-w-full px-2">
-                        {getAnimalPhotos(animal).map((photo, idx) => (
-                          <img key={idx} src={photo} alt={animal.name || animal.tag_number} className="w-32 h-32 object-cover rounded-lg border border-gray-200 cursor-pointer hover:scale-105 transition-transform" />
-                        ))}
-                      </div>
+                      <img
+                        src={getAnimalPhotos(animal)[0]}
+                        alt={animal.name || animal.tag_number}
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                      />
                     ) : (
                       <span className="text-sm font-semibold text-[#0f5132] uppercase tracking-widest">
                         {animal.animal_type || 'Animal'}

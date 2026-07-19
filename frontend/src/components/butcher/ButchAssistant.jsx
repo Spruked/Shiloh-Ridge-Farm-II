@@ -23,7 +23,7 @@ const getStoredJson = (key) => {
   }
 };
 
-const ButchAssistant = ({ mode = 'butcher', onProfileUpdate }) => {
+const ButchAssistant = ({ onProfileUpdate }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
@@ -32,11 +32,23 @@ const ButchAssistant = ({ mode = 'butcher', onProfileUpdate }) => {
   const [isTyping, setIsTyping] = useState(false);
   const [loyaltyTier, setLoyaltyTier] = useState('new');
   const [currentAudio, setCurrentAudio] = useState(null);
-  const [voiceMode, setVoiceMode] = useState('browser');
+  const [voiceMode, setVoiceMode] = useState('server-voice');
   const messagesEndRef = useRef(null);
 
   const apiBaseUrl = API_BASE_URL;
   const backendBaseUrl = BACKEND_BASE_URL;
+
+  const ensureCustomerId = () => {
+    let cid = customerId || localStorage.getItem(BUTCH_CUSTOMER_KEY);
+    if (!cid) {
+      cid = `butch_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+      localStorage.setItem(BUTCH_CUSTOMER_KEY, cid);
+    }
+    if (cid !== customerId) {
+      setCustomerId(cid);
+    }
+    return cid;
+  };
 
   const persistContext = (nextContext) => {
     const mergedProfile = {
@@ -136,7 +148,7 @@ const ButchAssistant = ({ mode = 'butcher', onProfileUpdate }) => {
             text: "Got the handoff from Shep — what can I help you dig into on cuts or pricing?",
             sender: 'butch',
             timestamp: new Date(),
-            useBrowserTts: true,
+            useBrowserTts: false,
             acpSettings: { voice_speed: 1 },
             suggestions: [],
             discounts: [],
@@ -158,9 +170,18 @@ const ButchAssistant = ({ mode = 'butcher', onProfileUpdate }) => {
 
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = acpSettings.voice_speed || 1;
-    utterance.pitch = acpSettings.voice_warmth ? Math.min(1.5, 0.9 + (acpSettings.voice_warmth * 0.4)) : 1;
+    const voices = window.speechSynthesis.getVoices?.() || [];
+    const maleVoice = voices.find((voice) => /david|mark|guy|male|daniel|george|fred|alex|aaron|bruce|ralph|tom|reed|eddy/i.test(`${voice.name} ${voice.voiceURI}`));
+    if (maleVoice) {
+      utterance.voice = maleVoice;
+    }
+    utterance.rate = Math.max(0.82, Math.min(1.05, acpSettings.voice_speed || 0.92));
+    utterance.pitch = 0.42;
     utterance.volume = 1;
+    if (!voices.length && typeof window.speechSynthesis.onvoiceschanged !== 'undefined') {
+      window.speechSynthesis.onvoiceschanged = () => speakWithBrowser(text, acpSettings);
+      return;
+    }
     window.speechSynthesis.speak(utterance);
   };
 
@@ -173,16 +194,9 @@ const ButchAssistant = ({ mode = 'butcher', onProfileUpdate }) => {
         const audio = new Audio(`${backendBaseUrl}${message.audioUrl}`);
         setCurrentAudio(audio);
         audio.play().catch((error) => {
-          console.error('Audio playback failed:', error);
-          if (message.useBrowserTts) {
-          speakWithBrowser(message.text, message.acpSettings);
-        }
-      });
+          console.error('Butch server audio playback failed:', error);
+        });
       return;
-    }
-
-    if (message.useBrowserTts) {
-      speakWithBrowser(message.text, message.acpSettings);
     }
   };
 
@@ -191,11 +205,12 @@ const ButchAssistant = ({ mode = 'butcher', onProfileUpdate }) => {
     customer_id: customerId,
     customer_context: {
       ...(customerContext || {}),
-      assistant_role: mode === 'ranch' ? 'ranch_hand' : 'butcher',
-      page_mode: mode,
-      llm_model: 'qwen2.5:3b',
+      assistant_role: 'butcher',
+      assistant_roles: ['butcher'],
+      page_mode: 'butcher',
+      llm_model: 'llama3.2:1b',
       tts_engine: 'qwen3-tts',
-      cochlear_processor: 'CP 3.0',
+      stt_engine: 'faster-whisper',
     },
   });
 
@@ -220,16 +235,17 @@ const ButchAssistant = ({ mode = 'butcher', onProfileUpdate }) => {
 
     setMessages((previous) => [...previous, nextMessage]);
     setLoyaltyTier(data.loyalty_tier || 'new');
-    setVoiceMode(data.use_browser_tts ? 'browser' : (data.voice_backend || 'audio'));
+    setVoiceMode(data.voice_backend || 'server-voice');
 
-    if (data.audio_url || data.use_browser_tts) {
+    if (data.audio_url) {
       setTimeout(() => playMessageVoice(nextMessage), 150);
     }
   };
 
   const sendMessage = async (overrideText = null, greeting = false) => {
     const message = (overrideText ?? inputText).trim();
-    if (!message || !customerId) {
+    const activeCustomerId = ensureCustomerId();
+    if (!message || !activeCustomerId) {
       return;
     }
 
@@ -252,7 +268,10 @@ const ButchAssistant = ({ mode = 'butcher', onProfileUpdate }) => {
       const response = await fetch(`${apiBaseUrl}/butch/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(buildRequestBody(message)),
+        body: JSON.stringify({
+          ...buildRequestBody(message),
+          customer_id: activeCustomerId,
+        }),
       });
 
       if (!response.ok) {
@@ -267,9 +286,7 @@ const ButchAssistant = ({ mode = 'butcher', onProfileUpdate }) => {
         ...previous,
         {
           id: `${Date.now()}_error`,
-          text: mode === 'ranch'
-            ? "I'm having trouble connecting to the ranch-hand tools right now, but I can still help once the connection settles down."
-            : "I'm having trouble connecting to the butcher tools right now, but I can still help once the connection settles down.",
+          text: "I'm having trouble connecting to the butcher tools right now, but I can still help once the connection settles down.",
           sender: 'butch',
           timestamp: new Date(),
           useBrowserTts: true,
@@ -283,9 +300,7 @@ const ButchAssistant = ({ mode = 'butcher', onProfileUpdate }) => {
 
   const generateGreeting = async () => {
     await sendMessage(
-      mode === 'ranch'
-        ? "Hello, I'm looking at livestock and want ranch-hand guidance."
-        : "Hello, I'm looking at your lamb products.",
+      "Hello, I'm looking at your lamb products.",
       true,
     );
   };
@@ -334,8 +349,8 @@ const ButchAssistant = ({ mode = 'butcher', onProfileUpdate }) => {
                 <Badge className={`border ${getTierColor(loyaltyTier)}`}>
                   {loyaltyTier}
                 </Badge>
-                <span>{mode === 'ranch' ? 'Ranch hand' : 'Butcher'} · Qwen 3 TTS · CP 3.0</span>
-                <span>{voiceMode === 'browser' ? 'Browser voice fallback' : `Voice: ${voiceMode}`}</span>
+                <span>Male butcher · Qwen voice</span>
+                <span>{voiceMode === 'browser' ? 'Male browser voice fallback' : `Voice: ${voiceMode}`}</span>
               </div>
             </div>
             <button
@@ -395,13 +410,13 @@ const ButchAssistant = ({ mode = 'butcher', onProfileUpdate }) => {
                 >
                   <p className="whitespace-pre-line">{message.text}</p>
 
-                  {message.sender === 'butch' && (message.audioUrl || message.useBrowserTts) && (
+                  {message.sender === 'butch' && message.audioUrl && (
                     <button
                       onClick={() => playMessageVoice(message)}
                       className="mt-2 flex items-center gap-1 text-xs text-stone-500 transition-colors hover:text-stone-800"
                     >
                       <Volume2 className="h-3 w-3" />
-                      {message.audioUrl ? 'Play voice' : 'Speak in browser'}
+                      Play Butch voice
                     </button>
                   )}
 
@@ -462,7 +477,7 @@ const ButchAssistant = ({ mode = 'butcher', onProfileUpdate }) => {
                   }
                 }}
                 className="flex-1 rounded-md border border-stone-300 bg-white px-3 py-2 text-sm"
-                placeholder={mode === 'ranch' ? 'Ask about tag, bloodline, breeding, or fit...' : 'Ask about cuts, prior orders, pricing, or cooking...'}
+                placeholder="Ask about cuts, prior orders, pricing, or cooking..."
               />
               <Button
                 type="button"

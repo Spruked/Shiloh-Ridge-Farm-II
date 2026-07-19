@@ -1,0 +1,15 @@
+[Unit]
+Description=Preload Shiloh Ollama models
+After=ollama.service network-online.target
+Wants=ollama.service network-online.target
+
+[Service]
+Type=oneshot
+User=bryan
+Group=bryan
+Environment=OLLAMA_HOST=http://127.0.0.1:11434
+ExecStart=/home/bryan/projects/shilohridgekatahdins.com/ops/wsl-systemd/preload_ollama.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

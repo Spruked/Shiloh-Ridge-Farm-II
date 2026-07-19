@@ -1,0 +1,19 @@
+[Unit]
+Description=Shiloh Qwen3 TTS service
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=bryan
+Group=bryan
+WorkingDirectory=/home/bryan/qwen3_tts_06b
+Environment=HOME=/home/bryan
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/bryan/py312/bin/python -m uvicorn server_06b:app --host 127.0.0.1 --port 9880
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

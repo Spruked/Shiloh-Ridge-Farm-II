@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import os
 import sys
 import time
 import uuid
@@ -935,4 +936,453 @@ class IntuitiveRecognizer:
         if len(nodes) < 2:
             return 0.0
 
-        mirror
+        mirror_pairs = 0
+        total_pairs = min(50, len(nodes) // 2)
+        if total_pairs <= 0:
+            return 0.0
+
+        for idx in range(total_pairs):
+            left = nodes[idx].coordinates
+            right = nodes[-(idx + 1)].coordinates
+            diff = sum(abs(a + b) for a, b in zip(left, right)) / max(len(left), 1)
+            if diff < 0.75:
+                mirror_pairs += 1
+
+        return mirror_pairs / total_pairs
+
+    def _calculate_substance_vector(self, current_node):
+        neighbors = self.hlsf.get_recursive_neighbors(current_node, radius=3)
+        return list(self.hlsf.calculate_thought_vector([current_node] + neighbors))
+
+
+class SF_ORB_Controller:
+    """Public Renova controller contract used by SFOrbGovernanceWrapper."""
+
+    def __init__(self, enable_llm_articulation: Optional[bool] = None):
+        self.renova_root = Path(__file__).resolve().parent
+        vault_root = Path(os.environ.get("SHILOH_VAULT_SYSTEM_ROOT", self.renova_root.parent / "vault_system"))
+        self.vault = VaultManager(base_path=str(vault_root))
+        self.bayesian = BayesianEngine()
+        self.tribunal = FourMindTribunal()
+        self.hlsf = hlsf_singleton
+        self.habit_tracker = HabitTracker(self.vault)
+        self.intuitive = IntuitiveRecognizer(self.hlsf)
+        self.governance = GovernanceEngine(system_state={"renova_root": str(self.renova_root)})
+        self.validation_layer = None
+        self.validation_error = None
+        self.llm_articulation_enabled = (
+            enable_llm_articulation
+            if enable_llm_articulation is not None
+            else str(os.environ.get("RENOVA_ENABLE_LOCAL_LLM", "")).lower() in {"1", "true", "yes"}
+        )
+        self._module_status = {
+            "BayesianEngine": {"available": True, "api": ["set_prior", "add_evidence", "calculate_posterior", "get_evidence_summary"]},
+            "VaultManager": {"available": True, "api": ["lightning_query", "crystallize"]},
+            "validation_pipeline": {"available": False, "api": ["FinalValidationLayer.validate_for_delivery"]},
+            "HLSF engine": {"available": True, "api": ["map_adjacency", "get_recursive_neighbors", "calculate_thought_vector", "pulse"]},
+            "FourMindTribunal": {"available": True, "api": ["generate_epistemic_shadow"]},
+        }
+        self._initialize_validation_layer()
+        self._initialize_bayesian_priors()
+
+    def _initialize_validation_layer(self):
+        try:
+            logic_path = self.renova_root / "logic_seeds"
+            if str(logic_path) not in sys.path:
+                sys.path.insert(0, str(logic_path))
+            from validation_pipeline import FinalValidationLayer
+
+            old_cwd = Path.cwd()
+            try:
+                os.chdir(logic_path)
+                self.validation_layer = FinalValidationLayer()
+            finally:
+                os.chdir(old_cwd)
+            self._module_status["validation_pipeline"]["available"] = True
+        except Exception as exc:
+            self.validation_error = str(exc)
+            self._module_status["validation_pipeline"]["error"] = str(exc)
+
+    def _initialize_bayesian_priors(self):
+        for hypothesis, probability in {
+            "guard_mode": 0.55,
+            "habit_mode": 0.30,
+            "intuition_mode": 0.15,
+            "semantic_retrieval": 0.50,
+        }.items():
+            self.bayesian.set_prior(hypothesis, probability)
+
+    def cognitively_emerge(self, stimulus: Dict[str, Any]) -> Dict[str, Any]:
+        """Run stimulus through Renova cognition and return final governed output."""
+        normalized = self._normalize_stimulus(stimulus)
+        raw_input_hash = self._hash(normalized)
+
+        vault_hit = self.vault.lightning_query(normalized)
+        hlsf_node = self.hlsf.map_adjacency(normalized)
+        hlsf_neighbors = self.hlsf.get_recursive_neighbors(hlsf_node, radius=3)
+        thought_vector = self.hlsf.calculate_thought_vector([hlsf_node] + hlsf_neighbors)
+        epistemic_shadow = self.tribunal.generate_epistemic_shadow(normalized)
+        habit_observation = self.habit_tracker.record_observation(normalized)
+        habit_prediction = self.habit_tracker.predict_next()
+        intuitive_state = self.intuitive.check_necessity(normalized, hlsf_node)
+
+        logic_state = self._build_logic_state(
+            normalized,
+            vault_hit,
+            epistemic_shadow,
+            habit_observation,
+            habit_prediction,
+            intuitive_state,
+        )
+        cross_domain = CrossDomainPredicate(
+            epistemic=epistemic_shadow,
+            spatial={
+                "n": hlsf_node.n,
+                "k": hlsf_node.k,
+                "coordinates": hlsf_node.coordinates,
+                "neighbors": len(hlsf_neighbors),
+            },
+            logic=logic_state,
+            synthesis_confidence=self._synthesis_confidence(epistemic_shadow, logic_state),
+        )
+        pulse = cross_domain.pulse()
+        envelope = self.governance.process(normalized, logic_state)
+
+        native_response = self._build_native_response(
+            normalized,
+            vault_hit,
+            epistemic_shadow,
+            thought_vector,
+            logic_state,
+            envelope,
+            pulse,
+        )
+        articulated = self._articulate(native_response, envelope)
+        core_verdict = {**native_response, "final_text": articulated, "response": articulated}
+
+        validation_result = self._validate_for_delivery(core_verdict, normalized, logic_state, thought_vector)
+        reconciliation = self._reconcile_after_articulation(normalized, articulated, validation_result)
+
+        final_payload = self._build_final_payload(
+            normalized,
+            envelope,
+            validation_result,
+            reconciliation,
+            articulated,
+            raw_input_hash,
+            logic_state,
+            pulse,
+        )
+
+        executed_envelope = self.governance.finalize(envelope, final_payload)
+        final_payload["envelope_id"] = executed_envelope.envelope_id
+        final_payload["trust_state"] = executed_envelope.trust_state.value
+        final_payload["response_hash"] = executed_envelope.orb_response_hash
+        final_payload["observer_annotations"] = list(executed_envelope.observer_annotations)
+        final_payload["governance_envelope"] = self._envelope_reference(executed_envelope)
+        return final_payload
+
+    def _synthesis_confidence(self, epistemic_shadow, logic_state) -> float:
+        confidences = [trace.get("confidence", 0.5) for trace in epistemic_shadow.values()]
+        epistemic = sum(confidences) / len(confidences) if confidences else 0.5
+        bayes = max(
+            logic_state.get("bayes_guard_prob", 0.0),
+            logic_state.get("bayes_habit_prob", 0.0),
+            logic_state.get("bayes_jump_prob", 0.0),
+        )
+        return round((epistemic + bayes) / 2.0, 4)
+
+    def _normalize_stimulus(self, stimulus: Any) -> Dict[str, Any]:
+        if isinstance(stimulus, dict):
+            normalized = dict(stimulus)
+        else:
+            normalized = {"type": "text", "content": str(stimulus)}
+        normalized.setdefault("type", "text")
+        normalized.setdefault("content", "")
+        normalized.setdefault("intensity", 0.5)
+        normalized.setdefault("velocity", 0.0)
+        return normalized
+
+    def _build_logic_state(
+        self,
+        stimulus,
+        vault_hit,
+        epistemic_shadow,
+        habit_observation,
+        habit_prediction,
+        intuitive_state,
+    ) -> Dict[str, Any]:
+        stimulus_text = json.dumps(stimulus, sort_keys=True)
+        evidence_strength = min(0.95, max(0.05, len(stimulus_text) / 240.0))
+
+        self.bayesian.add_evidence("guard_mode", f"guard_{time.time()}", 0.70, source="renova_controller")
+        self.bayesian.add_evidence(
+            "semantic_retrieval",
+            f"vault_{time.time()}",
+            0.90 if vault_hit else 0.35,
+            source="vault_system",
+        )
+        self.bayesian.add_evidence(
+            "habit_mode",
+            f"habit_{time.time()}",
+            habit_prediction.get("confidence", 0.25) if habit_prediction else 0.25,
+            source="habit_tracker",
+        )
+        self.bayesian.add_evidence(
+            "intuition_mode",
+            f"intuition_{time.time()}",
+            intuitive_state.get("spinozan_certainty", 0.10),
+            source="hlsf_geometry",
+        )
+
+        guard_prob = self.bayesian.calculate_posterior("guard_mode") or 0.5
+        habit_prob = self.bayesian.calculate_posterior("habit_mode") or 0.3
+        jump_prob = self.bayesian.calculate_posterior("intuition_mode") or 0.15
+
+        if intuitive_state.get("jump_triggered"):
+            active_mode = "INTUITION-JUMP"
+        elif habit_prediction and habit_prediction.get("confidence", 0.0) > 0.65:
+            active_mode = "HABIT"
+        else:
+            active_mode = "GUARD"
+
+        return {
+            "active_mode": active_mode,
+            "bayes_guard_prob": round(guard_prob, 4),
+            "bayes_habit_prob": round(habit_prob, 4),
+            "bayes_jump_prob": round(jump_prob, 4),
+            "field_density": len(self.hlsf.field_map),
+            "vault_hit": bool(vault_hit),
+            "vault_source": vault_hit.get("source") if vault_hit else None,
+            "habit_observation": habit_observation,
+            "inductive_prediction": habit_prediction or {},
+            "intuitive_jump_triggered": bool(intuitive_state.get("jump_triggered")),
+            "necessity_vector": intuitive_state.get("necessity_vector", []),
+            "epistemic_bayes": {
+                mind: trace.get("confidence", 0.0)
+                for mind, trace in epistemic_shadow.items()
+            },
+            "evidence_strength": evidence_strength,
+        }
+
+    def _build_native_response(self, stimulus, vault_hit, epistemic_shadow, thought_vector, logic_state, envelope, pulse):
+        final_text = self._native_text(stimulus, vault_hit, logic_state, envelope)
+        return {
+            "response": final_text,
+            "final_text": final_text,
+            "pulse": pulse,
+            "cognitive_mode": self._mode_value(logic_state["active_mode"]),
+            "logic_state": logic_state,
+            "bayesian_status": {
+                "guard": logic_state["bayes_guard_prob"],
+                "habit": logic_state["bayes_habit_prob"],
+                "intuition": logic_state["bayes_jump_prob"],
+                "semantic_retrieval": self.bayesian.calculate_posterior("semantic_retrieval"),
+            },
+            "vault_status": {
+                "queried": True,
+                "hit": bool(vault_hit),
+                "source": vault_hit.get("source") if vault_hit else None,
+            },
+            "tribunal_status": {
+                "available": True,
+                "lenses": sorted(epistemic_shadow.keys()),
+                "shadow": epistemic_shadow,
+            },
+            "hlsf_status": {
+                "available": True,
+                "field_density": len(self.hlsf.field_map),
+                "thought_vector_dimensions": len(thought_vector),
+                "edge_cutter_active": self.hlsf.edge_cutter_active,
+            },
+            "validation_status": {
+                "available": self.validation_layer is not None,
+                "error": self.validation_error,
+            },
+            "governance_envelope": self._envelope_reference(envelope),
+        }
+
+    def _native_text(self, stimulus, vault_hit, logic_state, envelope):
+        content = stimulus.get("content") or stimulus.get("text") or json.dumps(stimulus, sort_keys=True)
+        if vault_hit:
+            return f"Renova resolved the stimulus through {vault_hit.get('source')} vault memory: {content}"
+        return (
+            "Renova processed the stimulus through governed native cognition "
+            f"in {self._mode_value(logic_state['active_mode'])} mode: {content}"
+        )
+
+    def _articulate(self, native_response, envelope) -> str:
+        if self.llm_articulation_enabled:
+            llm_text = self._try_local_llm(native_response, envelope)
+            if llm_text:
+                return llm_text
+        return native_response["final_text"]
+
+    def _try_local_llm(self, native_response, envelope) -> Optional[str]:
+        try:
+            import urllib.request
+
+            host = os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11434").rstrip("/")
+            model = os.environ.get("RENOVA_LOCAL_LLM_MODEL", os.environ.get("OLLAMA_MODEL", "qwen3"))
+            prompt = (
+                "Articulate this Renova cognitive result plainly without changing its governed meaning:\n"
+                + json.dumps(
+                    {
+                        "response": native_response.get("final_text"),
+                        "mode": native_response.get("cognitive_mode"),
+                        "envelope_id": envelope.envelope_id,
+                    },
+                    sort_keys=True,
+                )
+            )
+            body = json.dumps({"model": model, "prompt": prompt, "stream": False}).encode("utf-8")
+            req = urllib.request.Request(
+                f"{host}/api/generate",
+                data=body,
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=8) as resp:
+                payload = json.loads(resp.read().decode("utf-8"))
+            text = (payload.get("response") or "").strip()
+            return text or None
+        except Exception:
+            return None
+
+    def _validate_for_delivery(self, core_verdict, stimulus, logic_state, thought_vector):
+        if self.validation_layer is None:
+            return {
+                **core_verdict,
+                "_validation_witness": {
+                    "checked": False,
+                    "congruent": False,
+                    "reason": self.validation_error or "validation layer unavailable",
+                },
+            }
+
+        logic_path = self.renova_root / "logic_seeds"
+        old_cwd = Path.cwd()
+        try:
+            os.chdir(logic_path)
+            return self.validation_layer.validate_for_delivery(
+                core_verdict,
+                {
+                    "stimulus": stimulus,
+                    "logic_state": logic_state,
+                    "hlsf": {
+                        "field_density": len(self.hlsf.field_map),
+                        "thought_vector": list(thought_vector[:8]),
+                    },
+                },
+            )
+        except Exception as exc:
+            return {
+                **core_verdict,
+                "_validation_witness": {
+                    "checked": False,
+                    "congruent": False,
+                    "reason": f"validation exception: {exc}",
+                },
+            }
+        finally:
+            os.chdir(old_cwd)
+
+    def _reconcile_after_articulation(self, stimulus, articulated_text, validation_result):
+        reconciliation_stimulus = {
+            "type": "post_articulation_reconciliation",
+            "content": articulated_text,
+            "original_stimulus_hash": self._hash(stimulus),
+        }
+        reconciliation_logic = {
+            "active_mode": "GUARD",
+            "bayes_guard_prob": 0.9,
+            "bayes_habit_prob": 0.1,
+            "bayes_jump_prob": 0.1,
+            "field_density": len(self.hlsf.field_map),
+        }
+        envelope = self.governance.process(reconciliation_stimulus, reconciliation_logic)
+        witness = validation_result.get("_validation_witness", {})
+        passed = bool(envelope.infra_audit_passed and witness.get("checked") and witness.get("congruent", False))
+        reason = None
+        if not passed:
+            reason = {
+                "infra_audit_passed": envelope.infra_audit_passed,
+                "validation_checked": witness.get("checked", False),
+                "validation_congruent": witness.get("congruent", False),
+                "validation_reason": witness.get("reason"),
+            }
+        return {
+            "passed": passed,
+            "reason": reason,
+            "envelope": envelope,
+        }
+
+    def _build_final_payload(
+        self,
+        stimulus,
+        envelope,
+        validation_result,
+        reconciliation,
+        articulated_text,
+        raw_input_hash,
+        logic_state,
+        pulse,
+    ):
+        witness = validation_result.get("_validation_witness", {})
+        return {
+            "final_text": articulated_text,
+            "response": articulated_text,
+            "pulse": pulse,
+            "envelope_id": envelope.envelope_id,
+            "trust_state": envelope.trust_state.value,
+            "raw_input_hash": raw_input_hash,
+            "response_hash": self._hash({"response": articulated_text}),
+            "ddr_score": envelope.ddr_score,
+            "alert_level": envelope.alert_level.name,
+            "cognitive_mode": self._mode_value(envelope.cognitive_state.active_mode if envelope.cognitive_state else "GUARD"),
+            "logic_state": logic_state,
+            "reconciliation_passed": reconciliation["passed"],
+            "reconciliation_reason": reconciliation["reason"],
+            "module_status": self.module_status(),
+            "observer_annotations": list(envelope.observer_annotations),
+            "validation_status": {
+                "checked": witness.get("checked", False),
+                "congruent": witness.get("congruent", False),
+                "signed_envelope_id": witness.get("signed_envelope_id"),
+                "content_hash": witness.get("content_hash"),
+                "reason": witness.get("reason"),
+            },
+            "bayesian_status": validation_result.get("bayesian_status", {}),
+            "vault_status": validation_result.get("vault_status", {}),
+            "tribunal_status": validation_result.get("tribunal_status", {}),
+            "hlsf_status": validation_result.get("hlsf_status", {}),
+            "governance_envelope": self._envelope_reference(envelope),
+        }
+
+    def _envelope_reference(self, envelope):
+        return {
+            "envelope_id": envelope.envelope_id,
+            "trust_state": envelope.trust_state.value,
+            "hash": envelope.compute_hash(),
+            "raw_input_hash": envelope.raw_input_hash,
+            "ddr_score": envelope.ddr_score,
+            "alert_level": envelope.alert_level.name,
+        }
+
+    def _mode_value(self, active_mode: str) -> str:
+        if "INTUITION" in str(active_mode):
+            return CognitiveMode.INTUITION.value
+        if "HABIT" in str(active_mode):
+            return CognitiveMode.HABIT.value
+        return CognitiveMode.GUARD.value
+
+    def _hash(self, payload: Any) -> str:
+        return hashlib.sha256(json.dumps(payload, sort_keys=True, default=str).encode("utf-8")).hexdigest()
+
+    def module_status(self) -> Dict[str, Dict[str, Any]]:
+        status = copy.deepcopy(self._module_status)
+        status["BayesianEngine"]["prior_count"] = len(self.bayesian.priors)
+        status["VaultManager"]["apriori_truths"] = len(self.vault.canonical_truths)
+        status["HLSF engine"]["field_density"] = len(self.hlsf.field_map)
+        status["FourMindTribunal"]["lenses_loaded"] = sorted(self.tribunal.minds.keys())
+        return status

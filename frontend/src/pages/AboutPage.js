@@ -4,6 +4,7 @@ import Navigation from "../components/Navigation";
 import PriceTicker from "../components/PriceTicker";
 import Footer from "../components/Footer";
 import { getApiBaseUrl } from "../lib/backend";
+import { resolveMediaUrl } from "../lib/media";
 
 const API = getApiBaseUrl();
 
@@ -94,6 +95,23 @@ const AboutPage = () => {
                 className="w-full object-cover"
                 style={{ maxHeight: "380px", objectFit: "cover", objectPosition: "center 40%" }}
               />
+            </div>
+
+            <div className="mb-12 overflow-hidden rounded-2xl bg-white p-8 shadow-lg md:p-10" data-testid="about-shep-section">
+              <img
+                src={resolveMediaUrl("assets/images/best_shep.png")}
+                alt="Shep, the beloved farm dog who inspired the Shiloh Ridge website ORB"
+                className="mx-auto mb-6 h-52 w-52 rounded-full object-cover shadow-md md:float-left md:mb-3 md:mr-8"
+                data-testid="about-shep-image"
+              />
+              <h2 className="mb-4 text-3xl font-bold text-[#0f5132]">The Story of Shep</h2>
+              <p className="text-lg leading-relaxed text-gray-700">
+                Shep was a beloved dog who cared for the sheep at Shiloh Ridge Farm for several years. He was a
+                steady, familiar presence with the flock and became a cherished part of life on the farm. His years
+                of loyal companionship and watchful care are the origin of Shep, our website ORB. Just as the real
+                Shep looked after the sheep, the Shep ORB is here to warmly guide visitors around the farm website
+                and help them find what they need.
+              </p>
             </div>
 
             <div className="grid md:grid-cols-3 gap-8">

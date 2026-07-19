@@ -252,6 +252,13 @@ async def get_revenue(
 
     return revenue
 
+@router.delete("/revenue/{revenue_id}")
+async def delete_revenue(revenue_id: str, username: str = Depends(verify_token)):
+    result = await db.farm_revenue.delete_one({"id": revenue_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Revenue record not found")
+    return {"message": "Revenue record deleted successfully"}
+
 @router.get("/financial-summary")
 async def get_financial_summary(
     start_date: Optional[str] = None,
@@ -268,7 +275,7 @@ async def get_financial_summary(
 
     # Get expense summary
     expense_pipeline = [
-        {"$match": {"date": date_filter} if date_filter else {"$match": {}}},
+        {"$match": {"date": date_filter} if date_filter else {}},
         {
             "$group": {
                 "_id": "$category",
@@ -280,7 +287,7 @@ async def get_financial_summary(
 
     # Get revenue summary
     revenue_pipeline = [
-        {"$match": {"date": date_filter} if date_filter else {"$match": {}}},
+        {"$match": {"date": date_filter} if date_filter else {}},
         {
             "$group": {
                 "_id": "$type",

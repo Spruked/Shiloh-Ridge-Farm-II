@@ -1,6 +1,7 @@
 import csv
 import hashlib
 import json
+import os
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -58,8 +59,8 @@ class ButchSKG:
     Preserved self-pruning, self-improving butcher assistant SKG.
     """
 
-    def __init__(self, storage_path: str = "./butch_vault"):
-        self.storage_path = Path(storage_path)
+    def __init__(self, storage_path: Optional[str] = None):
+        self.storage_path = Path(storage_path or os.environ.get("BUTCH_VAULT_ROOT", "./vault_system/butch/data"))
         self.storage_path.mkdir(parents=True, exist_ok=True)
 
         self.episodic_memory: List[MemoryNode] = []
@@ -103,10 +104,15 @@ class ButchSKG:
     def _lookup_knowledge_base(self, message: str) -> Optional[Dict[str, Any]]:
         """Return the first KB entry whose trigger phrase appears in message, else None."""
         msg_lower = (message or "").lower()
+        matches: List[tuple[int, Dict[str, Any]]] = []
         for entry in self.knowledge_base:
-            if any(trigger in msg_lower for trigger in entry["triggers"]):
-                return entry
-        return None
+            for trigger in entry["triggers"]:
+                if trigger in msg_lower:
+                    matches.append((len(trigger.split()) * 10 + len(trigger), entry))
+        if not matches:
+            return None
+        matches.sort(key=lambda item: item[0], reverse=True)
+        return matches[0][1]
 
     def _coerce_memory_node(self, memory: Any) -> MemoryNode:
         if isinstance(memory, MemoryNode):
@@ -198,8 +204,15 @@ class ButchSKG:
         intent = self._classify_intent(message)
         entities = self._extract_entities(message)
         self._update_profile_from_interaction(profile, message, entities)
-        kb_match = self._lookup_knowledge_base(message)
-        if kb_match:
+        msg_lower = (message or "").lower()
+        needs_contextual_response = (
+            ("half hog" in msg_lower and any(word in msg_lower for word in ["freezer", "cut", "cuts"]))
+        )
+        kb_match = None if needs_contextual_response else self._lookup_knowledge_base(message)
+        if needs_contextual_response:
+            response_text = self._generate_response(intent, entities, profile, context, message)
+            kb_suggestions = None
+        elif kb_match:
             response_text = kb_match["response"]
             kb_suggestions = kb_match["suggestions"]
         else:
@@ -233,7 +246,7 @@ class ButchSKG:
             "acp_settings": acp_settings,
             "aacp_settings": acp_settings,
             "voice_profile": "butch_friendly",
-            "suggested_cuts": kb_suggestions if kb_suggestions is not None else self._suggest_cuts(profile),
+            "suggested_cuts": kb_suggestions if kb_suggestions is not None else self._suggest_next_questions(profile, intent, entities),
             "available_discounts": self._get_available_discounts(profile)
         }
 
@@ -330,6 +343,17 @@ class ButchSKG:
         name = profile.name if profile.name != "Friend" else "there"
         greeting = f"Hey {name}!" if profile.interaction_count > 1 else "Well hey there, welcome to Shiloh Ridge!"
         msg_lower = (message or "").lower()
+        style_tail = (
+            " I'll stay out of your way and keep this practical; if needed, I'll ask one short clarifying question."
+        )
+
+        if "half hog" in msg_lower and ("freezer" in msg_lower or "cut" in msg_lower or "cuts" in msg_lower):
+            return (
+                f"{greeting} A half hog usually hangs around 90-110 lbs and brings home about 65-80 lbs packaged, depending on trim and cut choices. "
+                "Expect a balanced share of pork chops, shoulder roasts or steaks, ham, bacon/belly, ribs, sausage or ground trim, hocks, bones, and fat if you want it back. "
+                "Plan roughly 4-5 cubic feet of freezer space, and decide early on chop thickness, ham cured or fresh, belly as bacon, and how much trim you want as sausage."
+                f"{style_tail}"
+            )
 
         if intent == "pricing_inquiry":
             cuts = entities.get("cuts", [])
@@ -337,36 +361,43 @@ class ButchSKG:
                 return (
                     f"{greeting} You're looking at our {cuts[0]}? Dominic's got those at "
                     f"${self._get_price(cuts[0])}/lb today. If you're buying quantity, I can help you plan it."
+                    f"{style_tail}"
                 )
             return (
                 f"{greeting} Our Katahdin lamb is running ${self._get_price('chops')}/lb for chops and "
                 f"${self._get_price('ground')}/lb for ground. Whole and half lambs are usually the best value."
+                f"{style_tail}"
             )
 
         if intent == "recommendation":
             if any(keyword in msg_lower for keyword in ["grill", "smoker", "bbq"]):
                 return (
                     f"{greeting} For grilling, you can't beat the rib chops. Dominic cuts them thick and they do great over direct heat."
+                    f"{style_tail}"
                 )
             if "freezer" in msg_lower or "whole" in msg_lower or "half" in msg_lower:
                 return (
                     f"{greeting} If freezer planning is the goal, a half order is usually the sweet spot for most families. "
                     "Tell me your freezer size and how many people you feed, and I can map cuts and pounds for you."
+                    f"{style_tail}"
                 )
             if entities.get("cuts"):
                 primary_cut = entities["cuts"][0]
                 return (
                     f"{greeting} If you're leaning toward {primary_cut}, I can help you balance that with a few complementary cuts "
                     "so you don't end up with a freezer full of only one thing."
+                    f"{style_tail}"
                 )
             if profile.preferred_cuts:
                 return (
                     f"{greeting} Based on your previous visits, I know you like {profile.preferred_cuts[0]}. "
                     "You might also enjoy a shoulder roast for slow cooking."
+                    f"{style_tail}"
                 )
             return (
                 f"{greeting} If you're just getting started, I'd recommend the chops first. "
                 "They show off the flavor of our pasture-raised Katahdin lamb really well."
+                f"{style_tail}"
             )
 
         if intent == "order_status":
@@ -376,22 +407,26 @@ class ButchSKG:
                 return (
                     f"{greeting} I found your most recent order. It should be ready {pickup}. "
                     "If you want, I can help you plan the next one too."
+                    f"{style_tail}"
                 )
             return (
                 f"{greeting} I do not see an active order on file yet. "
                 "If you want to place one, I can help you choose cuts or quantity first."
+                f"{style_tail}"
             )
 
         if intent == "cooking_advice":
             return (
                 f"{greeting} Dominic would tell you not to overcook our lamb. "
                 "Medium rare to medium is usually the sweet spot, and a simple marinade goes a long way."
+                f"{style_tail}"
             )
 
         if intent == "farm_info":
             return (
                 f"{greeting} Dominic Hanway runs Shiloh Ridge Farm and raises pasture-based livestock with a real hands-on approach. "
                 "That is a big part of why the meat quality stays consistent."
+                f"{style_tail}"
             )
 
         if profile.interaction_count > 3:
@@ -399,11 +434,13 @@ class ButchSKG:
             return (
                 f"{greeting} Good to see you again. Last time you were asking about {last_cut}. "
                 "How can I help you this round?"
+                f"{style_tail}"
             )
 
         return (
-            f"{greeting} I'm Butch. I help Dominic with the meat side of things. "
-            "Tell me whether you're looking for chops, ground, a whole order, pricing, or cooking advice."
+            f"{greeting} I'm Butch, the butcher assistant for Shiloh Ridge. "
+            "I can help with meat cuts, pricing, freezer planning, cooking, and custom order planning."
+            f"{style_tail}"
         )
 
     def _get_price(self, cut_type: str) -> float:
@@ -430,6 +467,15 @@ class ButchSKG:
             if "ground" in profile.preferred_cuts:
                 suggestions.extend(["stew_meat", "shoulder_roast"])
         return suggestions[:3]
+
+    def _suggest_next_questions(self, profile: CustomerProfile, intent: str, entities: Dict[str, Any]) -> List[str]:
+        if intent == "recommendation" and any(cut in entities.get("cuts", []) for cut in ["half", "whole"]):
+            return ["cut sheet choices", "freezer planning", "processing timeline"]
+        if intent == "order_status":
+            return ["pickup timing", "invoice details", "contact Dominic"]
+        if intent == "cooking_advice":
+            return ["grilling chops", "slow roast", "safe internal temp"]
+        return self._suggest_cuts(profile)
 
     def _get_available_discounts(self, profile: CustomerProfile) -> List[Dict[str, Any]]:
         discounts: List[Dict[str, Any]] = []

@@ -1,0 +1,63 @@
+{
+  "schema": "shiloh.repository_vault_manifest.v1",
+  "updated_at": "2026-07-18",
+  "canonical_root": "vault",
+  "policy": {
+    "new_data_location": "vault/<domain>/",
+    "secrets_allowed": false,
+    "compatibility_paths_preserved": true,
+    "active_external_stores_are_referenced_not_copied": true
+  },
+  "sub_vaults": [
+    {
+      "id": "butch",
+      "canonical_path": "vault/butch",
+      "mirrored_data_path": "vault/butch/data",
+      "compatibility_paths": ["butch_vault", "backend/butch_vault", "butch_worker/vault", "butch_the_butcher/data/vault"],
+      "status": "mirrored_from_live_root"
+    },
+    {
+      "id": "shep",
+      "canonical_path": "vault/shep",
+      "compatibility_paths": ["shep_worker/vault"],
+      "seed_source": "assets/shep_farm_knowledge.csv",
+      "status": "seed_mirrored"
+    },
+    {
+      "id": "worker_chat",
+      "canonical_path": "vault/worker_chat",
+      "compatibility_paths": ["backend/worker_chat/vaults"],
+      "status": "mirrored"
+    },
+    {
+      "id": "renova",
+      "canonical_path": "vault/renova",
+      "compatibility_paths": ["Renova_te_ipsum/vault_system", "Renova_te_ipsum/vaults", "backend/vaults", "backend/orb_assistant/vaults"],
+      "status": "registered_live_store",
+      "notes": "The 6,258-file posterior store remains in place to avoid breaking Renova imports and live writes."
+    },
+    {
+      "id": "validators",
+      "canonical_path": "vault/validators",
+      "compatibility_paths": [
+        "Renova_te_ipsum/logic_seeds/deductive_validator/vault",
+        "Renova_te_ipsum/logic_seeds/inductive_validator/vault",
+        "Renova_te_ipsum/logic_seeds/intuitive_validator/vault"
+      ],
+      "status": "deductive_mirrored_other_stores_empty"
+    },
+    {
+      "id": "orb_weaver",
+      "canonical_path": "vault/orb_weaver",
+      "external_live_path": "/mnt/r/Orb_Weaver_Data_Files/clients/shilohridgekatahdins.com",
+      "status": "registered_external_live_store",
+      "notes": "Do not copy while an Orb Weaver crawl or audit is running."
+    },
+    {
+      "id": "archived_renova",
+      "canonical_path": "vault/renova/archive_registry",
+      "compatibility_paths": ["_archive/2026-04-13/root/vault_system"],
+      "status": "registered_empty_archive"
+    }
+  ]
+}

@@ -14,6 +14,7 @@ const NAV_LINKS = [
   { to: "/auctions",  label: "Auctions" },
   { to: "/contact",   label: "Contact" },
 ];
+const FARM_LOGO_URL = `${process.env.PUBLIC_URL || ""}/ShilohRidgeFarmicon256.png`;
 
 const Navigation = () => {
   const location = useLocation();
@@ -43,9 +44,11 @@ const Navigation = () => {
             data-testid="nav-brand"
           >
             <img
-              src="/ShilohRidgeFarmicon256.png"
+              src={FARM_LOGO_URL}
               alt="Shiloh Ridge Farm"
-              className="w-10 object-contain"
+              className="h-11 w-11 object-contain"
+              width="44"
+              height="45"
               data-testid="nav-logo"
             />
             <span className="hidden sm:block text-lg font-bold text-[#0f5132] leading-tight">

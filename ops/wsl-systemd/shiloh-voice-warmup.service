@@ -1,0 +1,15 @@
+[Unit]
+Description=Warm Shiloh voice stack
+After=ollama-preload.service qwen3-tts.service faster-whisper.service
+Wants=ollama-preload.service qwen3-tts.service faster-whisper.service
+
+[Service]
+Type=oneshot
+User=bryan
+Group=bryan
+WorkingDirectory=/home/bryan/projects/shilohridgekatahdins.com
+ExecStart=/home/bryan/projects/shilohridgekatahdins.com/ops/wsl-systemd/warmup_voice_stack.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

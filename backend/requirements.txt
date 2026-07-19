@@ -50,6 +50,8 @@ python-dateutil==2.9.0.post0
 python-dotenv==1.1.1
 python-jose==3.5.0
 python-multipart==0.0.20
+pypdf==5.9.0
+PyMuPDF==1.26.3
 pytokens==0.2.0
 pytz==2025.2
 requests==2.32.5
@@ -69,6 +71,3 @@ tzdata==2025.2
 urllib3==2.5.0
 uvicorn==0.25.0
 watchfiles==1.1.1
-openai-whisper
-kokoro
-onnxruntime-gpu

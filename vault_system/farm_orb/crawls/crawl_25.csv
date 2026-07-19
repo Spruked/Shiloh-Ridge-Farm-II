@@ -1,0 +1,25 @@
+url,title,status_code,load_time_ms,word_count,internal_links,external_links,images_count,images_without_alt,ssl_enabled,schema_count,schema_errors,semantic_depth,internal_link_edges,orb_semantic_score,entity_count,mobile_ux_score,template_signature,crawl_depth
+https://shilohridgekatahdins.com,Shiloh Ridge Katahdins - Katahdin Sheep & Farm Livestock,200,105.87191581726074,68,5,0,0,0,True,1,0,thin,5,65,15,100,1756bd05e1c62f7876e42d294ba52680,0
+https://shilohridgekatahdins.com/contact,Shiloh Ridge Katahdins - Katahdin Sheep & Farm Livestock,200,2220.4346656799316,68,5,0,0,0,True,1,0,thin,5,65,15,100,1756bd05e1c62f7876e42d294ba52680,1
+https://shilohridgekatahdins.com/products,Shiloh Ridge Katahdins - Katahdin Sheep & Farm Livestock,200,629.2622089385986,68,5,0,0,0,True,1,0,thin,5,65,15,100,1756bd05e1c62f7876e42d294ba52680,2
+https://shilohridgekatahdins.com/katahdin,Shiloh Ridge Katahdins - Katahdin Sheep & Farm Livestock,200,470.639705657959,1486,11,7,3,0,True,1,0,strong,22,94,30,94,227d23a1fa83c8c77e2decf271746339,3
+https://shilohridgekatahdins.com/account/login,Shiloh Ridge Katahdins - Katahdin Sheep & Farm Livestock,200,229.42233085632324,257,12,1,1,0,True,1,0,thin,23,73,30,100,d562692aab247a03074e3a8424eccd65,4
+https://shilohridgekatahdins.com/cart,Shiloh Ridge Katahdins - Katahdin Sheep & Farm Livestock,200,273.2391357421875,281,11,1,1,0,True,1,0,thin,23,72,30,100,6cde6c54518fb3368a7a338ece6c88c7,5
+https://shilohridgekatahdins.com/admin/login,Shiloh Ridge Katahdins - Katahdin Sheep & Farm Livestock,200,285.2358818054199,104,5,0,1,0,True,1,0,thin,5,71,21,97,32a48b21ccbd0419231780369c206d1f,6
+https://shilohridgekatahdins.com/about,Shiloh Ridge Katahdins - Katahdin Sheep & Farm Livestock,200,231.90069198608398,529,11,5,4,0,True,1,0,moderate,22,75,30,91,bcaa3c4e59e7ba972edf1aa98030b3cd,7
+https://shilohridgekatahdins.com/blog,Shiloh Ridge Katahdins - Katahdin Sheep & Farm Livestock,200,396.7869281768799,671,11,3,2,0,True,1,0,moderate,23,80,30,97,f6c94ebc0aee9c1f63123f02a75e2ccd,8
+https://shilohridgekatahdins.com/livestock,Shiloh Ridge Katahdins - Katahdin Sheep & Farm Livestock,200,452.0840644836426,68,5,0,0,0,True,1,0,thin,5,65,15,100,1756bd05e1c62f7876e42d294ba52680,8
+https://shilohridgekatahdins.com/auctions,Shiloh Ridge Katahdins - Katahdin Sheep & Farm Livestock,200,261.2156867980957,865,11,18,2,0,True,1,0,moderate,23,80,30,97,b9dc8e46016c82b8988a132e09eed33c,8
+https://shilohridgekatahdins.com/account/register,Shiloh Ridge Katahdins - Katahdin Sheep & Farm Livestock,200,312.81232833862305,295,11,1,2,0,True,1,0,thin,23,73,30,97,832f93daf892fbcf495d4919b2d21e51,5
+https://shilohridgekatahdins.com/admin,Shiloh Ridge Katahdins - Katahdin Sheep & Farm Livestock,200,312.2978210449219,98,5,0,0,0,True,1,0,thin,5,71,20,100,e33492bb86160c6ffb003a3ac33fdfb0,0
+https://shilohridgekatahdins.com/admin/customers,Shiloh Ridge Katahdins - Katahdin Sheep & Farm Livestock,200,422.8968620300293,98,5,0,0,0,True,1,0,thin,5,71,20,100,e33492bb86160c6ffb003a3ac33fdfb0,0
+https://shilohridgekatahdins.com/dashboard,Shiloh Ridge Katahdins - Katahdin Sheep & Farm Livestock,200,375.17809867858887,95,5,0,0,0,True,1,0,thin,5,71,19,100,e33492bb86160c6ffb003a3ac33fdfb0,0
+https://shilohridgekatahdins.com/account,Shiloh Ridge Katahdins - Katahdin Sheep & Farm Livestock,200,430.9518337249756,95,5,0,0,0,True,1,0,thin,5,71,19,100,e33492bb86160c6ffb003a3ac33fdfb0,0
+https://shilohridgekatahdins.com/checkout,Shiloh Ridge Katahdins - Katahdin Sheep & Farm Livestock,200,232.65695571899414,257,12,1,1,0,True,1,0,thin,23,73,30,100,d562692aab247a03074e3a8424eccd65,0
+https://shilohridgekatahdins.com/checkout/success,Shiloh Ridge Katahdins - Katahdin Sheep & Farm Livestock,200,338.4277820587158,95,5,0,0,0,True,1,0,thin,5,71,19,100,e33492bb86160c6ffb003a3ac33fdfb0,0
+https://shilohridgekatahdins.com/login,Shiloh Ridge Katahdins - Katahdin Sheep & Farm Livestock,200,312.1461868286133,95,5,0,0,0,True,1,0,thin,5,71,19,100,e33492bb86160c6ffb003a3ac33fdfb0,0
+https://shilohridgekatahdins.com/signup,Shiloh Ridge Katahdins - Katahdin Sheep & Farm Livestock,200,219.45452690124512,95,5,0,0,0,True,1,0,thin,5,71,0,100,e33492bb86160c6ffb003a3ac33fdfb0,0
+https://shilohridgekatahdins.com/privacy,Shiloh Ridge Katahdins - Katahdin Sheep & Farm Livestock,200,279.0515422821045,95,5,0,0,0,True,1,0,thin,5,71,19,100,e33492bb86160c6ffb003a3ac33fdfb0,0
+https://shilohridgekatahdins.com/terms,Shiloh Ridge Katahdins - Katahdin Sheep & Farm Livestock,200,252.03514099121094,95,5,0,0,0,True,1,0,thin,5,71,19,100,e33492bb86160c6ffb003a3ac33fdfb0,0
+https://shilohridgekatahdins.com/sitemap.xml,,200,436.04040145874023,47,0,0,0,0,True,0,0,thin,0,23,0,75,dfb400c5be0280885a73f7f2ebca8b4d,0
+https://shilohridgekatahdins.com/robots.txt,,200,227.90861129760742,261,0,0,0,0,True,0,0,thin,0,73,26,75,dc42263de4431043add63440b5b77558,0

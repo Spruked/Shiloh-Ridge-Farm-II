@@ -169,7 +169,7 @@ const AccountingPage = () => {
       resetExpenseForm();
     } catch (error) {
       console.error("Error creating expense:", error);
-      toast.error("Failed to record expense");
+      toast.error(error?.response?.data?.detail || "Failed to record expense");
     }
   };
 
@@ -198,7 +198,7 @@ const AccountingPage = () => {
       resetRevenueForm();
     } catch (error) {
       console.error("Error creating revenue:", error);
-      toast.error("Failed to record revenue");
+      toast.error(error?.response?.data?.detail || "Failed to record revenue");
     }
   };
 

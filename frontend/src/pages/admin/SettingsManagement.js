@@ -18,6 +18,12 @@ const SettingsManagement = () => {
     polygon_wallet_address: "",
     polygon_api_key: ""
   });
+  const [passwordData, setPasswordData] = useState({
+    current_password: "",
+    new_password: "",
+    confirm_password: ""
+  });
+  const [passwordLoading, setPasswordLoading] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -53,6 +59,32 @@ const SettingsManagement = () => {
     } catch (error) {
       console.error("Error updating settings:", error);
       toast.error("Failed to update settings");
+    }
+  };
+
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault();
+    if (passwordData.new_password !== passwordData.confirm_password) {
+      toast.error("New passwords do not match");
+      return;
+    }
+    setPasswordLoading(true);
+    try {
+      const token = localStorage.getItem("admin_token");
+      await axios.put(
+        `${API}/auth/password`,
+        {
+          current_password: passwordData.current_password,
+          new_password: passwordData.new_password
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setPasswordData({ current_password: "", new_password: "", confirm_password: "" });
+      toast.success("Password updated successfully");
+    } catch (error) {
+      toast.error(error?.response?.data?.detail || "Failed to update password");
+    } finally {
+      setPasswordLoading(false);
     }
   };
 
@@ -159,6 +191,61 @@ const SettingsManagement = () => {
           Save Settings
         </Button>
       </form>
+
+      <div className="border-t pt-8 mt-10" data-testid="admin-password-reset-section">
+        <h3 className="text-xl font-bold text-[#0f5132] mb-2">Change Admin Password</h3>
+        <p className="text-gray-600 mb-5">Update the password for the admin account currently signed in.</p>
+        <form onSubmit={handlePasswordSubmit} className="space-y-4 max-w-xl">
+          <div>
+            <Label htmlFor="current_password">Current password</Label>
+            <Input
+              id="current_password"
+              type="password"
+              autoComplete="current-password"
+              value={passwordData.current_password}
+              onChange={(e) => setPasswordData({ ...passwordData, current_password: e.target.value })}
+              required
+              data-testid="admin-current-password-input"
+            />
+          </div>
+          <div>
+            <Label htmlFor="new_password">New password</Label>
+            <Input
+              id="new_password"
+              type="password"
+              autoComplete="new-password"
+              minLength={10}
+              maxLength={128}
+              value={passwordData.new_password}
+              onChange={(e) => setPasswordData({ ...passwordData, new_password: e.target.value })}
+              required
+              data-testid="admin-new-password-input"
+            />
+          </div>
+          <div>
+            <Label htmlFor="confirm_password">Confirm new password</Label>
+            <Input
+              id="confirm_password"
+              type="password"
+              autoComplete="new-password"
+              minLength={10}
+              maxLength={128}
+              value={passwordData.confirm_password}
+              onChange={(e) => setPasswordData({ ...passwordData, confirm_password: e.target.value })}
+              required
+              data-testid="admin-confirm-password-input"
+            />
+          </div>
+          <Button
+            type="submit"
+            disabled={passwordLoading}
+            className="bg-[#0f5132] hover:bg-[#0a3c24] rounded-full"
+            data-testid="admin-password-submit-btn"
+          >
+            {passwordLoading ? "Updating..." : "Update Password"}
+          </Button>
+        </form>
+      </div>
     </div>
   );
 };

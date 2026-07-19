@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import { Button } from "../../components/ui/buttons";
-import { getApiBaseUrl } from "../../lib/backend";
+import { adminAuthHeader, getApiBaseUrl } from "../../lib/backend";
 
 const API = getApiBaseUrl();
 
@@ -19,9 +19,8 @@ const CustomersPage = () => {
   const fetchCustomers = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("admin_token");
       const response = await axios.get(`${API}/admin/customers`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: adminAuthHeader(),
       });
       setCustomers(response.data);
     } catch (error) {
@@ -33,9 +32,8 @@ const CustomersPage = () => {
 
   const handleDelete = async (customerId) => {
     try {
-      const token = localStorage.getItem("admin_token");
       await axios.delete(`${API}/admin/customers/${customerId}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: adminAuthHeader(),
       });
       setConfirmDelete(null);
       setSelected(null);

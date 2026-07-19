@@ -21,9 +21,13 @@ const Footer = () => {
               <Link to="/livestock" className="block text-gray-300 hover:text-white transition-colors" data-testid="footer-link-livestock">
                 Livestock
               </Link>
+              <Link to="/products" className="block text-gray-300 hover:text-white transition-colors">Farm Products</Link>
+              <Link to="/katahdin" className="block text-gray-300 hover:text-white transition-colors">Katahdin Sheep Guide</Link>
               <Link to="/about" className="block text-gray-300 hover:text-white transition-colors" data-testid="footer-link-about">
                 About
               </Link>
+              <Link to="/blog" className="block text-gray-300 hover:text-white transition-colors">Farm Blog</Link>
+              <Link to="/auctions" className="block text-gray-300 hover:text-white transition-colors">Livestock Auctions</Link>
               <Link to="/contact" className="block text-gray-300 hover:text-white transition-colors" data-testid="footer-link-contact">
                 Contact
               </Link>
@@ -49,6 +53,7 @@ const Footer = () => {
         
         <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
           <p data-testid="footer-copyright">© {new Date().getFullYear()} Shiloh Ridge Farm. All rights reserved.</p>
+          <p className="mt-2 text-sm"><Link to="/privacy" className="hover:text-white">Privacy</Link> · <Link to="/terms" className="hover:text-white">Terms</Link></p>
           <p className="text-xs mt-2">Website by <a href="https://spruked.com" target="_blank" rel="noopener noreferrer" className="text-blue-300 hover:text-blue-200">Spruked.com</a> - Websites and web applications you can count on! Featuring AI and NFT integration.</p>
         </div>
       </div>
