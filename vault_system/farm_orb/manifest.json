@@ -1,10 +1,13 @@
 {
   "schema": "shiloh.farm_orb.vault.v1",
-  "crawl_csv": "crawls/crawl_25.csv",
-  "crawl_record": "orb_weaver/history/crawl_25.json",
-  "latest_crawl": "orb_weaver/current/latest_crawl.json",
-  "pointer_plot_map": "pointer_plot_map.json",
-  "website_orb_context": "orb_weaver/website_orb_context/latest_context.json",
+  "canonical_source": "../site_data",
+  "crawl_csv": "../site_data/crawl_2.csv",
+  "crawl_record": "../site_data/latest_crawl.json",
+  "latest_crawl": "../site_data/latest_crawl.json",
+  "latest_audit": "../site_data/latest_audit.json",
+  "client_index": "../site_data/client_index.sqlite",
+  "pointer_plot_map": "../site_data/website_orb_context/pointer_plot_map.json",
+  "website_orb_context": "../site_data/website_orb_context/latest_context.json",
   "human_escalations": "../substrate/derived/escalations",
   "tool_audit": "../shep/tool_calls.jsonl",
   "policy": "Pointer actions use the Orb Weaver map; uncertain or permanent actions create a human escalation."

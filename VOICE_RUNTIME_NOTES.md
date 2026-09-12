@@ -1,6 +1,6 @@
 # Voice Runtime Notes
 
-- Qwen3-TTS and Kokoro TTS/STT support services must run under Python 3.12.
+- Kokoro and Qwen3-TTS support services must run under Python 3.12.
 - Do not install or run the voice stack from the main Python 3.14 site backend venv.
 - The current Qwen3-TTS service entrypoint is `/home/bryan/qwen3_tts_06b/server_06b.py`.
 - The site backend should call Qwen3-TTS at `http://127.0.0.1:9880/speak`.
@@ -8,9 +8,11 @@
 - The current faster-whisper STT service entrypoint is `/home/bryan/faster_whisper_server/server.py`.
 - The site backend should call faster-whisper at `http://127.0.0.1:9000/stt`.
 - Backend TTS is bounded by `SHEP_TTS_TOTAL_TIMEOUT_SEC` (default `8`) so a slow or misconfigured TTS engine cannot stall Shep chat.
-- `SHEP_ENABLE_SERVER_TTS` defaults to enabled. The frontend falls back to browser speech synthesis if the server returns text without audio.
+- `SHEP_ENABLE_SERVER_TTS` defaults to enabled. Shep must attempt Kokoro first, then Qwen3 TTS, then report voice unavailable and continue in text.
+- Browser speech synthesis is never permitted, including as a fallback. There is no visitor-facing output enable/disable control.
+- When Shep text appears without sound, verify the backend response includes `audio_wav_base64`, then check the Kokoro and Qwen3 service endpoints. Do not restore browser speech as a workaround.
 - `shiloh_voice_system` consumes raw WAV responses from Qwen's `/speak` endpoint, caches generated audio, and runs blocking generators in worker threads so its FastAPI event loop stays responsive.
-- Standalone voice latency limits default to 8 seconds for Qwen, 12 seconds for the Kokoro CLI, and 8 seconds for Edge TTS. Override them with `SHILOH_QWEN_TTS_TIMEOUT_SEC`, `SHILOH_KOKORO_CLI_TIMEOUT_SEC`, and `SHILOH_EDGE_TTS_TIMEOUT_SEC`.
+- Standalone voice latency limits default to 8 seconds for Qwen and 12 seconds for the Kokoro CLI. Override them with `SHILOH_QWEN_TTS_TIMEOUT_SEC` and `SHILOH_KOKORO_CLI_TIMEOUT_SEC`.
 - WSL systemd unit files live in `ops/wsl-systemd/`.
 - Install or refresh the reboot services with `sudo ops/wsl-systemd/install_voice_services.sh`.
 - Ollama is kept warm with `OLLAMA_KEEP_ALIVE=-1` and `ollama-preload.service`.

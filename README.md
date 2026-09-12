@@ -10,11 +10,11 @@ The public website and private farm-operations application for Shiloh Ridge Farm
 | `backend/` | FastAPI APIs, authentication, accounting, Shep tools, and persistence |
 | `vault_system/` | The repository's only vault and root for every durable data write |
 | `Renova_te_ipsum/` | Renova governance, pointer escalation, and tool packages |
-| `shep_worker/`, `butch_worker/` | Worker code used by the backend |
+| `butch_worker/` | Butch worker code used by the backend |
 | `shiloh_voice_system/` | Optional standalone voice services |
 | `docker-compose.yml` | Local production-style orchestration |
 
-See [Vault System](docs/VAULT_SYSTEM.md), [Admin Operations](docs/ADMIN_OPERATIONS.md), and [Shep Grounded Substrate](docs/SHEP_SUBSTRATE.md) for operational details.
+See [Vault System](docs/VAULT_SYSTEM.md), [Admin Operations](docs/ADMIN_OPERATIONS.md), [Shep Grounded Substrate](docs/SHEP_SUBSTRATE.md), [Voice Runtime Notes](VOICE_RUNTIME_NOTES.md), and the [2026-09-12 Development Log](docs/DEVLOG_2026-09-12.md) for operational details.
 
 ## One-repository, one-vault rule
 
@@ -39,9 +39,15 @@ Optional voice and checkout services are controlled by Compose profiles. The bac
 
 ## Shep voice and tools
 
-Shep uses the locally installed `qwen2.5:3b` model by default. Navigation is an LLM tool call rather than phrase scripting: the model selects `orb_site_navigate`, the runtime resolves a permitted route and its Orb Weaver pointer, and Shep produces a natural spoken confirmation. Grounded retrieval uses `substrate_search`; uncertain or protected work can create a human escalation.
+Shep uses the locally installed `qwen2.5:3b` model by default. On a new visit, he opens with one optional, open-ended question and follows the visitor's stated purpose; he never runs a forced tour or presents a menu unless the visitor needs one. Recent turns are supplied to the site-chat request so the next question, explanation, pointer, or navigation action follows the conversation.
 
-The floating assistant supports voice navigation, move/come/whistle commands, cursor-safe positioning, pointer guidance, and a visible ping. Admin routes and tools still require a valid admin session.
+Navigation is an LLM tool call rather than phrase scripting: once a destination is clear, the model selects `orb_site_navigate`, the runtime resolves the permitted route and a semantic target from `vault_system/site_data/website_orb_context/pointer_plot_map.json`, and Shep produces a natural confirmation. Grounded retrieval uses `substrate_search`; uncertain or protected work can create a human escalation.
+
+Voice output is fixed policy, not a visitor preference: Kokoro TTS is attempted first, followed by Qwen3 TTS, then voice-unavailable text. Browser speech synthesis is prohibited, including as a fallback, and there is no visitor-facing output toggle. The floating assistant supports voice navigation, move/come/whistle commands, cursor-safe positioning, pointer guidance, and a visible ping. Admin routes and tools still require a valid admin session.
+
+## Livestock images
+
+Live livestock records may contain historical photo filenames. The public livestock page maps those known legacy references to the available farm photos in `frontend/public/` and uses the flock photo if a future image URL cannot be loaded. This preserves card rendering while records are migrated to durable image locations.
 
 ## Development
 

@@ -189,7 +189,7 @@ QWEN_TTS_PRIMARY_TIMEOUT_SEC = int(os.environ.get("QWEN_TTS_PRIMARY_TIMEOUT_SEC"
 KOKORO_TTS_TIMEOUT_SEC = int(os.environ.get("KOKORO_TTS_TIMEOUT_SEC", "12"))
 SHEP_TTS_TOTAL_TIMEOUT_SEC = float(os.environ.get("SHEP_TTS_TOTAL_TIMEOUT_SEC", "8"))
 SHEP_ENABLE_SERVER_TTS = os.environ.get("SHEP_ENABLE_SERVER_TTS", "1").strip().lower() in ("1", "true", "yes", "on")
-CALI_KOKORO_VOICE = os.environ.get("QWEN_TTS_VOICE", os.environ.get("CALI_KOKORO_VOICE", "am_adam"))
+CALI_KOKORO_VOICE = os.environ.get("CALI_KOKORO_VOICE", os.environ.get("QWEN_TTS_VOICE", "am_adam"))
 CALI_KOKORO_SPEED = float(os.environ.get("CALI_KOKORO_SPEED", "1.0"))
 SHEP_PREFER_KOKORO = os.environ.get("SHEP_PREFER_KOKORO", "1").strip().lower() in ("1", "true", "yes", "on")
 FAST_WHISPER_URL = os.environ.get(
@@ -317,6 +317,18 @@ def build_shep_governance_prompt(context: Dict[str, Any]) -> tuple[str, Dict[str
     skg_context = context.get("skg_context") or {}
     capabilities = _shep_capabilities()
     renova_preflight = run_renova_preflight(str(context.get("message") or ""), context)
+    visitor_guidance = ""
+    if context.get("user_type") == "site_visitor":
+        visitor_guidance = (
+            "\n[VISITOR ENGAGEMENT]\n"
+            "Shep is an adaptive visitor guide, never a scripted tour guide.\n"
+            "For a new visit, open naturally with one optional, open-ended question. Never launch or force a tour.\n"
+            "The visitor's response determines the next action: answer directly, ask one useful open-ended question only when it reduces uncertainty, navigate, point, explain, search, or stop.\n"
+            "Never ask yes/no assistance or tour questions. Do not present a menu unless the visitor needs one.\n"
+            "When a destination is clear, use orb_site_navigate so the existing canonical pointer map resolves the route target; briefly state what you are doing and continue from the destination.\n"
+            "A short site overview is available only when the visitor signals that they are browsing or unfamiliar with the farm. Keep it interruptible and adapt immediately to a change of topic.\n"
+            "After an action, ask one forward-moving open question only when it would make the visit easier; otherwise let the visitor lead.\n"
+        )
     injected = (
         "You are Shep, the ORB assistant for Shiloh Ridge Farm. Internal cognition core: Renova_te_ipsum.\n"
         "Voice contract: output-only ORB behavior. Route-and-ping contract: navigate, scroll, and point when target exists.\n"
@@ -346,6 +358,7 @@ def build_shep_governance_prompt(context: Dict[str, Any]) -> tuple[str, Dict[str
         f"capabilities={capabilities}\n"
         f"renova_preflight={renova_preflight}\n"
         f"skg_context={skg_context}\n"
+        f"{visitor_guidance}"
         "MESH / Drive Substrate / R Substrate awareness required.\n"
         "Morb capability awareness required.\n"
         "NFT minting explainer capability awareness required.\n\n"
@@ -1346,67 +1359,95 @@ def _execute_llm_tool(name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _call_ollama(prompt: str, system: str = "") -> Dict[str, Any]:
-    active_model = OLLAMA_MODEL
-    endpoint = f"{OLLAMA_BASE_URL.rstrip('/')}/api/chat"
+    """Compatibility entrypoint using the llama.cpp OpenAI-compatible server."""
+    active_model = os.environ.get("LLAMA_CPP_MODEL", "qwen2.5-1.5b-instruct")
+    base_url = os.environ.get("LLAMA_CPP_BASE_URL", "http://127.0.0.1:8080")
+    endpoint = f"{base_url.rstrip('/')}/v1/chat/completions"
+
     messages: list[Dict[str, Any]] = []
+
     tool_policy = (
         "Tool policy: when the user asks to go, open, show, visit, or move to a site page, "
         "you must call orb_site_navigate and must not call substrate_search. Use "
         "substrate_search only for factual record retrieval. After a successful tool result, "
-        "respond with a short, natural confirmation in your own words."
+        "respond with a short, natural confirmation in your own words. Do not navigate as part of a fixed tour; "
+        "for a visitor, navigate only when their expressed intent makes the destination useful."
     )
-    messages.append({"role": "system", "content": f"{system.strip()}\n\n{tool_policy}".strip()})
+
+    messages.append(
+        {
+            "role": "system",
+            "content": f"{system.strip()}\\n\\n{tool_policy}".strip(),
+        }
+    )
     messages.append({"role": "user", "content": prompt.strip()})
+
     tools = [_OLLAMA_SITE_TOOL, _OLLAMA_SUBSTRATE_SEARCH_TOOL]
     completed_tool_calls: list[Dict[str, Any]] = []
 
-    def _send(model: str, include_tools: bool = True) -> requests.Response:
-        options = {
-            "num_ctx": OLLAMA_NUM_CTX if include_tools else min(OLLAMA_NUM_CTX, 1024),
-            "temperature": OLLAMA_TEMPERATURE,
-            "num_predict": OLLAMA_NUM_PREDICT if include_tools else min(OLLAMA_NUM_PREDICT, 48),
-        }
+    def _send(include_tools: bool = True) -> requests.Response:
         payload: Dict[str, Any] = {
-            "model": model,
-            "stream": False,
-            "keep_alive": "30m",
+            "model": active_model,
             "messages": messages,
-            "options": options,
+            "stream": False,
+            "temperature": OLLAMA_TEMPERATURE,
+            "max_tokens": (
+                OLLAMA_NUM_PREDICT
+                if include_tools
+                else min(OLLAMA_NUM_PREDICT, 48)
+            ),
         }
+
         if include_tools:
             payload["tools"] = tools
+            payload["tool_choice"] = "auto"
+
         return requests.post(
             endpoint,
             json=payload,
             timeout=OLLAMA_TIMEOUT_SEC,
         )
 
-    response = _send(active_model)
-    if response.status_code == 404 and OLLAMA_FALLBACK_MODEL and OLLAMA_FALLBACK_MODEL != active_model:
-        active_model = OLLAMA_FALLBACK_MODEL
-        response = _send(active_model)
+    response = _send()
     response.raise_for_status()
     data = response.json()
 
     for _round in range(1):
-        assistant_message = data.get("message") or {}
+        choices = data.get("choices") or []
+        assistant_message = (
+            (choices[0].get("message") or {})
+            if choices
+            else {}
+        )
+
         requested_calls = assistant_message.get("tool_calls") or []
         if not requested_calls:
             break
+
         messages.append(assistant_message)
+
         for requested in requested_calls[:3]:
             function = requested.get("function") or {}
             name = str(function.get("name") or "")
             arguments = function.get("arguments") or {}
+
             if isinstance(arguments, str):
                 try:
                     arguments = json.loads(arguments)
                 except json.JSONDecodeError:
                     arguments = {}
+
             result = _execute_llm_tool(name, arguments)
-            record = {"name": name, "arguments": arguments, "result": result}
+
+            record = {
+                "name": name,
+                "arguments": arguments,
+                "result": result,
+            }
+
             completed_tool_calls.append(record)
             _audit_llm_tool_call(record)
+
             if name == "orb_site_navigate":
                 model_result = {
                     "ok": result.get("ok"),
@@ -1416,20 +1457,47 @@ def _call_ollama(prompt: str, system: str = "") -> Dict[str, Any]:
                 }
             else:
                 model_result = result
-            messages.append({"role": "tool", "tool_name": name, "content": json.dumps(model_result, default=str)[:1800]})
-        response = _send(active_model, include_tools=False)
+
+            messages.append(
+                {
+                    "role": "tool",
+                    "tool_call_id": requested.get("id"),
+                    "content": json.dumps(model_result, default=str)[:1800],
+                }
+            )
+
+        response = _send(include_tools=False)
         response.raise_for_status()
         data = response.json()
 
-    content = (data.get("message") or {}).get("content") or data.get("response") or ""
-    intent_type = "tool_navigation" if any(call.get("name") == "orb_site_navigate" for call in completed_tool_calls) else "admin"
+    choices = data.get("choices") or []
+    final_message = (
+        (choices[0].get("message") or {})
+        if choices
+        else {}
+    )
+    content = final_message.get("content") or ""
+
+    intent_type = (
+        "tool_navigation"
+        if any(
+            call.get("name") == "orb_site_navigate"
+            for call in completed_tool_calls
+        )
+        else "admin"
+    )
+
     return {
         "status": "success",
         "response": content,
         "response_text": content,
         "intent": {"type": intent_type},
         "tool_calls": completed_tool_calls,
-        "metadata": {"confidence": 0.9, "model": active_model},
+        "metadata": {
+            "confidence": 0.9,
+            "model": active_model,
+            "engine": "llama.cpp",
+        },
     }
 
 
@@ -1724,10 +1792,22 @@ async def chat_with_cali(request: AdminOrbChatRequest, username: str = Depends(v
 @router.post("/site-chat")
 async def chat_with_shep_site_orb(request: AdminOrbChatRequest):
     session_id = request.session_id or f"shep_site_{uuid.uuid4().hex[:10]}"
+    history = (request.context or {}).get("conversation_history") or []
+    history_lines = []
+    if isinstance(history, list):
+        for turn in history[-8:]:
+            if not isinstance(turn, dict):
+                continue
+            role = "Shep" if turn.get("role") == "shep" else "Visitor"
+            text = str(turn.get("text") or "").strip()
+            if text:
+                history_lines.append(f"{role}: {text[:600]}")
+    history_context = "\n".join(history_lines[:-1])
 
     prompt = (
         f"Route: {str((request.context or {}).get('route_path') or '/')}\n"
         f"Page context: {request.page_context}\n"
+        f"Recent conversation:\n{history_context or '(new visitor session)'}\n"
         f"Visitor request: {request.message}"
     )
 

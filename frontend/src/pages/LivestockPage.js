@@ -12,6 +12,17 @@ import { getApiBaseUrl } from "../lib/backend";
 import { resolveMediaUrl } from "../lib/media";
 
 const API = getApiBaseUrl();
+const DEFAULT_LIVESTOCK_IMAGE = "/flockofdominicskatahdins.jpeg";
+const LEGACY_LIVESTOCK_IMAGE_REPLACEMENTS = {
+  "katahdin-ram.jpg": "/Ram_001_2026.jpg",
+  "katahdin_ewe_2.jpg": "/singlesheep.jpg",
+  "katahdin-ram-2.jpg": "/katahdin-closeup.jpg",
+  "rhode-island-red.jpg": "/pens-with-goats-hogs-and-sheep.webp",
+  "amerauca.jpg": "/pens-with-goats-hogs-and-sheep.webp",
+  "great-pyrenees-male.jpg": DEFAULT_LIVESTOCK_IMAGE,
+  "great-pyrenees-female.jpg": DEFAULT_LIVESTOCK_IMAGE,
+  "pyrenees-pup.jpg": DEFAULT_LIVESTOCK_IMAGE,
+};
 
 const LivestockPage = () => {
   const [livestock, setLivestock] = useState([]);
@@ -70,8 +81,18 @@ const LivestockPage = () => {
     setFilteredLivestock(filtered);
   };
 
-  const getAnimalPhotos = (animal) =>
-    (animal?.photos || []).map((photo) => resolveMediaUrl(photo)).filter(Boolean);
+  const getAnimalPhotos = (animal) => {
+    const photos = (animal?.photos || [])
+      .map((photo) => LEGACY_LIVESTOCK_IMAGE_REPLACEMENTS[photo] || resolveMediaUrl(photo))
+      .filter(Boolean);
+    return photos.length > 0 ? photos : [DEFAULT_LIVESTOCK_IMAGE];
+  };
+
+  const handlePhotoError = (event) => {
+    if (event.currentTarget.dataset.fallbackApplied) return;
+    event.currentTarget.dataset.fallbackApplied = "true";
+    event.currentTarget.src = DEFAULT_LIVESTOCK_IMAGE;
+  };
 
   return (
     <div className="min-h-screen bg-[#f7f3e7]">
@@ -136,6 +157,7 @@ const LivestockPage = () => {
                         alt={animal.name || animal.tag_number}
                         className="h-full w-full object-cover"
                         loading="lazy"
+                        onError={handlePhotoError}
                       />
                     ) : (
                       <span className="text-sm font-semibold text-[#0f5132] uppercase tracking-widest">

@@ -6,11 +6,15 @@ import os
 from pathlib import Path
 from typing import Any, Callable, Dict
 
-import substrate_service as substrate
+try:
+    from . import substrate_service as substrate
+except ImportError:
+    import substrate_service as substrate
 
 
 VAULT_SYSTEM_ROOT = Path(os.environ.get("SHILOH_VAULT_SYSTEM_ROOT", "/app/vault_system"))
-POINTER_MAP_PATH = VAULT_SYSTEM_ROOT / "farm_orb" / "pointer_plot_map.json"
+SITE_DATA_ROOT = VAULT_SYSTEM_ROOT / "site_data"
+POINTER_MAP_PATH = SITE_DATA_ROOT / "website_orb_context" / "pointer_plot_map.json"
 
 
 def _pointer_lookup(arguments: Dict[str, Any]) -> Dict[str, Any]:

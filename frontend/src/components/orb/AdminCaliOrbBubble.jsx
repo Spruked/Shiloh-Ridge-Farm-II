@@ -2,14 +2,13 @@ import React, { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { Loader2, Mic, MicOff, Power, Volume2 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { getApiBaseUrl, getBackendBaseUrl } from '../../lib/backend';
+import { getApiBaseUrl } from '../../lib/backend';
 import { resolveMediaUrl } from '../../lib/media';
 
 const ORB_SIZE = 184;
 const EDGE_PADDING = 16;
 const ORB_POSITION_STORAGE_KEY = 'cali_orb_position_v3';
 const VOICE_RECOGNITION_ENABLED_KEY = 'cali_voice_recognition_enabled_v1';
-const VOICE_OUTPUT_ENABLED_KEY = 'cali_voice_output_enabled_v2';
 const SHEP_ADMIN_OVERRIDE_KEY = 'shep_admin_override_enabled_v1';
 const SUMMON_ACTIVE_MS = 9000;
 const AUTONOMOUS_DRIFT_INTERVAL_MS = 60;
@@ -32,8 +31,7 @@ const DOCTRINE_BASELINE_HASH = 'b601457ace7f0639f790ec8f573bc343363d19f6e53291f3
 const PRIMARY_MODEL = 'qwen2.5:3b';
 const FALLBACK_MODEL = 'llama3.2:1b';
 const SHEP_MORB_EXPLAINED_KEY = 'shep_morb_explained_v1';
-const COLD_START_GREETING_TEXT = 'Hello, I am Shep. Ask me anything for site information. If your browser asks for microphone access, approve it so I can hear you.';
-const SHEP_CACHED_GREETING_URL = `${getBackendBaseUrl()}/audio/shep-welcome.wav`;
+const COLD_START_GREETING_TEXT = 'Hi, I\'m Shep. What brings you to Shiloh Ridge today?';
 const SHEP_ORB_SKIN_URL = resolveMediaUrl('assets/images/shep better1024.png');
 
 const ORB_NAV_TARGETS = [
@@ -144,10 +142,6 @@ const loadVoiceRecognitionEnabled = () => {
   }
 };
 
-const loadVoiceOutputEnabled = () => {
-  return true;
-};
-
 const loadShepEnabled = () => {
   try {
     return localStorage.getItem(SHEP_ADMIN_OVERRIDE_KEY) !== 'false';
@@ -200,7 +194,9 @@ const AdminCaliOrbBubble = ({ pageContext = 'general' }) => {
   const dormantRef = useRef(false);
   const roamTargetRef = useRef(null);
   const coldStartGreetingDoneRef = useRef(false);
+  const coldStartGreetingRequestedRef = useRef(false);
   const coldStartMicRequestedRef = useRef(false);
+  const conversationRef = useRef([]);
   const mediaRecorderRef = useRef(null);
   const mediaStreamRef = useRef(null);
   const recordingStopTimerRef = useRef(null);
@@ -214,11 +210,9 @@ const AdminCaliOrbBubble = ({ pageContext = 'general' }) => {
   const [audioEngine, setAudioEngine] = useState('qwen-tts');
   const [voiceSupported, setVoiceSupported] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(loadVoiceRecognitionEnabled);
-  const [voiceOutputEnabled, setVoiceOutputEnabled] = useState(loadVoiceOutputEnabled);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [ping, setPing] = useState(null);
-  const [showVoiceRecovery, setShowVoiceRecovery] = useState(false);
   const [orbSignal, setOrbSignal] = useState('green');
   const [shepEnabled, setShepEnabled] = useState(loadShepEnabled);
   const [coldStartReady, setColdStartReady] = useState(false);
@@ -272,38 +266,11 @@ const AdminCaliOrbBubble = ({ pageContext = 'general' }) => {
 
   const markVoiceUnavailable = () => {
     if (!shepEnabled) return;
-    window.speechSynthesis?.cancel?.();
     setIsSpeaking(false);
-    setShowVoiceRecovery(true);
     setAudioEngine('voice_unavailable');
     setOrbSignal('red');
     setBubbleVisible(true);
   };
-
-  const speakWithBrowser = (text) => new Promise((resolve, reject) => {
-    if (!text || !window.speechSynthesis || typeof window.SpeechSynthesisUtterance === 'undefined') {
-      reject(new Error('Browser speech synthesis is unavailable'));
-      return;
-    }
-    window.speechSynthesis.cancel();
-    const utterance = new window.SpeechSynthesisUtterance(text);
-    const voices = window.speechSynthesis.getVoices?.() || [];
-    utterance.voice = voices.find((voice) => /en-US/i.test(voice.lang) && /male|david|guy|mark|daniel|george|alex|aaron|bruce|fred|ralph|reed|tom/i.test(`${voice.name} ${voice.voiceURI}`))
-      || voices.find((voice) => /en-US/i.test(voice.lang))
-      || null;
-    utterance.rate = 0.96;
-    utterance.pitch = 0.88;
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => {
-      setIsSpeaking(false);
-      resolve();
-    };
-    utterance.onerror = (event) => {
-      setIsSpeaking(false);
-      reject(event.error || new Error('Browser speech failed'));
-    };
-    window.speechSynthesis.speak(utterance);
-  });
 
   const requestMicrophoneAccess = async () => {
     if (coldStartMicRequestedRef.current && micPermissionStatus === 'blocked') return false;
@@ -331,11 +298,6 @@ const AdminCaliOrbBubble = ({ pageContext = 'general' }) => {
       recognitionRef.current?.stop?.();
     } catch (_error) {
       // Ignore recognizer races.
-    }
-    try {
-      window.speechSynthesis?.cancel?.();
-    } catch (_error) {
-      // Ignore browser speech errors.
     }
     if (audioRef.current) {
       audioRef.current.pause();
@@ -484,11 +446,12 @@ const AdminCaliOrbBubble = ({ pageContext = 'general' }) => {
       butch_customer_context: readLocalJson('butch_customer_context'),
       shiloh_profile: readLocalJson('shiloh_butch_profile'),
     },
+    conversation_history: conversationRef.current.slice(-8),
     runtime_awareness: {
       route_path: window.location.pathname,
       idle_ms: Date.now() - lastCursorMovementRef.current,
       voice_enabled: voiceEnabled,
-      voice_output_enabled: voiceOutputEnabled,
+      voice_output_enabled: true,
       dormant: dormantRef.current,
       summon_active: Date.now() < summonUntilRef.current,
       autonomous_drift: !isDraggingRef.current && Date.now() >= manualControlPauseUntilRef.current,
@@ -515,6 +478,7 @@ const AdminCaliOrbBubble = ({ pageContext = 'general' }) => {
     summonUntilRef.current = Date.now() + SUMMON_ACTIVE_MS;
     setIsThinking(true);
     setBubbleVisible(true);
+    conversationRef.current = [...conversationRef.current, { role: 'visitor', text: message }].slice(-8);
     try {
       const response = await axios.post(
         `${apiBaseUrl}${useAdminOrb ? '/orb/chat' : '/orb/site-chat'}`,
@@ -539,6 +503,7 @@ const AdminCaliOrbBubble = ({ pageContext = 'general' }) => {
         return;
       }
       let responseText = payload.response_text || payload.response || 'Shep is online.';
+      conversationRef.current = [...conversationRef.current, { role: 'shep', text: responseText }].slice(-8);
       if ((payload.intent || {}).type === 'morb_unavailable') {
         try {
           const explained = localStorage.getItem(SHEP_MORB_EXPLAINED_KEY) === 'true';
@@ -554,46 +519,35 @@ const AdminCaliOrbBubble = ({ pageContext = 'general' }) => {
       setEvidencePointers(Array.isArray(payload.evidence) ? payload.evidence : []);
       setOrbSignal('green');
       const guidanceTarget = resolveToolNavTarget(payload.tool_calls, Boolean(useAdminOrb));
-      if (guidanceTarget && !voiceOutputEnabled) routeAndPing(guidanceTarget);
-
-      if (voiceOutputEnabled) {
-        if (payload.audio_wav_base64) {
-          if (options.pointerSelector) showPingAtSelector(options.pointerSelector);
-          const audio = new Audio(`data:audio/wav;base64,${payload.audio_wav_base64}`);
-          audio.volume = 1;
-          audio.muted = false;
-          audioRef.current = audio;
-          audio.onplay = () => {
-            setIsSpeaking(true);
-            if (guidanceTarget) routeAndPing(guidanceTarget);
-          };
-          audio.onended = () => {
-            setIsSpeaking(false);
-            if (bubbleHideTimerRef.current) window.clearTimeout(bubbleHideTimerRef.current);
-            bubbleHideTimerRef.current = window.setTimeout(() => setBubbleVisible(false), 1200);
-            window.setTimeout(() => startVoiceListening(), 350);
-          };
-          try {
-            setIsSpeaking(true);
-            await audio.play();
-            setAudioEngine(payload.audio_engine || 'qwen-tts');
-            setShowVoiceRecovery(false);
-          } catch (_error) {
-            if (guidanceTarget) routeAndPing(guidanceTarget);
-            setBubbleText('Click Shep once to enable his out-loud greeting. Your browser is waiting for permission to play audio.');
-            markVoiceUnavailable();
-          }
-        } else {
+      if (payload.audio_wav_base64) {
+        if (options.pointerSelector) showPingAtSelector(options.pointerSelector);
+        const audio = new Audio(`data:audio/wav;base64,${payload.audio_wav_base64}`);
+        audio.volume = 1;
+        audio.muted = false;
+        audioRef.current = audio;
+        audio.onplay = () => {
+          setIsSpeaking(true);
           if (guidanceTarget) routeAndPing(guidanceTarget);
-          try {
-            await speakWithBrowser(responseText);
-            setAudioEngine('browser-male-fallback');
-            setShowVoiceRecovery(false);
-          } catch (_error) {
-            setAudioEngine('server-voice-unavailable');
-            setShowVoiceRecovery(true);
-          }
+        };
+        audio.onended = () => {
+          setIsSpeaking(false);
+          if (bubbleHideTimerRef.current) window.clearTimeout(bubbleHideTimerRef.current);
+          bubbleHideTimerRef.current = window.setTimeout(() => setBubbleVisible(false), 1200);
+          window.setTimeout(() => startVoiceListening(), 350);
+        };
+        try {
+          setIsSpeaking(true);
+          await audio.play();
+          setAudioEngine(payload.audio_engine || 'qwen-tts');
+        } catch (_error) {
+          if (guidanceTarget) routeAndPing(guidanceTarget);
+          markVoiceUnavailable();
+          setBubbleText(`${responseText} Voice unavailable — Shep will continue in text.`);
         }
+      } else {
+        if (guidanceTarget) routeAndPing(guidanceTarget);
+        markVoiceUnavailable();
+        setBubbleText(`${responseText} Voice unavailable — Shep will continue in text.`);
       }
     } catch (error) {
       setOrbSignal('red');
@@ -964,7 +918,6 @@ const AdminCaliOrbBubble = ({ pageContext = 'general' }) => {
       if (pingClearTimerRef.current) window.clearTimeout(pingClearTimerRef.current);
       if (bubbleHideTimerRef.current) window.clearTimeout(bubbleHideTimerRef.current);
       if (recordingStopTimerRef.current) window.clearTimeout(recordingStopTimerRef.current);
-      window.speechSynthesis?.cancel?.();
       if (audioRef.current) audioRef.current.pause();
     };
   }, []);
@@ -999,40 +952,12 @@ const AdminCaliOrbBubble = ({ pageContext = 'general' }) => {
       setBubbleText('Shep is shut down by admin override.');
       return;
     }
-    if (showVoiceRecovery && audioRef.current) {
-      const pendingAudio = audioRef.current;
-      pendingAudio.volume = 1;
-      pendingAudio.muted = false;
-      setBubbleVisible(true);
-      setIsSpeaking(true);
-      pendingAudio.play()
-        .then(() => {
-          setShowVoiceRecovery(false);
-          setOrbSignal('green');
-        })
-        .catch(() => {
-          setIsSpeaking(false);
-          setBubbleText('Browser audio is still blocked. Allow sound for this site, then click Shep again.');
-        });
-      return;
-    }
     setBubbleVisible(true);
     startVoiceListening().then((started) => {
       if (!started) {
         setBubbleText('Approve microphone access so Shep can listen.');
       }
     });
-  };
-
-  const handleEnableVoiceOutput = () => {
-    setVoiceOutputEnabled(true);
-    setVoiceEnabled(true);
-    localStorage.setItem(VOICE_OUTPUT_ENABLED_KEY, 'true');
-    localStorage.setItem(VOICE_RECOGNITION_ENABLED_KEY, 'true');
-    if (bubbleText) {
-      markVoiceUnavailable();
-      setShowVoiceRecovery(false);
-    }
   };
 
   const openEvidencePointer = async (pointer) => {
@@ -1066,48 +991,31 @@ const AdminCaliOrbBubble = ({ pageContext = 'general' }) => {
     setBubbleVisible(true);
     setShowColdStartPrompt(true);
     setOrbSignal('amber');
-    setVoiceOutputEnabled(true);
-    localStorage.setItem(VOICE_OUTPUT_ENABLED_KEY, 'true');
-    const greetingAudio = new Audio(SHEP_CACHED_GREETING_URL);
-    greetingAudio.preload = 'auto';
-    greetingAudio.volume = 1;
-    greetingAudio.muted = false;
-    audioRef.current = greetingAudio;
-    const playGreeting = () => {
-      if (!greetingAudio.paused || greetingAudio.ended) return;
+    const requestGreeting = () => {
+      if (coldStartGreetingRequestedRef.current) return;
+      coldStartGreetingRequestedRef.current = true;
       showPingAtSelector('[data-testid="nav-brand"]');
-      greetingAudio.play().then(() => {
-        setIsSpeaking(true);
-        setShowVoiceRecovery(false);
-        setOrbSignal('green');
-      }).catch(() => {
-        setIsSpeaking(false);
-      });
+      triggerCali('Open this new visitor conversation with exactly: "Hi, I\'m Shep. What brings you to Shiloh Ridge today?"', { allowWhileThinking: true });
     };
-    greetingAudio.onended = () => {
-      setIsSpeaking(false);
-      setBubbleVisible(false);
-      window.setTimeout(() => startVoiceListening(), 350);
-    };
-    window.addEventListener('shep-audio-unlock', playGreeting);
-    window.addEventListener('pointerdown', playGreeting, { capture: true, once: true });
-    window.addEventListener('keydown', playGreeting, { capture: true, once: true });
-    const greetingTimer = window.setTimeout(playGreeting, 350);
+    window.addEventListener('shep-audio-unlock', requestGreeting);
+    window.addEventListener('pointerdown', requestGreeting, { capture: true, once: true });
+    window.addEventListener('keydown', requestGreeting, { capture: true, once: true });
+    // Begin the governed greeting while the splash is visible so server TTS can warm up.
+    const greetingWarmupTimer = window.setTimeout(requestGreeting, 350);
     const micTimer = window.setTimeout(() => {
       requestMicrophoneAccess();
       setColdStartReady(true);
-    }, voiceOutputEnabled ? 5200 : 1800);
+    }, 5200);
     const promptTimer = window.setTimeout(() => setShowColdStartPrompt(false), 9000);
     return () => {
       window.clearTimeout(micTimer);
       window.clearTimeout(promptTimer);
-      window.clearTimeout(pointerTimer);
-      window.clearTimeout(greetingTimer);
-      window.removeEventListener('shep-audio-unlock', playGreeting);
-      window.removeEventListener('pointerdown', playGreeting, { capture: true });
-      window.removeEventListener('keydown', playGreeting, { capture: true });
+      window.clearTimeout(greetingWarmupTimer);
+      window.removeEventListener('shep-audio-unlock', requestGreeting);
+      window.removeEventListener('pointerdown', requestGreeting, { capture: true });
+      window.removeEventListener('keydown', requestGreeting, { capture: true });
     };
-  }, [sessionId, shepEnabled, voiceOutputEnabled]);
+  }, [sessionId, shepEnabled]);
 
   const palette = {
     core: '#b99567',
@@ -1119,30 +1027,11 @@ const AdminCaliOrbBubble = ({ pageContext = 'general' }) => {
     bubbleText: '#13361f',
   };
 
-  const signalPalette = (() => {
-    if (orbSignal === 'red') {
-      return {
-        core: '#7f1d1d',
-        coreDark: '#450a0a',
-        glow: 'rgba(239,68,68,0.82)',
-        ring: 'rgba(254,202,202,0.78)',
-      };
-    }
-    if (orbSignal === 'amber') {
-      return {
-        core: 'rgba(54,124,43,0.82)',
-        coreDark: 'rgba(24,76,31,0.9)',
-        glow: 'rgba(104,179,58,0.34)',
-        ring: 'rgba(166,211,120,0.32)',
-      };
-    }
-    return {
-      core: 'rgba(202,169,123,0.82)',
-      coreDark: 'rgba(112,79,45,0.88)',
-      glow: 'rgba(242,224,194,0.68)',
-      ring: 'rgba(255,252,244,0.78)',
-    };
-  })();
+  const orbitPalette = {
+    ring: 'rgba(185,149,103,0.58)',
+    dot: 'rgba(222,187,137,0.92)',
+    glow: 'rgba(185,149,103,0.46)',
+  };
 
   const activityMode = !shepEnabled
     ? 'shutdown'
@@ -1158,10 +1047,8 @@ const AdminCaliOrbBubble = ({ pageContext = 'general' }) => {
   const shouldShowBubble = bubbleVisible;
 
   const orbStyle = {
-    background: `
-      radial-gradient(circle at 50% 44%, rgba(255,255,255,0.22) 0 9%, ${signalPalette.core} 10% 58%, ${signalPalette.coreDark} 100%)
-    `,
-    boxShadow: `0 0 ${isActiveMode ? 26 : 16}px ${isActiveMode ? 5 : 3}px ${signalPalette.glow}, 0 0 ${isActiveMode ? 52 : 34}px ${isActiveMode ? 9 : 5}px ${signalPalette.glow}, 0 20px 54px rgba(0,0,0,0.5)`,
+    background: 'transparent',
+    boxShadow: '0 20px 54px rgba(62,43,23,0.3)',
     touchAction: 'none',
     userSelect: 'none',
   };
@@ -1202,14 +1089,13 @@ const AdminCaliOrbBubble = ({ pageContext = 'general' }) => {
           66% { transform: scale(0.92); opacity: 0.92; filter: blur(0) brightness(1.06); }
           100% { transform: scale(1); opacity: 1; filter: blur(0) brightness(1); }
         }
-        @keyframes cali-orb-ring-pulse {
-          0% { transform: scale(0.84); opacity: 0; }
-          18% { opacity: 0.74; }
-          100% { transform: scale(1.34); opacity: 0; }
+        @keyframes shep-orbit-spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
         @keyframes shep-speaking-glow {
-          0%, 100% { transform: scale(0.98); opacity: 0.18; }
-          45% { transform: scale(1.08); opacity: 0.38; }
+          0%, 100% { transform: scale(0.9); opacity: 0.18; }
+          50% { transform: scale(1.16); opacity: 0.72; }
         }
         @keyframes shep-nav-ping-expand {
           0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0.9; }
@@ -1286,16 +1172,6 @@ const AdminCaliOrbBubble = ({ pageContext = 'general' }) => {
                 {shepEnabled ? 'Shut Shep Down' : 'Resume Shep'}
               </button>
             )}
-            {showVoiceRecovery && (
-              <button
-                type="button"
-                onClick={handleEnableVoiceOutput}
-                className="mt-2 rounded-full border px-2.5 py-1 text-[11px] font-medium"
-                style={{ borderColor: palette.bubbleBorder, color: palette.core }}
-              >
-                Enable Voice Output
-              </button>
-            )}
             {evidencePointers.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-1.5 border-t pt-2" style={{ borderColor: palette.bubbleBorder }}>
                 {evidencePointers.slice(0, 4).map((pointer) => (
@@ -1346,29 +1222,44 @@ const AdminCaliOrbBubble = ({ pageContext = 'general' }) => {
         }}
       >
         <span
-          className="pointer-events-none absolute rounded-full border-2"
-          style={{ inset: '-1px', borderColor: 'rgba(202,169,123,0.9)', boxShadow: '0 0 18px rgba(202,169,123,0.58)', animation: 'cali-orb-ring-pulse 2.8s ease-out infinite' }}
-        />
-        <span
-          className="pointer-events-none absolute rounded-full border"
-          style={{ inset: '-1px', borderColor: 'rgba(255,255,255,0.9)', boxShadow: '0 0 15px rgba(255,255,255,0.55)', animation: 'cali-orb-ring-pulse 2.8s ease-out 0.7s infinite' }}
+          className="pointer-events-none absolute rounded-full"
+          style={{
+            inset: '-20px',
+            background: `radial-gradient(circle, ${orbitPalette.glow} 0 30%, rgba(185,149,103,0.18) 52%, transparent 74%)`,
+            opacity: isSpeaking ? 1 : 0,
+            filter: 'blur(14px)',
+            animation: isSpeaking ? 'shep-speaking-glow 0.84s ease-in-out infinite' : 'none',
+            transition: 'opacity 220ms ease',
+          }}
         />
         <span
           className="pointer-events-none absolute rounded-full"
           style={{
-            inset: '-10px',
-            background: `radial-gradient(circle, ${signalPalette.glow} 0 44%, transparent 72%)`,
-            opacity: isSpeaking ? 0.64 : isActiveMode ? 0.68 : 0.1,
-            filter: 'blur(10px)',
-            animation: isSpeaking ? 'shep-speaking-glow 0.84s ease-in-out infinite' : 'none',
+            inset: '-13px',
+            border: `1px solid ${orbitPalette.ring}`,
+            boxShadow: '0 0 14px rgba(185,149,103,0.28), inset 0 0 9px rgba(185,149,103,0.16)',
+            animation: `shep-orbit-spin ${isActiveMode ? '7s' : '11s'} linear infinite`,
           }}
-        />
+        >
+          <span
+            className="absolute h-2 w-2 rounded-full"
+            style={{ left: '50%', top: '0%', transform: 'translate(-50%, -50%)', background: orbitPalette.dot, boxShadow: '0 0 11px rgba(222,187,137,0.88)' }}
+          />
+          <span
+            className="absolute h-2 w-2 rounded-full"
+            style={{ left: '93.3%', top: '75%', transform: 'translate(-50%, -50%)', background: orbitPalette.dot, boxShadow: '0 0 11px rgba(222,187,137,0.88)' }}
+          />
+          <span
+            className="absolute h-2 w-2 rounded-full"
+            style={{ left: '6.7%', top: '75%', transform: 'translate(-50%, -50%)', background: orbitPalette.dot, boxShadow: '0 0 11px rgba(222,187,137,0.88)' }}
+          />
+        </span>
         <button
           ref={orbButtonRef}
           type="button"
           onPointerDown={handleOrbPointerDown}
           onClick={handleOrbClick}
-          className={`relative flex h-[184px] w-[184px] items-center justify-center overflow-hidden rounded-full transition-all duration-500 hover:scale-105 ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+          className={`relative z-10 flex h-[184px] w-[184px] items-center justify-center overflow-hidden rounded-full transition-all duration-500 hover:scale-105 ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
           style={orbStyle}
           aria-label="Summon Shep"
           title={shepEnabled ? 'Summon Shep' : 'Shep is shut down by admin override'}
