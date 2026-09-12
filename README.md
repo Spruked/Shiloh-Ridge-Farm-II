@@ -45,6 +45,8 @@ Navigation is an LLM tool call rather than phrase scripting: once a destination 
 
 Voice output is fixed policy, not a visitor preference: Kokoro TTS is attempted first, followed by Qwen3 TTS, then voice-unavailable text. Browser speech synthesis is prohibited, including as a fallback, and there is no visitor-facing output toggle. The floating assistant supports voice navigation, move/come/whistle commands, cursor-safe positioning, pointer guidance, and a visible ping. Admin routes and tools still require a valid admin session.
 
+`api.shilohridgekatahdins.com` is published through Cloudflare to the FastAPI API at host port `12000`. Kokoro is a separate private host service on port `8880`, reached from the backend container at `http://host.docker.internal:8880/api/kokoro/tts`; it is not routed through the public API port.
+
 ## Livestock images
 
 Live livestock records may contain historical photo filenames. The public livestock page maps those known legacy references to the available farm photos in `frontend/public/` and uses the flock photo if a future image URL cannot be loaded. This preserves card rendering while records are migrated to durable image locations.

@@ -128,7 +128,7 @@ def _default_qwen_tts_url() -> str:
 
 
 def _default_kokoro_tts_url() -> str:
-    return "http://127.0.0.1:12000/api/kokoro/tts"
+    return "http://127.0.0.1:8880/api/kokoro/tts"
 
 
 def _service_url_candidates(url: str) -> list[str]:

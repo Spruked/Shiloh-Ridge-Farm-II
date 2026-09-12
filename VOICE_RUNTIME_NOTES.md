@@ -2,6 +2,8 @@
 
 - Kokoro and Qwen3-TTS support services must run under Python 3.12.
 - Do not install or run the voice stack from the main Python 3.14 site backend venv.
+- The authoritative Kokoro process is the enabled system-level `kokoro-tts.service`, listening privately on host port `8880`. Do not start a duplicate user-level unit on that port.
+- Docker reaches Kokoro at `http://host.docker.internal:8880/api/kokoro/tts`. Port `12000` is the public FastAPI API origin behind the Cloudflare tunnel and is not a TTS endpoint.
 - The current Qwen3-TTS service entrypoint is `/home/bryan/qwen3_tts_06b/server_06b.py`.
 - The site backend should call Qwen3-TTS at `http://127.0.0.1:9880/speak`.
 - Current Qwen model is `Qwen/Qwen3-TTS-12Hz-0.6B-Base`; it loads successfully but requires `voice_clone_prompt` or `ref_audio` to generate speech.
@@ -11,6 +13,7 @@
 - `SHEP_ENABLE_SERVER_TTS` defaults to enabled. Shep must attempt Kokoro first, then Qwen3 TTS, then report voice unavailable and continue in text.
 - Browser speech synthesis is never permitted, including as a fallback. There is no visitor-facing output enable/disable control.
 - When Shep text appears without sound, verify the backend response includes `audio_wav_base64`, then check the Kokoro and Qwen3 service endpoints. Do not restore browser speech as a workaround.
+- A successful live Shep response reports `audio_engine: kokoro_local`, `tts_provider: kokoro`, and the private `8880` endpoint in response metadata.
 - `shiloh_voice_system` consumes raw WAV responses from Qwen's `/speak` endpoint, caches generated audio, and runs blocking generators in worker threads so its FastAPI event loop stays responsive.
 - Standalone voice latency limits default to 8 seconds for Qwen and 12 seconds for the Kokoro CLI. Override them with `SHILOH_QWEN_TTS_TIMEOUT_SEC` and `SHILOH_KOKORO_CLI_TIMEOUT_SEC`.
 - WSL systemd unit files live in `ops/wsl-systemd/`.

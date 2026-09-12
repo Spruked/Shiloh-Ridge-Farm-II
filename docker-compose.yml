@@ -52,7 +52,7 @@ services:
       OLLAMA_NUM_CTX: ${OLLAMA_NUM_CTX:-256}
       OLLAMA_NUM_PREDICT: ${OLLAMA_NUM_PREDICT:-96}
       QWEN_TTS_URL: ${QWEN_TTS_URL:-http://host.docker.internal:9880/speak}
-      KOKORO_TTS_URL: ${KOKORO_TTS_URL:-http://host.docker.internal:12000/api/kokoro/tts}
+      KOKORO_TTS_URL: ${KOKORO_TTS_URL:-http://host.docker.internal:8880/api/kokoro/tts}
       CALI_KOKORO_VOICE: ${CALI_KOKORO_VOICE:-am_adam}
       SHEP_PREFER_KOKORO: ${SHEP_PREFER_KOKORO:-1}
       CP3_BASE_URL: ${CP3_BASE_URL:-http://host.docker.internal:17000}
