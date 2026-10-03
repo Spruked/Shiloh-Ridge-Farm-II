@@ -28,12 +28,30 @@ Private and generated vault records are intentionally ignored by Git. The approv
 docker compose up --build -d
 ```
 
+To verify the containers and rebuild a stale frontend container:
+
+```bash
+docker compose ps
+curl -fsS http://127.0.0.1:12000/api/health
+curl -I http://127.0.0.1:3100
+docker compose up -d --force-recreate frontend
+```
+
 Default services:
 
 - Frontend: `http://localhost:3100`
 - Backend API: `http://localhost:12000`
 - MongoDB: `localhost:27017`
 - Ollama: host service at `http://127.0.0.1:11434`
+
+The frontend is published by Docker on `0.0.0.0:3100` and serves the compiled
+React build from the container's port `3000`. Use `http://127.0.0.1:3100` on
+the Docker host. If the browser is on another machine, use the Docker host's
+network address or forward port `3100` through the SSH, WSL, or IDE remote
+development environment; `localhost` refers to the browser's own machine.
+
+If port `3100` is not reachable, check `docker compose ps`, confirm the
+frontend is `healthy`, and inspect `docker compose logs --tail=100 frontend`.
 
 Optional voice and checkout services are controlled by Compose profiles. The backend stores persistent admin records in MongoDB and durable file records in the root vault. Daily Mongo and file backup services write append-only timestamped snapshots beneath `vault_system/backups/`.
 
