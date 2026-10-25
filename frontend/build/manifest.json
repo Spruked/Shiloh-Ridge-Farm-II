@@ -1,8 +1,8 @@
 {
-  "short_name": "Shiloh Snap",
-  "name": "Shiloh Ridge Farm Mobile Capture",
-  "description": "Offline-first livestock capture for Shiloh Ridge Farm.",
-  "start_url": "/mobile",
+  "short_name": "Shiloh Ridge",
+  "name": "Shiloh Ridge Katahdins",
+  "description": "Shiloh Ridge Farm website for Katahdin sheep, livestock, farm products, customer accounts, and direct farm inquiries.",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#140f0a",

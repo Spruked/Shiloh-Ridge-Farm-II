@@ -1,0 +1,132 @@
+.
+├── Checkout_Module_v1
+│   └── alchemy-demo
+├── Renova_te_ipsum
+│   ├── core_4_minds
+│   │   ├── bspinoza
+│   │   ├── hhume
+│   │   ├── hlocke
+│   │   └── ikant
+│   ├── hlsf_geometry
+│   ├── interface
+│   ├── logic_seeds
+│   │   ├── deductive_SKG
+│   │   │   ├── job
+│   │   │   ├── jobs
+│   │   │   └── logic
+│   │   ├── deductive_validator
+│   │   │   ├── job
+│   │   │   ├── logic
+│   │   │   └── vault
+│   │   ├── inductive
+│   │   ├── inductive_skg
+│   │   │   └── logic
+│   │   ├── inductive_validator
+│   │   │   └── logic
+│   │   ├── intuitive
+│   │   ├── intuitive_skg
+│   │   │   └── logic
+│   │   └── intuitive_validator
+│   │       └── logic
+│   ├── results
+│   ├── vault_system
+│   │   ├── apriori
+│   │   └── posteriori
+│   └── vaults
+│       └── farm_orb
+├── _archive
+│   └── 2026-04-13
+│       ├── backend
+│       ├── renova_te_ipsum
+│       └── root
+│           ├── shiloh_agents
+│           └── vault_system
+├── _root-layer-backup-20260605-224846
+│   └── venv
+│       ├── bin
+│       ├── include
+│       │   └── python3.12
+│       ├── lib
+│       │   └── python3.12
+│       └── lib64
+├── assets
+│   └── images
+│       └── nft_certificates
+├── backend
+│   ├── Renova_te_ipsum
+│   ├── butch_audio_cache
+│   ├── butch_the_butcher
+│   ├── butch_vault
+│   ├── butch_worker
+│   ├── documents
+│   ├── governance
+│   ├── mongo_data
+│   │   ├── diagnostic.data
+│   │   └── journal
+│   ├── orb_assistant
+│   │   ├── logs
+│   │   ├── scripts
+│   │   └── vaults
+│   │       └── farm_orb
+│   ├── routes
+│   ├── shep_worker
+│   ├── static
+│   ├── tts
+│   ├── vaults
+│   ├── vision
+│   └── worker_chat
+│       └── vaults
+├── butch_the_butcher
+│   ├── api
+│   ├── butch_skg
+│   │   ├── core
+│   │   ├── learning
+│   │   ├── memory
+│   │   ├── pricing
+│   │   └── voice
+│   ├── chat
+│   └── data
+│       ├── livestock
+│       └── vault
+├── butch_vault
+├── butch_worker
+│   ├── job
+│   ├── location
+│   ├── logic
+│   ├── trace
+│   └── vault
+├── cloudflared
+├── contracts
+├── docker
+│   └── mongo-init
+├── frontend
+│   ├── plugins
+│   │   ├── health-check
+│   │   └── visual-edits
+│   └── src
+│       ├── components
+│       │   ├── butcher
+│       │   ├── orb
+│       │   ├── ui
+│       │   └── worker
+│       ├── config
+│       ├── hooks
+│       ├── lib
+│       └── pages
+│           └── admin
+├── shep_worker
+│   ├── job
+│   ├── location
+│   ├── logic
+│   ├── trace
+│   └── vault
+├── shiloh_voice_system
+│   ├── api
+│   ├── config
+│   ├── engines
+│   └── integration
+├── substrate
+├── tests
+└── vault
+
+130 directories

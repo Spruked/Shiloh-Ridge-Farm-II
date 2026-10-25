@@ -1,0 +1,174 @@
+name: shiloh-ridge-farm
+
+x-runtime-notes:
+  voice_python: "Qwen3-TTS, Kokoro, and STT services run outside this compose under Python 3.12."
+  workers: "shep_worker and butch_worker are backend-owned modules/data, not separate long-running containers."
+  final_build_rule: "Do not build/deploy a final production image until the UI, Shep ORB, Butch, admin data, and voice are verified."
+
+services:
+  mongo:
+    image: mongo:7
+    container_name: shiloh-ridge-mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-root}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-example}
+    ports:
+      - "${MONGO_PORT:-27017}:27017"
+    volumes:
+      - shiloh-ridge-mongo-data:/data/db
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mongosh --quiet -u \"$${MONGO_INITDB_ROOT_USERNAME}\" -p \"$${MONGO_INITDB_ROOT_PASSWORD}\" --authenticationDatabase admin --eval 'db.adminCommand({ ping: 1 }).ok' | grep 1"
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    networks:
+      - farm-net
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    image: shiloh-ridge-farm-backend:${SHILOH_IMAGE_TAG:-dev}
+    container_name: shiloh-ridge-backend
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      MONGO_URL: mongodb://${MONGO_INITDB_ROOT_USERNAME:-root}:${MONGO_INITDB_ROOT_PASSWORD:-example}@mongo:27017/${DB_NAME:-shiloh_farm}?authSource=admin
+      DB_NAME: ${DB_NAME:-shiloh_farm}
+      JWT_SECRET: ${JWT_SECRET:-change-me-before-production}
+      ADMIN_AUTH_BYPASS: ${ADMIN_AUTH_BYPASS:-false}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:1.5b}
+      OLLAMA_FALLBACK_MODEL: ${OLLAMA_FALLBACK_MODEL:-llama3.2:1b}
+      OLLAMA_TIMEOUT_SEC: ${OLLAMA_TIMEOUT_SEC:-20}
+      OLLAMA_NUM_CTX: ${OLLAMA_NUM_CTX:-256}
+      OLLAMA_NUM_PREDICT: ${OLLAMA_NUM_PREDICT:-8}
+      QWEN_TTS_URL: ${QWEN_TTS_URL:-http://host.docker.internal:9881/speak}
+      KOKORO_TTS_URL: ${KOKORO_TTS_URL:-http://host.docker.internal:12000/api/kokoro/tts}
+      SHEP_TTS_TOTAL_TIMEOUT_SEC: ${SHEP_TTS_TOTAL_TIMEOUT_SEC:-420}
+      QWEN_TTS_PRIMARY_TIMEOUT_SEC: ${QWEN_TTS_PRIMARY_TIMEOUT_SEC:-400}
+      SHEP_ENABLE_SERVER_TTS: ${SHEP_ENABLE_SERVER_TTS:-0}
+      FAST_WHISPER_URL: ${FAST_WHISPER_URL:-http://host.docker.internal:9000/stt}
+      SHEP_STT_PRIORITY: ${SHEP_STT_PRIORITY:-whisper}
+      DOCTRINE_DISABLED_FOR_DEV: ${DOCTRINE_DISABLED_FOR_DEV:-true}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "${BACKEND_PORT:-12000}:8000"
+    volumes:
+      - ./assets:/assets
+      - ./vault:/app/vault
+      - ./butch_vault:/app/butch_vault
+      - ./substrate:/app/substrate
+      - ./backend/butch_audio_cache:/app/butch_audio_cache
+      - ./shep_worker:/app/shep_worker:ro
+      - ./butch_worker:/app/butch_worker:ro
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - farm-net
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        REACT_APP_BACKEND_URL: ${REACT_APP_BACKEND_URL:-http://localhost:12000}
+    image: shiloh-ridge-farm-frontend:${SHILOH_IMAGE_TAG:-dev}
+    container_name: shiloh-ridge-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${FRONTEND_PORT:-3100}:3000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    networks:
+      - farm-net
+
+  checkout:
+    profiles: ["checkout"]
+    build:
+      context: ./Checkout_Module_v1
+      dockerfile: Dockerfile
+    image: shiloh-ridge-checkout:${SHILOH_IMAGE_TAG:-dev}
+    container_name: shiloh-ridge-checkout
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: sqlite:////data/checkout.db
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+    ports:
+      - "${CHECKOUT_PORT:-8010}:8000"
+    volumes:
+      - checkout-data:/data
+    networks:
+      - farm-net
+
+  voice-system:
+    profiles: ["voice-system"]
+    image: python:3.12-slim
+    container_name: shiloh-ridge-voice-system
+    restart: unless-stopped
+    working_dir: /app
+    command: >
+      sh -c "pip install --no-cache-dir -r shiloh_voice_system/requirements.txt
+      && python -m shiloh_voice_system.main"
+    environment:
+      VOICE_HOST: 0.0.0.0
+      VOICE_PORT: 8002
+      QWEN_TTS_URL: ${QWEN_TTS_URL:-http://host.docker.internal:9880/speak}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "${VOICE_SYSTEM_PORT:-8002}:8002"
+    volumes:
+      - ./:/app:ro
+      - voice-cache:/tmp/shiloh_voice_cache
+    networks:
+      - farm-net
+
+  cloudflared:
+    profiles: ["tunnel"]
+    image: cloudflare/cloudflared:latest
+    container_name: shiloh-ridge-cloudflared
+    restart: unless-stopped
+    command: tunnel --config /etc/cloudflared/config.yml run
+    depends_on:
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    volumes:
+      - ./cloudflared/config.yml:/etc/cloudflared/config.yml:ro
+      - ${HOME}/.cloudflared:/home/nonroot/.cloudflared:ro
+    networks:
+      - farm-net
+
+networks:
+  farm-net:
+    name: shiloh-ridge-farm-net
+
+volumes:
+  shiloh-ridge-mongo-data:
+    name: shiloh-ridge-mongo-data
+  checkout-data:
+    name: shiloh-ridge-checkout-data
+  voice-cache:
+    name: shiloh-ridge-voice-cache

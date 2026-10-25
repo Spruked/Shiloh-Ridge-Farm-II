@@ -13,6 +13,7 @@ import { getApiBaseUrl } from "../lib/backend";
 import { useCart } from "../CartContext";
 import { useCustomerAuth } from "../CustomerAuthContext";
 import { useProducts } from "../ProductDataContext";
+import { DEFAULT_PAYMENT_METHOD, PAYMENT_METHODS } from "../config/paymentMethods";
 
 const API = getApiBaseUrl();
 
@@ -32,7 +33,7 @@ function CheckoutPage() {
     notes: "",
     delivery_method: "pickup",
     preferred_pickup_date: "",
-    payment_method: "fiat",
+    payment_method: DEFAULT_PAYMENT_METHOD,
     coupon_code: "",
   });
 
@@ -215,9 +216,9 @@ function CheckoutPage() {
                       value={form.payment_method}
                       onChange={(event) => setForm((current) => ({ ...current, payment_method: event.target.value }))}
                     >
-                      <option value="fiat">Card / Standard Payment</option>
-                      <option value="farm_arranged">Farm Arranged</option>
-                      <option value="crypto">Crypto Request</option>
+                      {PAYMENT_METHODS.map((method) => (
+                        <option key={method.value} value={method.value}>{method.label}</option>
+                      ))}
                     </select>
                   </label>
                 </div>

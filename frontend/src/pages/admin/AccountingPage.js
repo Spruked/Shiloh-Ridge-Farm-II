@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { Plus, DollarSign, TrendingUp, TrendingDown, Search, PieChart, BarChart3, Download, Printer, FileText } from "lucide-react";
 import SkeletonLoader from "../../components/ui/SkeletonLoader";
 import { getApiBaseUrl } from "../../lib/backend";
+import { DEFAULT_PAYMENT_METHOD, PAYMENT_METHODS } from "../../config/paymentMethods";
 
 const API = getApiBaseUrl();
 
@@ -36,7 +37,7 @@ const AccountingPage = () => {
     amount: "",
     date: new Date().toISOString().slice(0, 10),
     vendor_supplier: "",
-    payment_method: "cash",
+    payment_method: DEFAULT_PAYMENT_METHOD,
     payment_status: "paid",
     is_recurring: false,
     recurring_frequency: "",
@@ -53,7 +54,7 @@ const AccountingPage = () => {
     amount: "",
     date: new Date().toISOString().slice(0, 10),
     source: "",
-    payment_method: "cash",
+    payment_method: DEFAULT_PAYMENT_METHOD,
     payment_status: "received",
     reference_id: "",
     reference_type: "",
@@ -254,7 +255,7 @@ const AccountingPage = () => {
       amount: "",
       date: new Date().toISOString().slice(0, 10),
       vendor_supplier: "",
-      payment_method: "cash",
+      payment_method: DEFAULT_PAYMENT_METHOD,
       payment_status: "paid",
       is_recurring: false,
       recurring_frequency: "",
@@ -273,7 +274,7 @@ const AccountingPage = () => {
       amount: "",
       date: new Date().toISOString().slice(0, 10),
       source: "",
-      payment_method: "cash",
+      payment_method: DEFAULT_PAYMENT_METHOD,
       payment_status: "received",
       reference_id: "",
       reference_type: "",
@@ -462,11 +463,9 @@ const AccountingPage = () => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="cash">Cash</SelectItem>
-                        <SelectItem value="check">Check</SelectItem>
-                        <SelectItem value="credit_card">Credit Card</SelectItem>
-                        <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
+                        {PAYMENT_METHODS.map((method) => (
+                          <SelectItem key={method.value} value={method.value}>{method.label}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -585,10 +584,9 @@ const AccountingPage = () => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="cash">Cash</SelectItem>
-                        <SelectItem value="check">Check</SelectItem>
-                        <SelectItem value="online">Online</SelectItem>
-                        <SelectItem value="crypto">Crypto</SelectItem>
+                        {PAYMENT_METHODS.map((method) => (
+                          <SelectItem key={method.value} value={method.value}>{method.label}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
