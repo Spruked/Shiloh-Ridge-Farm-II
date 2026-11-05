@@ -16,15 +16,27 @@ import {
 } from 'lucide-react';
 import { getApiBaseUrl } from '../../lib/backend';
 
+// Live weight is always the weight of the WHOLE animal; a half order is half of it.
 const weightPresets = {
-  hog: { whole: [250, 275, 300], half: [125, 140, 150] },
-  lamb: { whole: [100, 120, 140], half: [50, 60, 70] }
+  hog: [250, 275, 300],
+  lamb: [100, 120, 140]
 };
+const typicalWeight = { hog: 275, lamb: 120 };
+const MIN_WEIGHT = 20;
+const MAX_WEIGHT = 1500;
+const range = (pair) => (pair ? `${pair[0]} - ${pair[1]}` : '');
+const money = (pair) =>
+  pair ? `$${Math.round(pair[0]).toLocaleString()} - $${Math.round(pair[1]).toLocaleString()}` : '';
 
 const toTitle = (value = '') =>
   value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 
-const ProcessExplanation = () => {
+const ProcessExplanation = ({ meatType }) => {
+  const yields = {
+    hog: { dressing: 72, takehome: 78 },
+    lamb: { dressing: 52, takehome: 76 }
+  }[meatType];
+  const overall = Math.round((yields.dressing * yields.takehome) / 100);
   const steps = [
     {
       title: 'Live Weight',
@@ -68,24 +80,20 @@ const ProcessExplanation = () => {
       </div>
 
       <div className="rounded-xl border border-amber-200 bg-amber-50 p-5">
-        <h4 className="mb-3 font-semibold text-amber-900">Typical Yield Percentages</h4>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-amber-700">72%</div>
-            <div className="text-xs uppercase tracking-wide text-amber-600">Hog Hanging</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-amber-700">57%</div>
-            <div className="text-xs uppercase tracking-wide text-amber-600">Hog Finished</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-amber-700">52%</div>
-            <div className="text-xs uppercase tracking-wide text-amber-600">Lamb Hanging</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-amber-700">42%</div>
-            <div className="text-xs uppercase tracking-wide text-amber-600">Lamb Finished</div>
-          </div>
+        <h4 className="mb-3 font-semibold text-amber-900">
+          Typical {meatType === 'hog' ? 'Hog' : 'Lamb'} Yield Percentages
+        </h4>
+        <div className="grid grid-cols-3 gap-4">
+          {[
+            [yields.dressing, 'Hanging (of live)'],
+            [yields.takehome, 'Take-home (of hanging)'],
+            [overall, 'Take-home (of live)']
+          ].map(([value, label]) => (
+            <div key={label} className="text-center">
+              <div className="text-2xl font-bold text-amber-800">{value}%</div>
+              <div className="text-xs uppercase tracking-wide text-amber-800">{label}</div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -157,7 +165,7 @@ const CutGuide = ({ meatType, apiBaseUrl }) => {
               <div className="text-right">
                 <div className="font-bold text-emerald-700">${cut.price_per_lb}/lb</div>
                 <div className="text-xs text-slate-500">
-                  Est. {cut.estimated_lbs?.[0]}-{cut.estimated_lbs?.[1]} lbs
+                  Est. {range(cut.estimated_lbs)} lbs
                 </div>
               </div>
             </div>
@@ -180,20 +188,46 @@ const ButcherCutCalculator = ({
   const [liveWeight, setLiveWeight] = useState('');
   const [estimate, setEstimate] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [expandedPrimal, setExpandedPrimal] = useState(null);
   const [activeTab, setActiveTab] = useState('calculator');
 
+  const weightValue = liveWeight === '' ? null : Number(liveWeight);
+  const weightInvalid =
+    weightValue !== null && (!Number.isFinite(weightValue) || weightValue < MIN_WEIGHT || weightValue > MAX_WEIGHT);
+
+  // Any change to the inputs makes the shown estimate stale, so clear it.
+  const changeInput = (setter) => (value) => {
+    setter(value);
+    setEstimate(null);
+    setError('');
+    setExpandedPrimal(null);
+  };
+
   const calculateEstimate = async () => {
+    if (weightInvalid) {
+      setError(`Enter a live weight between ${MIN_WEIGHT} and ${MAX_WEIGHT} lbs, or leave it blank for a typical animal.`);
+      return;
+    }
     setLoading(true);
+    setError('');
     try {
       const response = await axios.post(`${apiBaseUrl}/butcher/calculate`, {
         meat_type: meatType,
         order_type: orderType,
-        live_weight: liveWeight ? parseFloat(liveWeight) : null
+        live_weight: weightValue
       });
       setEstimate(response.data.estimate);
-    } catch (error) {
-      console.error('Calculation error:', error);
+      setExpandedPrimal(0);
+    } catch (err) {
+      console.error('Calculation error:', err);
+      setEstimate(null);
+      const detail = err?.response?.data?.detail;
+      setError(
+        typeof detail === 'string'
+          ? detail
+          : 'The calculator is unavailable right now. Please try again, or contact the farm.'
+      );
     } finally {
       setLoading(false);
     }
@@ -246,7 +280,8 @@ const ButcherCutCalculator = ({
                 ].map((meat) => (
                   <button
                     key={meat.id}
-                    onClick={() => setMeatType(meat.id)}
+                    onClick={() => changeInput(setMeatType)(meat.id)}
+                    aria-pressed={meatType === meat.id}
                     className={`rounded-xl border-2 p-4 text-center transition-all ${
                       meatType === meat.id
                         ? 'border-amber-500 bg-amber-50 text-amber-700'
@@ -265,7 +300,8 @@ const ButcherCutCalculator = ({
                 {['whole', 'half'].map((type) => (
                   <button
                     key={type}
-                    onClick={() => setOrderType(type)}
+                    onClick={() => changeInput(setOrderType)(type)}
+                    aria-pressed={orderType === type}
                     className={`flex-1 rounded-lg border-2 px-4 py-3 font-medium capitalize transition-all ${
                       orderType === type
                         ? 'border-amber-500 bg-amber-50 text-amber-700'
@@ -279,26 +315,37 @@ const ButcherCutCalculator = ({
             </div>
 
             <div>
-              <label className="mb-3 block text-sm font-medium text-slate-700">
-                Live Weight (optional)
+              <label htmlFor="calc-live-weight" className="mb-1 block text-sm font-medium text-slate-700">
+                Live weight of the whole animal (optional)
               </label>
+              <p className="mb-3 text-xs text-slate-600">
+                A half order is half of this animal. Leave blank to use a typical {meatType === 'hog' ? 'hog' : 'lamb'}.
+              </p>
               <div className="mb-3 flex gap-3">
                 <input
+                  id="calc-live-weight"
                   type="number"
+                  inputMode="decimal"
+                  min={MIN_WEIGHT}
+                  max={MAX_WEIGHT}
                   value={liveWeight}
-                  onChange={(event) => setLiveWeight(event.target.value)}
-                  placeholder={`Average: ${meatType === 'hog' ? '275' : '120'} lbs`}
-                  className="flex-1 rounded-lg border border-slate-300 bg-slate-50 px-4 py-3"
+                  onChange={(event) => changeInput(setLiveWeight)(event.target.value)}
+                  onKeyDown={(event) => event.key === 'Enter' && calculateEstimate()}
+                  aria-invalid={weightInvalid}
+                  placeholder={`Typical: ${typicalWeight[meatType]} lbs`}
+                  className={`flex-1 rounded-lg border bg-slate-50 px-4 py-3 ${
+                    weightInvalid ? 'border-red-500' : 'border-slate-300'
+                  }`}
                 />
                 <span className="flex items-center px-3 text-sm font-medium text-slate-600">lbs</span>
               </div>
 
               <div className="flex flex-wrap gap-2">
                 <span className="py-1 text-xs text-slate-500">Quick select:</span>
-                {weightPresets[meatType][orderType].map((weight) => (
+                {weightPresets[meatType].map((weight) => (
                   <button
                     key={weight}
-                    onClick={() => setLiveWeight(weight.toString())}
+                    onClick={() => changeInput(setLiveWeight)(weight.toString())}
                     className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700 transition-colors hover:bg-amber-100"
                   >
                     {weight} lbs
@@ -325,6 +372,12 @@ const ButcherCutCalculator = ({
               )}
             </button>
 
+            {error && (
+              <div role="alert" className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800">
+                {error}
+              </div>
+            )}
+
             {estimate && (
               <div className="animate-in fade-in slide-in-from-bottom-4 mt-8 space-y-6 duration-500">
                 <div className="rounded-xl bg-slate-50 p-6">
@@ -332,20 +385,28 @@ const ButcherCutCalculator = ({
                     <Scale className="h-5 w-5 text-amber-600" />
                     Weight Breakdown
                   </h3>
+                  <p className="mb-3 text-xs text-slate-600">
+                    {estimate.weight_basis === 'entered'
+                      ? `Based on your ${estimate.animal_live_weight} lb animal`
+                      : `Based on a typical ${estimate.animal_live_weight} lb animal`}
+                    {estimate.order_type === 'half' ? ', half order.' : ', whole order.'} Weights in lbs.
+                  </p>
                   <div className="grid grid-cols-3 gap-4 text-center">
                     <div>
                       <div className="text-2xl font-bold text-slate-800">{estimate.live_weight}</div>
-                      <div className="text-xs uppercase tracking-wide text-slate-500">Live Weight</div>
+                      <div className="text-xs uppercase tracking-wide text-slate-600">
+                        Live {estimate.order_type === 'half' ? '(half)' : ''}
+                      </div>
                     </div>
                     <div>
                       <div className="text-2xl font-bold text-amber-600">
-                        {estimate.hanging_weight[0]}-{estimate.hanging_weight[1]}
+                        {range(estimate.hanging_weight)}
                       </div>
                       <div className="text-xs uppercase tracking-wide text-slate-500">Hanging</div>
                     </div>
                     <div>
                       <div className="text-2xl font-bold text-emerald-600">
-                        {estimate.finished_weight[0]}-{estimate.finished_weight[1]}
+                        {range(estimate.finished_weight)}
                       </div>
                       <div className="text-xs uppercase tracking-wide text-slate-500">Finished</div>
                     </div>
@@ -358,10 +419,12 @@ const ButcherCutCalculator = ({
                     Estimated Total Cost
                   </h3>
                   <div className="text-3xl font-bold text-emerald-700">
-                    ${estimate.total_estimated_cost[0]} - ${estimate.total_estimated_cost[1]}
+                    {money(estimate.total_estimated_cost)}
                   </div>
-                  <p className="mt-1 text-sm text-emerald-700">
-                    This is a planning range based on typical cut value and processor yield.
+                  <p className="mt-1 text-sm text-emerald-800">
+                    Hanging weight x ${estimate.hanging_price_per_lb}/lb + ${estimate.processing_cost} processing.
+                    About ${estimate.cost_per_finished_lb[0]}-${estimate.cost_per_finished_lb[1]} per take-home lb.
+                    Plan roughly {estimate.freezer_cubic_feet[0]}-{estimate.freezer_cubic_feet[1]} cubic feet of freezer space.
                   </p>
                 </div>
 
@@ -378,12 +441,13 @@ const ButcherCutCalculator = ({
                       >
                         <button
                           onClick={() => setExpandedPrimal(expandedPrimal === index ? null : index)}
+                          aria-expanded={expandedPrimal === index}
                           className="flex w-full items-center justify-between bg-slate-50 px-4 py-3 text-left transition-colors hover:bg-slate-100"
                         >
                           <div className="flex items-center gap-3">
                             <span className="font-medium text-slate-800">{primal.name}</span>
                             <span className="text-sm text-slate-500">
-                              {primal.estimated_lbs[0]}-{primal.estimated_lbs[1]} lbs
+                              {range(primal.estimated_lbs)} lbs
                             </span>
                           </div>
                           {expandedPrimal === index ? (
@@ -410,18 +474,18 @@ const ButcherCutCalculator = ({
                                           key={method}
                                           className="rounded-full bg-white px-2 py-1 text-xs text-slate-600"
                                         >
-                                          {method.replace('_', ' ')}
+                                          {method.split('_').join(' ')}
                                         </span>
                                       ))}
                                     </div>
                                   </div>
                                   <div className="text-right">
                                     <div className="font-semibold text-slate-800">
-                                      {cut.estimated_lbs[0]}-{cut.estimated_lbs[1]} lbs
+                                      {range(cut.estimated_lbs)} lbs
                                     </div>
-                                    <div className="text-sm text-emerald-700">${cut.price_per_lb}/lb</div>
+                                    <div className="text-sm text-emerald-800">${cut.price_per_lb}/lb</div>
                                     <div className="text-xs text-slate-500">
-                                      ${cut.estimated_total[0]}-${cut.estimated_total[1]}
+                                      {money(cut.estimated_total)} value
                                     </div>
                                   </div>
                                 </div>
@@ -493,7 +557,7 @@ const ButcherCutCalculator = ({
         )}
 
         {activeTab === 'cuts' && <CutGuide meatType={meatType} apiBaseUrl={apiBaseUrl} />}
-        {activeTab === 'info' && <ProcessExplanation />}
+        {activeTab === 'info' && <ProcessExplanation meatType={meatType} />}
       </div>
     </div>
   );
