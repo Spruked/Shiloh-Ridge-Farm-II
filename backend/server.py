@@ -41,6 +41,7 @@ except Exception:  # pragma: no cover - runtime dependency check
 from inventory import router as inventory_router, set_inventory_db
 from sales import router as sales_router, set_sales_db
 from accounting import router as accounting_router, set_accounting_db
+import market_data
 from butcher_compat_routes import router as butcher_compat_router
 try:
     from mobile_capture import router as mobile_capture_router, set_mobile_capture_db
@@ -2787,72 +2788,29 @@ async def download_document(document_id: str):
         media_type=document['mime_type']
     )
 
-# Ticker data from USDA API
+# Live market ticker: CME lean hog / live cattle futures and the USDA lamb carcass cutout.
+# Admin-entered farm pricing is used only for an item whose live source is unreachable.
 @api_router.get("/ticker")
 async def get_ticker_data():
-    base_url = "https://quickstats.nass.usda.gov/api/api_GET/"
+    live = await asyncio.to_thread(market_data.snapshot)
 
-    async def latest_farm_price(species_names: List[str]) -> Optional[Dict[str, Any]]:
-        query = {"species": {"$in": species_names}}
-        records = await db.farm_pricing.find(query, {"_id": 0}).sort("updated_at", -1).to_list(20)
+    async def farm_fallback(species_names: List[str]) -> Optional[Dict[str, Any]]:
+        records = await db.farm_pricing.find({"species": {"$in": species_names}}, {"_id": 0}).sort("updated_at", -1).to_list(1)
         if not records:
             return None
         record = _farm_pricing_response(records[0])
-        price = record.get("market_price")
-        unit = record.get("market_unit") or "per_live_lb"
-        if unit == "per_cwt":
-            display_unit = "cwt"
-        elif unit == "per_hanging_lb":
-            display_unit = "hanging lb"
-        elif unit == "per_packaged_lb":
-            display_unit = "packaged lb"
-        else:
-            display_unit = "lb"
         return {
-            "price": float(price or 0),
+            "price": float(record.get("market_price") or 0),
             "change": 0,
-            "unit": display_unit,
+            "unit": "cwt" if record.get("market_unit") == "per_cwt" else "lb",
             "source": record.get("source_name") or "Farm pricing",
-            "updated": record.get("updated_at") or datetime.now(timezone.utc).isoformat(),
+            "stale": True,
         }
-    
-    def fetch_price(commodity, unit):
-        if not USDA_API_KEY:
-            return None
-        params = {
-            "key": USDA_API_KEY,
-            "commodity_desc": commodity,
-            "statisticcat_desc": "PRICE RECEIVED",
-            "unit_desc": unit,
-            "year": "2024",  # or current year
-            "freq_desc": "ANNUAL"
-        }
-        try:
-            response = requests.get(base_url, params=params, timeout=10)
-            data = response.json()
-            if data and 'data' in data and data['data']:
-                # Get the latest value
-                latest = max(data['data'], key=lambda x: x.get('year', 0))
-                price = float(latest.get('Value', 0))
-                return price
-        except:
-            pass
-        return None
-    
-    now = datetime.now(timezone.utc).isoformat()
-    sheep_farm = await latest_farm_price(["sheep", "lamb"])
-    hog_farm = await latest_farm_price(["hog", "pork"])
-    cattle_farm = await latest_farm_price(["cattle", "beef"])
 
-    sheep_price = fetch_price("SHEEP", "$ / LB") or 2.85
-    hog_price = fetch_price("HOGS", "$ / CWT") or 95.50
-    cattle_price = fetch_price("CATTLE", "$ / CWT") or 185.75
-    
-    return {
-        "sheep": sheep_farm or {"price": sheep_price, "change": 0.05, "unit": "lb", "source": "USDA fallback", "updated": now},
-        "hog": hog_farm or {"price": hog_price, "change": -1.25, "unit": "cwt", "source": "USDA fallback", "updated": now},
-        "cattle": cattle_farm or {"price": cattle_price, "change": 2.30, "unit": "cwt", "source": "USDA fallback", "updated": now}
-    }
+    result: Dict[str, Any] = {}
+    for key, names in (("sheep", ["sheep", "lamb"]), ("hog", ["hog", "pork"]), ("cattle", ["cattle", "beef"])):
+        result[key] = live.get(key) or await farm_fallback(names) or {"price": None, "change": 0, "unit": "cwt", "source": "unavailable", "stale": True}
+    return result
 
 # Image upload
 @api_router.post("/upload")

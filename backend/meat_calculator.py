@@ -110,8 +110,17 @@ def _r(value: float, digits: int = 1) -> float:
     return round(value + 0.0, digits)
 
 
-def estimate(meat_type: str, order_type: str, live_weight: Optional[float] = None) -> Dict[str, Any]:
-    """Return the planning estimate.  Raises ValueError for unknown inputs."""
+def estimate(
+    meat_type: str,
+    order_type: str,
+    live_weight: Optional[float] = None,
+    market: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Return the planning estimate.  Raises ValueError for unknown inputs.
+
+    `market` is market_data.multiplier(): its `factor` scales the farm's base per-pound prices
+    (hanging price and cut values) with the live market.  Processing fees are not scaled.
+    """
     profile = PROFILES.get(meat_type)
     if profile is None or order_type not in ("whole", "half"):
         raise ValueError("unknown meat type or order size")
@@ -133,12 +142,15 @@ def estimate(meat_type: str, order_type: str, live_weight: Optional[float] = Non
     hanging = [v * profile["dressing_pct"] for v in live]
     take_home = [v * profile["takehome_pct"] for v in hanging]
 
-    price = profile["hanging_price_per_lb"][order_type]
+    factor = float((market or {}).get("factor", 1.0))
+    base_price = profile["hanging_price_per_lb"][order_type]
+    price = _r(base_price * factor, 2)
     processing = profile["processing_cost"][order_type]
     total = [h * price + processing for h in hanging]
 
     grouped: Dict[str, List[Dict[str, Any]]] = {}
     for cut, (primal, pct, per_lb) in profile["cuts"].items():
+        per_lb = per_lb * factor
         low, high = take_home[0] * pct, take_home[1] * pct
         grouped.setdefault(primal, []).append(
             {
@@ -175,6 +187,8 @@ def estimate(meat_type: str, order_type: str, live_weight: Optional[float] = Non
         "takehome_pct": _r(profile["takehome_pct"] * 100, 0),
         "overall_yield_pct": _r(profile["dressing_pct"] * profile["takehome_pct"] * 100, 0),
         "hanging_price_per_lb": price,
+        "base_hanging_price_per_lb": base_price,
+        "market": market or {"factor": 1.0, "live": False},
         "processing_cost": processing,
         "total_estimated_cost": [_r(v, 2) for v in total],
         "cost_per_finished_lb": [_r(total[1] / take_home[1], 2), _r(total[0] / take_home[0], 2)],

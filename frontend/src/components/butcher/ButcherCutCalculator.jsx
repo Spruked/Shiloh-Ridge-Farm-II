@@ -426,6 +426,18 @@ const ButcherCutCalculator = ({
                     About ${estimate.cost_per_finished_lb[0]}-${estimate.cost_per_finished_lb[1]} per take-home lb.
                     Plan roughly {estimate.freezer_cubic_feet[0]}-{estimate.freezer_cubic_feet[1]} cubic feet of freezer space.
                   </p>
+                  {estimate.market?.source && (
+                    <p className="mt-2 text-xs text-emerald-900">
+                      {estimate.market.live ? 'Live market' : 'Last known market'}: {estimate.market.source} $
+                      {estimate.market.market_price}/cwt vs {estimate.market.reference} reference. Farm prices adjusted{' '}
+                      {estimate.market.factor >= 1 ? '+' : ''}
+                      {Math.round((estimate.market.factor - 1) * 100)}%
+                      {estimate.market.capped ? ' (limit reached)' : ''} from base ${estimate.base_hanging_price_per_lb}/lb.
+                    </p>
+                  )}
+                  {estimate.market && !estimate.market.source && (
+                    <p className="mt-2 text-xs text-emerald-900">{estimate.market.note}</p>
+                  )}
                 </div>
 
                 <div>

@@ -66,3 +66,14 @@ def test_api_validation():
     assert c.post("/api/butcher/calculate", json={"meat_type": "hog", "order_type": "whole", "live_weight": 99999}).status_code == 400
     guide = c.get("/api/butcher/cuts/lamb").json()["cuts"]
     assert guide and {"primal", "name", "estimated_lbs", "price_per_lb"} <= set(guide[0])
+
+
+def test_market_factor_scales_prices_but_not_processing():
+    base = mc.estimate("hog", "whole", 275)
+    up = mc.estimate("hog", "whole", 275, {"factor": 1.2, "live": True})
+    assert up["hanging_price_per_lb"] == pytest.approx(base["hanging_price_per_lb"] * 1.2, abs=0.01)
+    assert up["processing_cost"] == base["processing_cost"]
+    assert up["total_estimated_cost"][0] > base["total_estimated_cost"][0]
+    cut_up = up["primal_cuts"][0]["retail_cuts"][0]["price_per_lb"]
+    cut_base = base["primal_cuts"][0]["retail_cuts"][0]["price_per_lb"]
+    assert cut_up == pytest.approx(cut_base * 1.2, abs=0.01)

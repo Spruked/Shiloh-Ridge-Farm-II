@@ -3,24 +3,27 @@ import axios from "axios";
 import { getApiBaseUrl } from "../lib/backend";
 
 const API = getApiBaseUrl();
+// No made-up numbers: until the live feed answers, items show a dash.
 const DEFAULT_TICKER_DATA = {
-  sheep: { price: 2.85, change: 0.05, unit: "lb" },
-  hog: { price: 95.5, change: -1.25, unit: "cwt" },
-  cattle: { price: 185.75, change: 2.3, unit: "cwt" },
+  sheep: { price: null, change: 0, unit: "cwt" },
+  hog: { price: null, change: 0, unit: "cwt" },
+  cattle: { price: null, change: 0, unit: "cwt" },
 };
 
 const normalizeTickerItem = (item, fallback) => ({
   ...fallback,
   ...(item || {}),
-  price: Number(item?.price ?? fallback.price),
-  change: Number(item?.change ?? fallback.change ?? 0),
+  price: item?.price == null ? null : Number(item.price),
+  change: Number(item?.change ?? 0),
   unit: item?.unit || fallback.unit,
 });
 
-const formatPrice = (value) => Number(value || 0).toLocaleString("en-US", {
+const formatPrice = (value) => value == null ? "--" : Number(value).toLocaleString("en-US", {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
 });
+
+const closedTag = (item) => (item.price != null && item.open === false && item.stale !== true ? " (last close)" : item.stale ? " (delayed)" : "");
 
 const PriceTicker = () => {
   const [tickerData, setTickerData] = useState(DEFAULT_TICKER_DATA);
@@ -28,7 +31,7 @@ const PriceTicker = () => {
 
   useEffect(() => {
     fetchTickerData();
-    const interval = setInterval(fetchTickerData, 30000); // Update every 30 seconds
+    const interval = setInterval(fetchTickerData, 60000); // refresh every minute
     return () => clearInterval(interval);
   }, []);
 
@@ -55,24 +58,24 @@ const PriceTicker = () => {
         {[...Array(3)].map((_, index) => (
           <div key={index} className="flex gap-12 items-center">
             <div className="flex items-center gap-3" data-testid="ticker-sheep">
-              <span className="font-bold text-lg">SHEEP:</span>
-              <span className="text-lg">${formatPrice(tickerData.sheep.price)}/{tickerData.sheep.unit}</span>
+              <span className="font-bold text-lg" title="USDA national lamb carcass cutout">LAMB:</span>
+              <span className="text-lg">{tickerData.sheep.price == null ? '' : '$'}{formatPrice(tickerData.sheep.price)}/{tickerData.sheep.unit}{closedTag(tickerData.sheep)}</span>
               <span className={`text-sm ${tickerData.sheep.change >= 0 ? 'text-green-300' : 'text-red-300'}`}>
                 {tickerData.sheep.change >= 0 ? '▲' : '▼'} {Math.abs(tickerData.sheep.change || 0)}
               </span>
             </div>
             
             <div className="flex items-center gap-3" data-testid="ticker-hog">
-              <span className="font-bold text-lg">HOG:</span>
-              <span className="text-lg">${formatPrice(tickerData.hog.price)}/{tickerData.hog.unit}</span>
+              <span className="font-bold text-lg" title="CME lean hog futures">HOG:</span>
+              <span className="text-lg">{tickerData.hog.price == null ? '' : '$'}{formatPrice(tickerData.hog.price)}/{tickerData.hog.unit}{closedTag(tickerData.hog)}</span>
               <span className={`text-sm ${tickerData.hog.change >= 0 ? 'text-green-300' : 'text-red-300'}`}>
                 {tickerData.hog.change >= 0 ? '▲' : '▼'} {Math.abs(tickerData.hog.change || 0)}
               </span>
             </div>
             
             <div className="flex items-center gap-3" data-testid="ticker-cattle">
-              <span className="font-bold text-lg">CATTLE:</span>
-              <span className="text-lg">${formatPrice(tickerData.cattle.price)}/{tickerData.cattle.unit}</span>
+              <span className="font-bold text-lg" title="CME live cattle futures">CATTLE:</span>
+              <span className="text-lg">{tickerData.cattle.price == null ? '' : '$'}{formatPrice(tickerData.cattle.price)}/{tickerData.cattle.unit}{closedTag(tickerData.cattle)}</span>
               <span className={`text-sm ${tickerData.cattle.change >= 0 ? 'text-green-300' : 'text-red-300'}`}>
                 {tickerData.cattle.change >= 0 ? '▲' : '▼'} {Math.abs(tickerData.cattle.change || 0)}
               </span>
