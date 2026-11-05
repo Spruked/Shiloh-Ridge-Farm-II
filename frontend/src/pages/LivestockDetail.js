@@ -68,7 +68,7 @@ const LivestockDetail = () => {
           <div>
             <div className="bg-[#e7eddc] rounded-2xl overflow-hidden shadow-xl h-96 flex items-center justify-center">
               {primaryPhoto ? (
-                <img src={primaryPhoto} alt={animal.name} className="w-full h-full object-cover" data-testid="detail-photo" />
+                <img src={primaryPhoto} alt={[animal.name || animal.tag_number, animal.animal_type].filter(Boolean).join(" - ") || "Livestock photo"} className="w-full h-full object-cover" decoding="async" data-testid="detail-photo" />
               ) : (
                 <span className="text-base font-semibold text-[#0f5132] uppercase tracking-widest">
                   {animal.animal_type || 'Animal'}
@@ -155,36 +155,34 @@ const LivestockDetail = () => {
 
             {animal.description && (
               <div className="mb-8">
-                <h3 className="text-xl font-bold text-[#0f5132] mb-3" data-testid="detail-description-title">Description</h3>
+                <h2 className="text-xl font-bold text-[#0f5132] mb-3" data-testid="detail-description-title">Description</h2>
                 <p className="text-gray-700 leading-relaxed" data-testid="detail-description">{animal.description}</p>
               </div>
             )}
 
             {animal.health_records && (
               <div className="mb-8">
-                <h3 className="text-xl font-bold text-[#0f5132] mb-3" data-testid="detail-health-title">Health Records</h3>
+                <h2 className="text-xl font-bold text-[#0f5132] mb-3" data-testid="detail-health-title">Health Records</h2>
                 <p className="text-gray-700 leading-relaxed" data-testid="detail-health">{animal.health_records}</p>
               </div>
             )}
 
             <div className="flex gap-4">
-              <Link to={`/contact?animal=${animal.id}&type=buy`} className="flex-1">
-                <Button 
-                  className="w-full btn-hover bg-[#0f5132] hover:bg-[#0a3c24] text-white font-semibold py-6 rounded-full"
-                  data-testid="detail-inquire-btn"
-                >
-                  Buy Now
-                </Button>
-              </Link>
-              <Link to={`/contact?animal=${animal.id}&type=offer`} className="flex-1">
-                <Button 
-                  variant="outline"
-                  className="w-full btn-hover border-2 border-[#0f5132] text-[#0f5132] hover:bg-[#0f5132] hover:text-white font-semibold py-6 rounded-full"
-                  data-testid="detail-offer-btn"
-                >
-                  Submit Offer
-                </Button>
-              </Link>
+              <Button
+                asChild
+                className="flex-1 btn-hover bg-[#0f5132] hover:bg-[#0a3c24] text-white font-semibold py-6 rounded-full"
+                data-testid="detail-inquire-btn"
+              >
+                <Link to={`/contact?animal=${animal.id}&type=buy`}>Buy Now</Link>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                className="flex-1 btn-hover border-2 border-[#0f5132] text-[#0f5132] hover:bg-[#0f5132] hover:text-white font-semibold py-6 rounded-full"
+                data-testid="detail-offer-btn"
+              >
+                <Link to={`/contact?animal=${animal.id}&type=offer`}>Submit Offer</Link>
+              </Button>
             </div>
           </div>
         </div>

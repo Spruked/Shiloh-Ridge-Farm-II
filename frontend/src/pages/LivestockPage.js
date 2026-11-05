@@ -126,7 +126,7 @@ const LivestockPage = () => {
             data-testid="livestock-search-input"
           />
           <Select value={filterType} onValueChange={setFilterType}>
-            <SelectTrigger className="md:w-64 rounded-full" data-testid="livestock-filter-select">
+            <SelectTrigger className="md:w-64 rounded-full" aria-label="Filter livestock by type" data-testid="livestock-filter-select">
               <SelectValue placeholder="Filter by type" />
             </SelectTrigger>
             <SelectContent>
@@ -169,7 +169,7 @@ const LivestockPage = () => {
                   <div className="p-6 flex-1 flex flex-col justify-between">
                     <div className="flex justify-between items-start mb-2">
                       <Link to={`/livestock/${animal.id}`} className="min-w-0">
-                        <h3 className="text-2xl font-bold text-[#0f5132] hover:text-[#0a3c24]">{animal.name || animal.tag_number}</h3>
+                        <h2 className="text-2xl font-bold text-[#0f5132] hover:text-[#0a3c24]">{animal.name || animal.tag_number}</h2>
                       </Link>
                       {animal.nft_minted && (
                         <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">NFT</span>

@@ -1,4 +1,4 @@
-const CACHE_NAME = "shiloh-snap-v2";
+const CACHE_NAME = "shiloh-snap-v3";
 const CAPTURE_DB_NAME = "shiloh-mobile-capture";
 const CAPTURE_DB_VERSION = 1;
 const PENDING_STORE = "pending_uploads";
@@ -11,7 +11,6 @@ const PRECACHE_URLS = [
   "/logo512.png",
   "/ShilohRidgeFarmicon256.png",
   "/shilohlogo512.png",
-  "/sheep-in-pasture.webp",
 ];
 
 self.addEventListener("install", (event) => {

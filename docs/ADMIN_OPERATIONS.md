@@ -1,6 +1,6 @@
 # Admin Operations
 
-The admin interface is private. Authentication is required for dashboard, customer, livestock, pricing, accounting, settings, and Shep owner-tool routes. Search engines are instructed not to index these routes, and they are excluded from the public sitemap.
+The admin interface is private. Authentication is required for dashboard, customer, livestock, pricing, accounting, and settings routes. Search engines are instructed not to index these routes, and they are excluded from the public sitemap.
 
 ## Persistence
 

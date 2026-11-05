@@ -1,36 +1,37 @@
+import { lazy } from "react";
+
 import HomePage from "../pages/HomePage";
-import LivestockPage from "../pages/LivestockPage";
-import LivestockDetail from "../pages/LivestockDetail";
-import AboutPage from "../pages/AboutPage";
-import BlogPage from "../pages/BlogPage";
-import KatahdinPage from "../pages/KatahdinPage";
-import AuctionsPage from "../pages/AuctionsPage";
-import ContactPage from "../pages/ContactPage";
-import ProductPage from "../pages/ProductPage";
-import CartPage from "../pages/CartPage";
-import CheckoutPage from "../pages/CheckoutPage";
-import CustomerLoginPage from "../pages/CustomerLoginPage";
-import CustomerRegisterPage from "../pages/CustomerRegisterPage";
-import CustomerDashboardPage from "../pages/CustomerDashboardPage";
-import MobileCapturePage from "../pages/MobileCapturePage";
-import LegalPage from "../pages/LegalPage";
-import AdminDashboard from "../pages/admin/AdminDashboard";
-import AboutManagement from "../pages/admin/AboutManagement";
-import AccountingPage from "../pages/admin/AccountingPage";
-import AnalyticsPage from "../pages/admin/AnalyticsPage";
-import BlogManagement from "../pages/admin/BlogManagement";
-import ButchAdmin from "../pages/admin/ButchAdmin";
-import ContactManagement from "../pages/admin/ContactManagement";
-import CustomersPage from "../pages/admin/CustomersPage";
-import FarmPricingPage from "../pages/admin/FarmPricingPage";
-import InventoryPage from "../pages/admin/InventoryPage";
-import LivestockManagement from "../pages/admin/LivestockManagement";
-import NFTManagement from "../pages/admin/NFTManagement";
-import OrderManagement from "../pages/admin/OrderManagement";
-import ProductManagement from "../pages/admin/ProductManagement";
-import ReviewQueuePage from "../pages/admin/ReviewQueuePage";
-import SalesPage from "../pages/admin/SalesPage";
-import SettingsManagement from "../pages/admin/SettingsManagement";
+const LivestockPage = lazy(() => import("../pages/LivestockPage"));
+const LivestockDetail = lazy(() => import("../pages/LivestockDetail"));
+const AboutPage = lazy(() => import("../pages/AboutPage"));
+const BlogPage = lazy(() => import("../pages/BlogPage"));
+const KatahdinPage = lazy(() => import("../pages/KatahdinPage"));
+const AuctionsPage = lazy(() => import("../pages/AuctionsPage"));
+const ContactPage = lazy(() => import("../pages/ContactPage"));
+const ProductPage = lazy(() => import("../pages/ProductPage"));
+const CartPage = lazy(() => import("../pages/CartPage"));
+const CheckoutPage = lazy(() => import("../pages/CheckoutPage"));
+const CustomerLoginPage = lazy(() => import("../pages/CustomerLoginPage"));
+const CustomerRegisterPage = lazy(() => import("../pages/CustomerRegisterPage"));
+const CustomerDashboardPage = lazy(() => import("../pages/CustomerDashboardPage"));
+const MobileCapturePage = lazy(() => import("../pages/MobileCapturePage"));
+const LegalPage = lazy(() => import("../pages/LegalPage"));
+const AdminDashboard = lazy(() => import("../pages/admin/AdminDashboard"));
+const AboutManagement = lazy(() => import("../pages/admin/AboutManagement"));
+const AccountingPage = lazy(() => import("../pages/admin/AccountingPage"));
+const AnalyticsPage = lazy(() => import("../pages/admin/AnalyticsPage"));
+const BlogManagement = lazy(() => import("../pages/admin/BlogManagement"));
+const ContactManagement = lazy(() => import("../pages/admin/ContactManagement"));
+const CustomersPage = lazy(() => import("../pages/admin/CustomersPage"));
+const FarmPricingPage = lazy(() => import("../pages/admin/FarmPricingPage"));
+const InventoryPage = lazy(() => import("../pages/admin/InventoryPage"));
+const LivestockManagement = lazy(() => import("../pages/admin/LivestockManagement"));
+const NFTManagement = lazy(() => import("../pages/admin/NFTManagement"));
+const OrderManagement = lazy(() => import("../pages/admin/OrderManagement"));
+const ProductManagement = lazy(() => import("../pages/admin/ProductManagement"));
+const ReviewQueuePage = lazy(() => import("../pages/admin/ReviewQueuePage"));
+const SalesPage = lazy(() => import("../pages/admin/SalesPage"));
+const SettingsManagement = lazy(() => import("../pages/admin/SettingsManagement"));
 
 export const publicRoutes = [
   { path: "/", Component: HomePage },
@@ -55,7 +56,6 @@ export const publicRoutes = [
 export const adminRoutes = [
   { path: "/admin/dashboard", Component: AdminDashboard, withLogout: true },
   { path: "/admin/analytics", Component: AnalyticsPage },
-  { path: "/admin/butch", Component: ButchAdmin },
   { path: "/admin/about", Component: AboutManagement },
   { path: "/admin/accounting", Component: AccountingPage },
   { path: "/admin/blog", Component: BlogManagement },

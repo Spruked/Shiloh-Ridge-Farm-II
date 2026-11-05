@@ -126,12 +126,6 @@ const adminSections = [
         href: "/admin/inventory",
       },
       {
-        title: "Butch Admin",
-        description: "Manage Butch memory, promotions, and butcher assistant health.",
-        icon: Sparkles,
-        href: "/admin/butch",
-      },
-      {
         title: "NFT Tools",
         description: "Open the blockchain and certificate utilities if needed.",
         icon: ShieldCheck,
@@ -198,7 +192,7 @@ const AdminDashboard = ({ onLogout }) => {
               Orders, products, livestock, accounting, and website content are all restored here so the owner does not have to remember hidden routes.
             </p>
             <p className="text-sm text-stone-600">
-              Shep stays the public website assistant. Butch stays the product-page butcher specialist. This area is the secure owner workspace.
+              This area is the secure owner workspace.
             </p>
           </CardContent>
         </Card>

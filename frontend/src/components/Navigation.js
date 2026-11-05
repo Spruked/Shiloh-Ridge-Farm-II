@@ -14,7 +14,7 @@ const NAV_LINKS = [
   { to: "/auctions",  label: "Auctions" },
   { to: "/contact",   label: "Contact" },
 ];
-const FARM_LOGO_URL = `${process.env.PUBLIC_URL || ""}/ShilohRidgeFarmicon256.png`;
+const FARM_LOGO_URL = `${process.env.PUBLIC_URL || ""}/logo-96.png`;
 
 const Navigation = () => {
   const location = useLocation();
@@ -90,7 +90,7 @@ const Navigation = () => {
                   ? "bg-[#0f5132] text-white"
                   : isAuthenticated
                     ? "bg-[#e6ede2] text-[#0f5132] hover:bg-[#d8e4d2]"
-                    : "bg-[#b6863a] text-white hover:bg-[#9c702f]"
+                    : "bg-[#8f6a26] text-white hover:bg-[#7c5a1e]"
               }`}
               aria-label={isAuthenticated ? "My Account" : "Customer Sign In"}
               data-testid="nav-account"
@@ -102,6 +102,7 @@ const Navigation = () => {
             {/* Cart */}
             <Link
               to="/cart"
+              aria-label="Shopping cart"
               className={`relative p-2 rounded-md transition-colors ${
                 isActive("/cart")
                   ? "text-[#0f5132] bg-[#e6ede2]"
@@ -112,7 +113,7 @@ const Navigation = () => {
             >
               <ShoppingCart size={18} />
               {cartCount > 0 && (
-                <span className="absolute top-0.5 right-0.5 h-4 min-w-4 flex items-center justify-center rounded-full bg-[#b6863a] text-[9px] font-bold text-white px-0.5">
+                <span className="absolute top-0.5 right-0.5 h-4 min-w-4 flex items-center justify-center rounded-full bg-[#8f6a26] text-[9px] font-bold text-white px-0.5">
                   {cartCount}
                 </span>
               )}
@@ -135,7 +136,7 @@ const Navigation = () => {
               className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
                 isAuthenticated
                   ? "bg-[#e6ede2] text-[#0f5132]"
-                  : "bg-[#b6863a] text-white"
+                  : "bg-[#8f6a26] text-white"
               }`}
               data-testid="mobile-nav-account-cta"
             >
@@ -143,12 +144,13 @@ const Navigation = () => {
             </Link>
             <Link
               to="/cart"
+              aria-label="Shopping cart"
               className="relative p-2 text-gray-500"
               data-testid="mobile-nav-cart"
             >
               <ShoppingCart size={20} />
               {cartCount > 0 && (
-                <span className="absolute top-0.5 right-0.5 h-4 min-w-4 flex items-center justify-center rounded-full bg-[#b6863a] text-[9px] font-bold text-white px-0.5">
+                <span className="absolute top-0.5 right-0.5 h-4 min-w-4 flex items-center justify-center rounded-full bg-[#8f6a26] text-[9px] font-bold text-white px-0.5">
                   {cartCount}
                 </span>
               )}
@@ -201,7 +203,7 @@ const Navigation = () => {
               className={`flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-semibold ${
                 isAuthenticated
                   ? "bg-[#e6ede2] text-[#0f5132]"
-                  : "bg-[#b6863a] text-white"
+                  : "bg-[#8f6a26] text-white"
               }`}
               onClick={() => setIsMobileMenuOpen(false)}
               data-testid="mobile-nav-account"

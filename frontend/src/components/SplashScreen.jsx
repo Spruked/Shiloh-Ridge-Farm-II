@@ -20,7 +20,6 @@ export default function SplashScreen({ onComplete }) {
   }, [onComplete]);
 
   const enterNow = () => {
-    window.dispatchEvent(new CustomEvent("shep-audio-unlock"));
     setExiting(true);
     window.setTimeout(() => onComplete?.(), 260);
   };

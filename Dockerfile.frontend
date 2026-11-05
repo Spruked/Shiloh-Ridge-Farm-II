@@ -31,4 +31,5 @@ COPY --from=build /app/build ./build
 EXPOSE 3000
 
 # Start the static site server
-CMD ["serve", "-s", "build", "-l", "3000"]
+# No -s: build/serve.json (written by scripts/seo-postbuild.js) routes known app paths and serves a real 404 for unknown URLs.
+CMD ["serve", "build", "-l", "3000"]

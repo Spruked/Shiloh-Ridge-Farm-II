@@ -1,0 +1,92 @@
+{
+  "site": {
+    "name": "Shiloh Ridge Katahdins",
+    "farmName": "Shiloh Ridge Farm",
+    "publicUrl": "https://shilohridgekatahdins.com",
+    "apiUrl": "https://api.shilohridgekatahdins.com",
+    "phone": "(660) 254-6226",
+    "ogImage": "/shilohlogo512.png"
+  },
+  "pages": [
+    {
+      "path": "/",
+      "h1": "Shiloh Ridge Katahdins",
+      "title": "Shiloh Ridge Katahdins | Katahdin Sheep in Maitland, Missouri",
+      "description": "Family farm in Maitland, Missouri raising premium Katahdin sheep, live hogs and select cattle, with farm products and direct livestock inquiries.",
+      "changefreq": "weekly",
+      "priority": "1.0"
+    },
+    {
+      "path": "/livestock",
+      "h1": "Available Katahdin Sheep & Livestock",
+      "title": "Available Katahdin Sheep & Livestock | Shiloh Ridge Katahdins",
+      "description": "Browse Katahdin sheep and livestock available from Shiloh Ridge Farm in Maitland, Missouri, with tag numbers, bloodlines and lineage details.",
+      "changefreq": "daily",
+      "priority": "0.9"
+    },
+    {
+      "path": "/products",
+      "h1": "Farm Products",
+      "title": "Farm Products, Lamb & Pork Orders | Shiloh Ridge Farm",
+      "description": "Order farm-raised lamb, pork and eggs from Shiloh Ridge Farm. Plan whole and half orders with the cut calculator and reserve your freezer-ready package.",
+      "changefreq": "weekly",
+      "priority": "0.8"
+    },
+    {
+      "path": "/katahdin",
+      "h1": "About Katahdin Sheep",
+      "title": "About Katahdin Sheep | Hair Sheep Breed Traits & Information",
+      "description": "Why Katahdin hair sheep suit many operations: no shearing, hardiness, parasite resistance and strong mothering, from a working Missouri farm.",
+      "changefreq": "monthly",
+      "priority": "0.8"
+    },
+    {
+      "path": "/about",
+      "h1": "About Shiloh Ridge Farm",
+      "title": "About Shiloh Ridge Farm | Katahdin Sheep Farm in Missouri",
+      "description": "Meet Shiloh Ridge Farm in Maitland, Missouri: a family farm built on integrity and honesty, raising Katahdin sheep and quality livestock.",
+      "changefreq": "monthly",
+      "priority": "0.7"
+    },
+    {
+      "path": "/contact",
+      "h1": "Contact Shiloh Ridge Farm",
+      "title": "Contact Shiloh Ridge Farm | Maitland, Missouri | (660) 254-6226",
+      "description": "Contact Shiloh Ridge Farm in Maitland, Missouri about Katahdin sheep, livestock, farm products or orders. Call (660) 254-6226 or send a message.",
+      "changefreq": "monthly",
+      "priority": "0.7"
+    },
+    {
+      "path": "/blog",
+      "h1": "Farm Blog",
+      "title": "Farm Blog | Shiloh Ridge Katahdins",
+      "description": "News, updates and practical notes on Katahdin sheep, livestock care and life on Shiloh Ridge Farm in Maitland, Missouri.",
+      "changefreq": "weekly",
+      "priority": "0.5"
+    },
+    {
+      "path": "/auctions",
+      "h1": "Local Livestock Auctions",
+      "title": "Local Livestock Auctions | Shiloh Ridge Katahdins",
+      "description": "Find nearby livestock auctions and sale barns useful to Missouri and Midwest sheep and livestock producers.",
+      "changefreq": "weekly",
+      "priority": "0.5"
+    },
+    {
+      "path": "/privacy",
+      "h1": "Privacy Policy",
+      "title": "Privacy Policy | Shiloh Ridge Katahdins",
+      "description": "How Shiloh Ridge Farm collects, uses and protects information submitted through this website.",
+      "changefreq": "yearly",
+      "priority": "0.2"
+    },
+    {
+      "path": "/terms",
+      "h1": "Terms of Use",
+      "title": "Terms of Use | Shiloh Ridge Katahdins",
+      "description": "Terms for using the Shiloh Ridge Farm website, placing orders and making livestock inquiries.",
+      "changefreq": "yearly",
+      "priority": "0.2"
+    }
+  ]
+}

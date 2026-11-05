@@ -94,7 +94,7 @@ const ContactPage = () => {
           <img
             src="/ShilohRidgeFarmicon256.png"
             alt="Shiloh Ridge Farm"
-            className="w-36 mx-auto object-contain opacity-90"
+            width="144" height="146" className="w-36 mx-auto object-contain opacity-90"
           />
         </div>
 
@@ -123,7 +123,7 @@ const ContactPage = () => {
               )}
             </div>
             <div>
-              <h3 className="text-xl font-bold text-[#0f5132]">{animal.name || animal.tag_number}</h3>
+              <h2 className="text-xl font-bold text-[#0f5132]">{animal.name || animal.tag_number}</h2>
               <p className="text-gray-600 capitalize">{animal.animal_type}</p>
               {animal.price && <p className="text-lg font-semibold text-[#0f5132]">${animal.price.toLocaleString()}</p>}
             </div>
@@ -226,7 +226,7 @@ const ContactPage = () => {
         </div>
 
         <div className="mt-12 bg-[#e7eddc] rounded-2xl p-8 text-center" data-testid="contact-info">
-          <h3 className="text-2xl font-bold text-[#0f5132] mb-4">Contact Information</h3>
+          <h2 className="text-2xl font-bold text-[#0f5132] mb-4">Contact Information</h2>
           <div className="text-gray-700 text-lg space-y-2">
             <div>
               <p className="font-semibold text-xl text-[#0f5132] mb-2">Shiloh Ridge Farm</p>

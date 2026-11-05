@@ -1,10 +1,5 @@
 name: shiloh-ridge-farm
 
-x-runtime-notes:
-  voice_python: "Qwen3-TTS, Kokoro, and STT services run outside this compose under Python 3.12."
-  workers: "shep_worker and butch_worker are backend-owned modules/data, not separate long-running containers."
-  final_build_rule: "Do not build/deploy a final production image until the UI, Shep ORB, Butch, admin data, and voice are verified."
-
 services:
   mongo:
     image: mongo:7
@@ -45,46 +40,14 @@ services:
       DB_NAME: ${DB_NAME:-shiloh_farm}
       JWT_SECRET: ${JWT_SECRET:-change-me-before-production}
       ADMIN_AUTH_BYPASS: ${ADMIN_AUTH_BYPASS:-false}
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:3b}
-      OLLAMA_FALLBACK_MODEL: ${OLLAMA_FALLBACK_MODEL:-llama3.2:1b}
-      OLLAMA_TIMEOUT_SEC: ${OLLAMA_TIMEOUT_SEC:-20}
-      OLLAMA_NUM_CTX: ${OLLAMA_NUM_CTX:-256}
-      OLLAMA_NUM_PREDICT: ${OLLAMA_NUM_PREDICT:-96}
-      QWEN_TTS_URL: ${QWEN_TTS_URL:-http://host.docker.internal:9880/speak}
-      KOKORO_TTS_URL: ${KOKORO_TTS_URL:-http://host.docker.internal:8880/api/kokoro/tts}
-      CALI_KOKORO_VOICE: ${CALI_KOKORO_VOICE:-am_adam}
-      SHEP_PREFER_KOKORO: ${SHEP_PREFER_KOKORO:-1}
-      CP3_BASE_URL: ${CP3_BASE_URL:-http://host.docker.internal:17000}
-      SHEP_TTS_TOTAL_TIMEOUT_SEC: ${SHEP_TTS_TOTAL_TIMEOUT_SEC:-8}
-      QWEN_TTS_PRIMARY_TIMEOUT_SEC: ${QWEN_TTS_PRIMARY_TIMEOUT_SEC:-7}
-      SHEP_ENABLE_SERVER_TTS: ${SHEP_ENABLE_SERVER_TTS:-1}
-      R_DRIVE_ROOT: ${R_DRIVE_ROOT:-/mnt/r}
-      SHEP_SUBSTRATE_ROOT: ${SHEP_SUBSTRATE_ROOT:-/mnt/r}
-      SHEP_DERIVED_ROOT: ${SHEP_DERIVED_ROOT:-/app/vault_system/substrate/derived}
-      SHEP_ORB_MESH_ROOT: ${SHEP_ORB_MESH_ROOT:-/mnt/r/orb_mesh}
       SHILOH_VAULT_SYSTEM_ROOT: /app/vault_system
-      ORB_WEAVER_VAULT_ROOT: /app/vault_system
-      BUTCH_VAULT_ROOT: /app/vault_system/butch/data
-      SHEP_OVERRIDE_PATH: /app/vault_system/shep/state/override.json
-      SHEP_ADMIN_STATE_PATH: /app/vault_system/shep/state/admin_state.json
-      SHEP_SUBSTRATE_READ_ONLY: ${SHEP_SUBSTRATE_READ_ONLY:-true}
-      SHEP_MCP_TRANSPORT: ${SHEP_MCP_TRANSPORT:-stdio}
-      FAST_WHISPER_URL: ${FAST_WHISPER_URL:-http://host.docker.internal:9000/stt}
-      SHEP_STT_PRIORITY: ${SHEP_STT_PRIORITY:-whisper}
-      DOCTRINE_DISABLED_FOR_DEV: ${DOCTRINE_DISABLED_FOR_DEV:-true}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     ports:
       - "${BACKEND_PORT:-12000}:8000"
     volumes:
       - ./assets:/assets
       - ./vault_system:/app/vault_system
-      - /mnt/r:/mnt/r
-      - ./vault_system/butch/audio_cache:/app/butch_audio_cache
       - ./vault_system/documents:/app/documents
       - ./vault_system/nft/certificates:/assets/images/nft_certificates
-      - ./shep_worker:/app/shep_worker:ro
       - ./butch_worker:/app/butch_worker:ro
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8000/api/health"]
@@ -168,29 +131,6 @@ services:
     networks:
       - farm-net
 
-  voice-system:
-    profiles: ["voice-system"]
-    image: python:3.12-slim
-    container_name: shiloh-ridge-voice-system
-    restart: unless-stopped
-    working_dir: /app
-    command: >
-      sh -c "pip install --no-cache-dir -r shiloh_voice_system/requirements.txt
-      && python -m shiloh_voice_system.main"
-    environment:
-      VOICE_HOST: 0.0.0.0
-      VOICE_PORT: 8002
-      QWEN_TTS_URL: ${QWEN_TTS_URL:-http://host.docker.internal:9880/speak}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    ports:
-      - "${VOICE_SYSTEM_PORT:-8002}:8002"
-    volumes:
-      - ./:/app:ro
-      - voice-cache:/tmp/shiloh_voice_cache
-    networks:
-      - farm-net
-
   cloudflared:
     profiles: ["tunnel"]
     image: cloudflare/cloudflared:latest
@@ -217,5 +157,3 @@ volumes:
     name: shiloh-ridge-mongo-data
   checkout-data:
     name: shiloh-ridge-checkout-data
-  voice-cache:
-    name: shiloh-ridge-voice-cache

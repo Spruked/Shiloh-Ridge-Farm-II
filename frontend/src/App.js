@@ -1,13 +1,10 @@
-import { useState, useEffect } from "react";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { Suspense, useState, useEffect } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import axios from "axios";
 import AdminLogin from "./pages/admin/AdminLogin";
 import { Toaster } from "./components/ui/sonner";
-import { AdminCaliOrbBubble } from "./components/orb";
-import ButchAssistant from "./components/butcher/ButchAssistant";
 import SplashScreen from "./components/SplashScreen";
 import { adminRoutes, publicRoutes } from "./config/appRoutes";
-import { resolveAssistantContext } from "./config/site";
 import { ThemeProvider } from "./ThemeContext";
 import { CartProvider } from "./CartContext";
 import { CustomerAuthProvider } from "./CustomerAuthContext";
@@ -27,19 +24,6 @@ function LoadingScreen() {
         <p>Loading...</p>
       </div>
     </div>
-  );
-}
-
-function ChatAssistantManager() {
-  const location = useLocation();
-  const { pageContext, showButch, hideShep } = resolveAssistantContext(location.pathname);
-  if (hideShep) return null;
-
-  return (
-    <>
-      <AdminCaliOrbBubble pageContext={pageContext} />
-      {showButch && <ButchAssistant />}
-    </>
   );
 }
 
@@ -106,6 +90,14 @@ function App() {
             <div className="App">
               <BrowserRouter>
                 <SeoManager />
+                <a
+                  href="#main-content"
+                  className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-[100] focus:rounded focus:bg-white focus:px-4 focus:py-2 focus:text-[#0f5132]"
+                >
+                  Skip to main content
+                </a>
+                <main id="main-content">
+                <Suspense fallback={<LoadingScreen />}>
                 <Routes>
                   {publicRoutes.map(({ path, Component }) => (
                     <Route key={path} path={path} element={<Component />} />
@@ -141,7 +133,8 @@ function App() {
                   <Route path="/checkout/success" element={<Navigate to="/account/dashboard" replace />} />
                   <Route path="*" element={<NotFoundPage />} />
                 </Routes>
-                <ChatAssistantManager />
+                </Suspense>
+                </main>
                 {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
                 <Toaster position="top-right" />
               </BrowserRouter>

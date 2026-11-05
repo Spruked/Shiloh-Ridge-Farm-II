@@ -13,9 +13,7 @@ frontend/.npm
 frontend/.yarn
 
 backend/__pycache__
-Renova_te_ipsum/__pycache__
 butch_worker/__pycache__
-shep_worker/__pycache__
 
 # Runtime/private vault content is bind-mounted by Compose, never baked into an image.
 vault_system/audit

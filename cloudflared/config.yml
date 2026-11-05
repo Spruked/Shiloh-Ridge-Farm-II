@@ -10,14 +10,6 @@ ingress:
   - hostname: api.shilohridgekatahdins.com
     service: http://localhost:12000
 
-  # Butch assistant
-  - hostname: butch.shilohridgekatahdins.com
-    service: http://localhost:8001
-
-  # Voice TTS service
-  - hostname: voice.shilohridgekatahdins.com
-    service: http://localhost:8002
-
   # Fallback
   - service: http_status:404
 

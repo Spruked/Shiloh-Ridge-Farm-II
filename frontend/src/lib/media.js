@@ -29,16 +29,14 @@ export function resolveMediaUrl(source) {
 
   if (
     trimmed.startsWith("/images/") ||
-    trimmed.startsWith("/documents/") ||
-    trimmed.startsWith("/butch_audio/")
+    trimmed.startsWith("/documents/")
   ) {
     return `${backendBaseUrl}${trimmed}`;
   }
 
   if (
     trimmed.startsWith("images/") ||
-    trimmed.startsWith("documents/") ||
-    trimmed.startsWith("butch_audio/")
+    trimmed.startsWith("documents/")
   ) {
     return `${backendBaseUrl}/${encodePathSegments(trimmed)}`;
   }

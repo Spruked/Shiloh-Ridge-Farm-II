@@ -41,39 +41,13 @@ except Exception:  # pragma: no cover - runtime dependency check
 from inventory import router as inventory_router, set_inventory_db
 from sales import router as sales_router, set_sales_db
 from accounting import router as accounting_router, set_accounting_db
-from butch_core import butch_skg
-from butch_routes import router as butch_router
-from butch_voice import butch_voice
-from butcher_compat_routes import router as butcher_compat_router, set_butcher_db
-try:
-    from worker_chat_routes import router as worker_chat_router, set_worker_chat_db
-except ModuleNotFoundError:
-    worker_chat_router = None
-
-    def set_worker_chat_db(_db):
-        return None
-from admin_orb_routes import router as admin_orb_router, warmup_shep_stack
-from substrate_routes import router as substrate_router
+from butcher_compat_routes import router as butcher_compat_router
 try:
     from mobile_capture import router as mobile_capture_router, set_mobile_capture_db
 except ModuleNotFoundError:
     mobile_capture_router = None
 
     def set_mobile_capture_db(_db):
-        return None
-ENABLE_GPU_ROUTES = os.environ.get("SHILOH_ENABLE_GPU_ROUTES", "").strip().lower() in ("1", "true", "yes", "on")
-if ENABLE_GPU_ROUTES:
-    try:
-        from gpu_inference import router as gpu_router, warmup_gpu_stack
-    except ModuleNotFoundError:
-        gpu_router = None
-
-        async def warmup_gpu_stack():
-            return None
-else:
-    gpu_router = None
-
-    async def warmup_gpu_stack():
         return None
 try:
     from routes.farm_goal_routes import create_farm_goal_router
@@ -99,8 +73,6 @@ set_inventory_db(db)
 set_sales_db(db)
 set_accounting_db(db)
 set_mobile_capture_db(db)
-set_worker_chat_db(db)
-set_butcher_db(db)
 
 # Create the main app
 app = FastAPI()
@@ -1408,10 +1380,6 @@ async def startup_event():
                 "No admin users found. Set INITIAL_ADMIN_USERNAME and INITIAL_ADMIN_PASSWORD once to bootstrap access."
             )
 
-    warmup_result = await warmup_gpu_stack()
-    logger.info("GPU warmup result: %s", warmup_result)
-    asyncio.create_task(warmup_shep_stack())
-    logger.info("Shep ORB warmup scheduled")
     
     # Create default about page if not exists
     about = await db.about_content.find_one({"id": "about_page"})
@@ -2629,21 +2597,6 @@ async def create_order(order: OrderCreate, customer=Depends(verify_customer_toke
 
     asyncio.get_event_loop().run_in_executor(None, _notify_farm_new_order, order_obj.model_dump())
 
-    butch_skg.record_order(
-        customer_id=f"email:{order.customer_email.strip().lower()}",
-        order_details={
-            "customer_name": order.customer_name,
-            "customer_email": order.customer_email,
-            "customer_phone": order.customer_phone,
-            "customer_address": order.customer_address,
-            "items": stored_items,
-            "total": total_amount,
-            "status": "pending",
-            "pickup_date": order.preferred_pickup_date,
-            "notes": order.notes,
-            "date": datetime.now(timezone.utc).isoformat(),
-        },
-    )
     return order_obj
 
 @api_router.get("/orders", response_model=List[Order])
@@ -2915,16 +2868,38 @@ async def upload_image(file: UploadFile = File(...), username: str = Depends(ver
 api_router.include_router(inventory_router)
 api_router.include_router(sales_router)
 api_router.include_router(accounting_router)
-if worker_chat_router is not None:
-    api_router.include_router(worker_chat_router)
 api_router.include_router(butcher_compat_router)
-api_router.include_router(butch_router)
-api_router.include_router(admin_orb_router)
-api_router.include_router(substrate_router)
 if mobile_capture_router is not None:
     api_router.include_router(mobile_capture_router)
-if gpu_router is not None:
-    api_router.include_router(gpu_router)
+PUBLIC_SITE_URL = os.environ.get("PUBLIC_SITE_URL", "https://shilohridgekatahdins.com").rstrip("/")
+
+
+@api_router.get("/sitemap-livestock.xml")
+async def sitemap_livestock():
+    """Sitemap of individual animal pages. Static pages live in the frontend's sitemap.xml."""
+    from fastapi.responses import Response
+    from xml.sax.saxutils import escape
+
+    animals = await db.livestock.find({}, {"_id": 0, "id": 1, "updated_at": 1, "created_at": 1}).to_list(5000)
+    entries = []
+    for animal in animals:
+        animal_id = animal.get("id")
+        if not animal_id:
+            continue
+        stamp = animal.get("updated_at") or animal.get("created_at")
+        lastmod = str(stamp)[:10] if stamp else None
+        entry = f"  <url>\n    <loc>{escape(PUBLIC_SITE_URL)}/livestock/{escape(str(animal_id))}</loc>\n"
+        if lastmod:
+            entry += f"    <lastmod>{escape(lastmod)}</lastmod>\n"
+        entry += "    <changefreq>weekly</changefreq>\n    <priority>0.6</priority>\n  </url>"
+        entries.append(entry)
+    body = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + "\n".join(entries) + "\n</urlset>\n"
+    )
+    return Response(content=body, media_type="application/xml")
+
+
 @api_router.get("/health")
 async def health_check():
     return {"status": "ok"}
@@ -2937,7 +2912,6 @@ app.include_router(create_farm_pricing_router(db))
 from fastapi.staticfiles import StaticFiles
 app.mount("/images", StaticFiles(directory=ROOT_DIR.parent / "assets" / "images"), name="images")
 app.mount("/audio", StaticFiles(directory=ROOT_DIR.parent / "assets" / "audio"), name="audio")
-app.mount("/butch_audio", StaticFiles(directory=butch_voice.audio_cache), name="butch_audio")
 
 app.add_middleware(
     CORSMiddleware,

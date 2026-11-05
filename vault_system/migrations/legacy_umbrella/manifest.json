@@ -19,7 +19,7 @@
     {
       "id": "shep",
       "canonical_path": "vault/shep",
-      "compatibility_paths": ["shep_worker/vault"],
+      "compatibility_paths": [],
       "seed_source": "assets/shep_farm_knowledge.csv",
       "status": "seed_mirrored"
     },

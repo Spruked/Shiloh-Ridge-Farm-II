@@ -71,3 +71,11 @@ vault_system/**/*.tar.gz
 **/vaults/
 **/vault_system/
 !vault_system/
+
+# Local assistant settings
+.claude/settings.local.json
+
+# Local tool output
+C:*lighthouse*/
+vault_system/site_data/
+vault_system/farm_orb/audits/

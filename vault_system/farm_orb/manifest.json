@@ -1,7 +1,7 @@
 {
   "schema": "shiloh.farm_orb.vault.v1",
   "canonical_source": "../site_data",
-  "crawl_csv": "../site_data/crawl_2.csv",
+  "crawl_csv": null,
   "crawl_record": "../site_data/latest_crawl.json",
   "latest_crawl": "../site_data/latest_crawl.json",
   "latest_audit": "../site_data/latest_audit.json",
@@ -10,5 +10,28 @@
   "website_orb_context": "../site_data/website_orb_context/latest_context.json",
   "human_escalations": "../substrate/derived/escalations",
   "tool_audit": "../shep/tool_calls.jsonl",
-  "policy": "Pointer actions use the Orb Weaver map; uncertain or permanent actions create a human escalation."
+  "policy": "Pointer actions use the Orb Weaver map; uncertain or permanent actions create a human escalation.",
+  "crawl_csv_note": "No per-page CSV was exported for crawl 31. site_data/crawl_2.csv and audit_1.csv are superseded September 2026 evidence (crawl 2 / audit 1) and are retained, not active.",
+  "active_evidence": {
+    "crawl_id": "31",
+    "audit_id": "18",
+    "crawl_saved_at": "2026-11-05T08:47:57.283236",
+    "audit_saved_at": "2026-11-05T08:51:06.169541",
+    "evidence_archive": "audits",
+    "orb_weaver_archive": "orb_weaver",
+    "run_manifest": "audits/manifest.json"
+  },
+  "superseded_evidence": {
+    "crawl_id": "2",
+    "audit_id": "1",
+    "files": [
+      "../site_data/crawl_2.csv",
+      "../site_data/audit_1.csv"
+    ],
+    "recoverable_from": "backups/files/shiloh-files-20261105T013535Z.tar.gz"
+  },
+  "pointer_verification": {
+    "status": "BLOCKED",
+    "detail": "Audit 18 pointer verification: browser capture failed on all 22 routes (guidance-eligible 0). Navigation uses canonical route pointers in backend/shep_tool_registry.py, unaffected."
+  }
 }

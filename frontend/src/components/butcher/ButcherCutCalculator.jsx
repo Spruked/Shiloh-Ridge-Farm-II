@@ -207,10 +207,10 @@ const ButcherCutCalculator = ({
 
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
-      <div className="bg-gradient-to-r from-amber-600 to-orange-600 p-6 text-white">
+      <div className="bg-gradient-to-r from-amber-700 to-orange-700 p-6 text-white">
         <h2 className="flex items-center gap-3 text-2xl font-bold">
           <Scale className="h-7 w-7" />
-          Butch's Meat Calculator
+          Meat Calculator
         </h2>
         <p className="mt-2 text-sm text-amber-100">
           Estimate butcher yield, freezer planning, and rough cut value before you order.
@@ -310,7 +310,7 @@ const ButcherCutCalculator = ({
             <button
               onClick={calculateEstimate}
               disabled={loading}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-600 py-4 font-semibold text-white transition-colors hover:bg-amber-700 disabled:bg-slate-300"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-700 py-4 font-semibold text-white transition-colors hover:bg-amber-800 disabled:bg-slate-300"
             >
               {loading ? (
                 <>

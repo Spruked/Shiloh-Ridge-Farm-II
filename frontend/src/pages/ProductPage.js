@@ -9,13 +9,12 @@ import Navigation from '../components/Navigation';
 import PriceTicker from '../components/PriceTicker';
 import Footer from '../components/Footer';
 import ButcherCutCalculator from '../components/butcher/ButcherCutCalculator';
-import OrderParserChat from '../components/butcher/OrderParserChat';
 import { getApiBaseUrl } from '../lib/backend';
 import { useCart } from '../CartContext';
 import { useProducts } from '../ProductDataContext';
 
-const BUTCH_PROFILE_KEY = 'shiloh_butch_profile';
-const BUTCH_ORDER_DRAFT_KEY = 'shiloh_butch_order_draft_v1';
+const VISITOR_PROFILE_KEY = 'shiloh_visitor_profile';
+const ORDER_DRAFT_KEY = 'shiloh_order_draft_v1';
 
 const parseEstimateRangeMidpoint = (estimate) => {
   const [lowRaw, highRaw] = estimate?.total_estimated_cost || [];
@@ -44,12 +43,12 @@ const ProductPage = () => {
   const API = getApiBaseUrl();
 
   useEffect(() => {
-    hydrateOrderFormFromButchProfile();
+    hydrateOrderFormFromSavedProfile();
   }, []);
 
-  const hydrateOrderFormFromButchProfile = () => {
+  const hydrateOrderFormFromSavedProfile = () => {
     try {
-      const storedProfile = JSON.parse(localStorage.getItem(BUTCH_PROFILE_KEY) || '{}');
+      const storedProfile = JSON.parse(localStorage.getItem(VISITOR_PROFILE_KEY) || '{}');
       if (!storedProfile) {
         return;
       }
@@ -61,18 +60,18 @@ const ProductPage = () => {
         customer_phone: storedProfile.phone || current.customer_phone
       }));
     } catch (storageError) {
-      console.error('Failed to restore Butch profile for order form:', storageError);
+      console.error('Failed to restore saved profile for order form:', storageError);
     }
   };
 
   const persistVisitorProfile = (profile) => {
     try {
-      const current = JSON.parse(localStorage.getItem(BUTCH_PROFILE_KEY) || '{}');
+      const current = JSON.parse(localStorage.getItem(VISITOR_PROFILE_KEY) || '{}');
       const merged = {
         ...current,
         ...profile
       };
-      localStorage.setItem(BUTCH_PROFILE_KEY, JSON.stringify(merged));
+      localStorage.setItem(VISITOR_PROFILE_KEY, JSON.stringify(merged));
       setOrderForm((existing) => ({
         ...existing,
         customer_name: merged.name || existing.customer_name,
@@ -88,10 +87,10 @@ const ProductPage = () => {
     setItemQuantity(productId, quantity);
   };
 
-  const persistButchOrderDraft = ({ estimate, meatType, orderType }) => {
+  const persistOrderDraft = ({ estimate, meatType, orderType }) => {
     try {
       localStorage.setItem(
-        BUTCH_ORDER_DRAFT_KEY,
+        ORDER_DRAFT_KEY,
         JSON.stringify({
           estimate,
           meatType,
@@ -100,7 +99,7 @@ const ProductPage = () => {
         }),
       );
     } catch (storageError) {
-      console.error('Failed to persist Butch order draft:', storageError);
+      console.error('Failed to persist order draft:', storageError);
     }
   };
 
@@ -128,12 +127,12 @@ const ProductPage = () => {
   };
 
   const handleOrderSignIn = (payload) => {
-    persistButchOrderDraft(payload || {});
+    persistOrderDraft(payload || {});
     navigate('/account/login');
   };
 
   const handleOrderCreateAccount = (payload) => {
-    persistButchOrderDraft(payload || {});
+    persistOrderDraft(payload || {});
     navigate('/account/register');
   };
 
@@ -154,7 +153,7 @@ const ProductPage = () => {
       ...current,
       notes: current.notes
         ? current.notes
-        : `Butch recommendation: ${payload?.orderType || 'whole'} ${payload?.meatType || 'hog'}.`,
+        : `Calculator recommendation: ${payload?.orderType || 'whole'} ${payload?.meatType || 'hog'}.`,
     }));
   };
 
@@ -228,25 +227,6 @@ const ProductPage = () => {
     }
   };
 
-  const handleButchParsed = (parsed) => {
-    if (parsed?.visitor_profile?.name || parsed?.visitor_profile?.email) {
-      persistVisitorProfile({
-        name: parsed.visitor_profile?.name || orderForm.customer_name,
-        email: parsed.visitor_profile?.email || orderForm.customer_email,
-        phone: orderForm.customer_phone
-      });
-    }
-
-    if (parsed?.parsed_successfully && parsed?.meat_type && parsed?.order_type) {
-      setOrderForm((current) => ({
-        ...current,
-        notes: current.notes
-          ? current.notes
-          : `Butch recommendation: ${parsed.order_type} ${parsed.meat_type}.`
-      }));
-    }
-  };
-
   const hasProducts = products.length > 0;
 
   if (loading) {
@@ -311,19 +291,12 @@ const ProductPage = () => {
         )}
 
       <div className="max-w-6xl mx-auto mb-10">
-        <div className="grid lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <ButcherCutCalculator
-              onOrderSignIn={handleOrderSignIn}
-              onOrderCreateAccount={handleOrderCreateAccount}
-              onAddRecommendedToCart={handleAddRecommendedToCart}
-              onContactOrder={() => setShowOrderForm(true)}
-            />
-          </div>
-          <div className="lg:col-span-1">
-            <OrderParserChat onOrderParsed={handleButchParsed} />
-          </div>
-        </div>
+        <ButcherCutCalculator
+          onOrderSignIn={handleOrderSignIn}
+          onOrderCreateAccount={handleOrderCreateAccount}
+          onAddRecommendedToCart={handleAddRecommendedToCart}
+          onContactOrder={() => setShowOrderForm(true)}
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">

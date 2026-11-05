@@ -8,11 +8,11 @@ This repository has exactly one vault: `vault_system/` at the repository root. S
 
 | Sub-vault | Data |
 |---|---|
-| `apriori/`, `posteriori/` | Renova canonical knowledge and learned records |
-| `farm_orb/` | Crawl evidence, pointer map, and Orb Weaver source snapshots |
-| `substrate/` | Intake, indexes, OCR, source pointers, and human escalations |
+| `apriori/`, `posteriori/` | Retained knowledge and learned records (no active writer) |
+| `farm_orb/`, `site_data/` | Retained website crawl and audit evidence (no active consumer) |
+| `substrate/` | Retained intake, OCR, and escalation records (no active writer) |
 | `shep/` | Governed state, tool-call audit, worker learning, and traces |
-| `butch/` | Customer memory, order support, promotions, and voice cache |
+| `butch/` | Retained customer memory and promotion records (no active writer) |
 | `documents/`, `nft/` | Durable generated farm documents and certificates |
 | `validators/`, `worker_chat/` | Validator observations and worker conversations |
 | `audit/` | Append-only events and hashed inventories |

@@ -4,7 +4,6 @@ import Navigation from "../components/Navigation";
 import PriceTicker from "../components/PriceTicker";
 import Footer from "../components/Footer";
 import { getApiBaseUrl } from "../lib/backend";
-import { resolveMediaUrl } from "../lib/media";
 
 const API = getApiBaseUrl();
 
@@ -46,7 +45,7 @@ const AboutPage = () => {
 
       <section className="py-20 px-6 max-w-5xl mx-auto" data-testid="about-page">
         {loading ? (
-          <div className="text-center py-20" data-testid="about-loading">
+          <div className="text-center py-20 min-h-[90vh]" data-testid="about-loading">
             <div className="spinner w-12 h-12 border-4 border-[#0f5132] border-t-transparent rounded-full mx-auto"></div>
             <p className="mt-4 text-gray-600">Loading...</p>
           </div>
@@ -56,7 +55,7 @@ const AboutPage = () => {
               <img 
                 src="/ShilohRidgeFarmicon256.png" 
                 alt="Shiloh Ridge Farm"
-                className="w-56 mx-auto mb-8 object-contain opacity-90"
+                width="224" height="227" className="w-56 mx-auto mb-8 object-contain opacity-90"
                 data-testid="about-logo"
               />
               <h1 className="text-4xl sm:text-5xl font-bold mb-6 text-[#0f5132]" data-testid="about-title">
@@ -92,6 +91,8 @@ const AboutPage = () => {
               <img
                 src="/katahdin-sheep-grazing_orig.jpg"
                 alt="Shiloh Ridge Farm flock resting under shade trees"
+                width="925"
+                height="617"
                 className="w-full object-cover"
                 style={{ maxHeight: "380px", objectFit: "cover", objectPosition: "center 40%" }}
               />
@@ -99,8 +100,12 @@ const AboutPage = () => {
 
             <div className="mb-12 overflow-hidden rounded-2xl bg-white p-8 shadow-lg md:p-10" data-testid="about-shep-section">
               <img
-                src={resolveMediaUrl("assets/images/best_shep.png")}
-                alt="Shep, the beloved farm dog who inspired the Shiloh Ridge website ORB"
+                src="/best_shep-480.webp"
+                width="480"
+                height="480"
+                loading="lazy"
+                decoding="async"
+                alt="Shep, the beloved farm dog of Shiloh Ridge Farm"
                 className="mx-auto mb-6 h-52 w-52 rounded-full object-cover shadow-md md:float-left md:mb-3 md:mr-8"
                 data-testid="about-shep-image"
               />
@@ -108,9 +113,7 @@ const AboutPage = () => {
               <p className="text-lg leading-relaxed text-gray-700">
                 Shep was a beloved dog who cared for the sheep at Shiloh Ridge Farm for several years. He was a
                 steady, familiar presence with the flock and became a cherished part of life on the farm. His years
-                of loyal companionship and watchful care are the origin of Shep, our website ORB. Just as the real
-                Shep looked after the sheep, the Shep ORB is here to warmly guide visitors around the farm website
-                and help them find what they need.
+                of loyal companionship and watchful care are remembered fondly by everyone at Shiloh Ridge.
               </p>
             </div>
 

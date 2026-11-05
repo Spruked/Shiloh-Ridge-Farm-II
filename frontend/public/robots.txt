@@ -1,9 +1,13 @@
 User-agent: *
 Allow: /
-Disallow: /admin/
-Disallow: /account/
-Disallow: /checkout/
+Disallow: /admin
+Disallow: /account
 Disallow: /cart
+Disallow: /checkout
 Disallow: /mobile
+Disallow: /login
+Disallow: /signup
+Disallow: /dashboard
 
 Sitemap: https://shilohridgekatahdins.com/sitemap.xml
+Sitemap: https://api.shilohridgekatahdins.com/api/sitemap-livestock.xml

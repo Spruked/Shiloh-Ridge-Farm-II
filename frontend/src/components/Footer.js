@@ -44,8 +44,8 @@ const Footer = () => {
                 <p>Maitland, Missouri 64466</p>
               </div>
               <div className="pt-2">
-                <p><strong>Email:</strong> <a href="mailto:dominichanway@gmail.com" className="text-blue-300 hover:text-blue-200">dominichanway@gmail.com</a></p>
-                <p><strong>Phone:</strong> <a href="tel:+1-660-254-6226" className="text-blue-300 hover:text-blue-200">(660) 254-6226</a></p>
+                <p><strong>Email:</strong> <a href="mailto:dominichanway@gmail.com" className="text-blue-300 underline underline-offset-2 hover:text-blue-200">dominichanway@gmail.com</a></p>
+                <p><strong>Phone:</strong> <a href="tel:+1-660-254-6226" className="text-blue-300 underline underline-offset-2 hover:text-blue-200">(660) 254-6226</a></p>
               </div>
             </div>
           </div>
@@ -54,7 +54,7 @@ const Footer = () => {
         <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
           <p data-testid="footer-copyright">© {new Date().getFullYear()} Shiloh Ridge Farm. All rights reserved.</p>
           <p className="mt-2 text-sm"><Link to="/privacy" className="hover:text-white">Privacy</Link> · <Link to="/terms" className="hover:text-white">Terms</Link></p>
-          <p className="text-xs mt-2">Website by <a href="https://spruked.com" target="_blank" rel="noopener noreferrer" className="text-blue-300 hover:text-blue-200">Spruked.com</a> - Websites and web applications you can count on! Featuring AI and NFT integration.</p>
+          <p className="text-xs mt-2">Website by <a href="https://spruked.com" target="_blank" rel="noopener noreferrer" className="text-blue-300 underline underline-offset-2 hover:text-blue-200">Spruked.com</a> - Websites and web applications you can count on! Featuring AI and NFT integration.</p>
         </div>
       </div>
     </footer>

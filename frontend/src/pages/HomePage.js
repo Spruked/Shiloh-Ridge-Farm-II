@@ -45,7 +45,7 @@ const HomePage = () => {
         <div 
           className="absolute inset-0 bg-cover bg-center"
           style={{
-            backgroundImage: 'url(/Sheep+Grazing+Sunset.webp)',
+            backgroundImage: 'url(/hero-1280.webp)',
             filter: 'brightness(0.56)'
           }}
         />
@@ -101,7 +101,7 @@ const HomePage = () => {
               <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-md bg-[#e7eddc] text-[#0f5132]">
                 <Icon size={26} strokeWidth={1.8} aria-hidden="true" />
               </div>
-              <h3 className="mb-4 text-2xl font-bold text-[#0f5132]">{title}</h3>
+              <h2 className="mb-4 text-2xl font-bold text-[#0f5132]">{title}</h2>
               <p className="leading-relaxed text-gray-700">{description}</p>
             </div>
           ))}
